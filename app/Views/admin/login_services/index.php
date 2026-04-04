@@ -3,7 +3,7 @@
 
 <div class="page-header">
     <div class="page-title">
-        <h1>Daftar Layanan Login</h1>
+        <h1>Daftar Layanan</h1>
         <p>Layanan yang ditampilkan di panel kanan halaman login</p>
     </div>
     <div class="page-actions">
