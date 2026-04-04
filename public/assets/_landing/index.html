@@ -1,0 +1,566 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<style >
+    @media print {
+        .noprint {
+            display: none;
+        }
+    }
+
+    /* carousel css */
+    #carouselModal>div>div {
+        background-color: transparent !important;
+        border: 0 !important;
+    }
+
+    #carouselModal>div>div>div.modal-footer {
+        border-top-color: transparent !important;
+    }
+
+    #carouselExampleIndicators>div.carousel-inner.text-center>div>img {
+        width: 35% !important;
+        height: 20% !important;
+    }
+
+    @media (max-width: 991px) {
+        #carouselModal>div {
+            max-width: 100% !important;
+        }
+
+        #carouselExampleIndicators>div.carousel-inner.text-center>div>img {
+            width: 60% !important;
+            height: auto;
+        }
+    }
+
+    @media (max-width: 767px) {
+        #carouselModal>div {
+            max-width: 100% !important;
+        }
+
+        #carouselExampleIndicators>div.carousel-inner.text-center>div>img {
+            width: 80% !important;
+            height: auto;
+        }
+    }
+
+    :root {
+        /* Override the default colors */
+        --ck-border-radius: 4px;
+        --ck-font-size-base: 14px;
+        --ck-custom-background: hsl(270, 1%, 29%);
+        --ck-custom-foreground: hsl(255, 3%, 18%);
+        /* ... and other custom color variables ... */
+    }
+
+    /* Apply the night mode colors */
+    .ck-editor__main {
+        background-color: var(--ck-custom-background);
+        color: var(--ck-custom-foreground);
+    }
+
+    .ck-toolbar {
+        background-color: var(--ck-custom-background);
+    }
+
+    .ck-editor__editable {
+        min-height: 300px;
+        height: 300px !important;
+    }
+</style>
+
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+
+    <title>Romantik</title>
+    <meta content="Romantik - Rekomendasi Kegiatan Statistik" name="description">
+    <meta content="romantik, rekomendasi, statistik" name="keywords">
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="id" />
+    <meta property="og:title" content="Romantik" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://romantik.web.bps.go.id/assets/img/logo-romantik.svg" />
+    <meta property="og:description" content="Pengajuan Rancangan Kegiatan Statistik Sektoral" />
+    <meta property="og:url" content="" />
+    <meta property="og:site_name" content="Romantik" />
+
+    <!-- Favicons -->
+    <link rel="icon" href="https://romantik.web.bps.go.id/assets/img/logo-romantik.svg" >
+    <link href="https://fonts.googleapis.com/css?family=Quicksand:300,300i,400,400i,600,600i,700,700i|Montserrat:300,300i,400,400i,500,500i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/js/all.min.js" crossorigin="anonymous" ></script>
+
+    <link href="https://romantik.web.bps.go.id/assets/vendors/bootstrap/css/bootstrap.css" rel="stylesheet" >
+    <link href="https://romantik.web.bps.go.id/assets/vendors/bootstrap-icons/bootstrap-icons.css" rel="stylesheet" >
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/rateYo/2.3.4/jquery.rateyo.min.css" integrity="sha512-JEUoTOcC35/ovhE1389S9NxeGcVLIqOAEzlpcJujvyUaxvIXJN9VxPX0x1TwSo22jCxz2fHQPS1de8NgUyg+nA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link href="https://romantik.web.bps.go.id/assets/css/style.css" rel="stylesheet" >
+    <link rel="stylesheet" href="https://cdn.ckeditor.com/ckeditor5/43.0.0/ckeditor5.css"  />
+    <link href="https://romantik.web.bps.go.id/assets/vendors/aos/aos.css" rel="stylesheet">
+    <script type="text/javascript">
+        var csrfName = 'csrf_test_name';
+        var csrfHash = '8440fd58db69e936494ca795831dba8c';
+    </script>
+</head>
+
+<body>
+    <header id="header" class="fixed-top d-flex align-items-center header-transparent noprint">
+        <div class="container d-flex align-items-center justify-content-between noprint">
+            <div class="logo d-flex align-items-center">
+                <img class="img-fluid" src="https://romantik.web.bps.go.id/assets/img/logo-romantik.svg" alt="Romantik">
+                <h1 class="ml-3"><a href="https://romantik.web.bps.go.id/"><span>ROMANTIK</span></a></h1>
+            </div>
+
+            <nav id="navbar" class="navbar noprint">
+                <ul>
+                    <li><a class="nav-link active" href="https://romantik.web.bps.go.id/">Beranda</a></li>
+                    <!-- <li><a class="nav-link " href="https://romantik.web.bps.go.id/tentang">Tentang</a></li> -->
+                    <li><a class="nav-link " href="https://romantik.web.bps.go.id/rekomendasi-terbit">Rekomendasi Terbit</a></li>
+                    <li><a class="nav-link " href="https://romantik.web.bps.go.id/panduan">Panduan</a></li>
+                                            <li><a class="nav-link" href="https://romantik.web.bps.go.id/login">Login</a></li>
+                                    </ul>
+                <i class="bi bi-list mobile-nav-toggle"></i>
+            </nav><!-- .navbar -->
+
+        </div>
+    </header>
+    <section id="hero">
+    <div class="container">
+        <div class="row justify-content-between">
+            <div class="col-lg-7 pt-5 pt-lg-0 order-2 order-lg-1 d-flex align-items-center">
+                <div data-aos="zoom-out">
+                    <h1>Selamat datang di <span>Romantik</span></h1>
+                    <h2>Layanan bagi instansi pemerintah untuk mendapatkan rekomendasi penyelenggaraan kegiatan statistik sektoral dari BPS.</h2>
+                    <div class="text-center text-lg-start">
+                        <a href="https://romantik.web.bps.go.id/pengajuan-rekomendasi" class="btn btn-get-started scrollto">Ajukan Rekomendasi</a>
+                        <a href="#romantik" class="btn btn-more-info scrollto">Info Lebih Lanjut</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 order-1 order-lg-2 hero-img" data-aos="zoom-out" data-aos-delay="300">
+                <img src="https://romantik.web.bps.go.id/assets/img/header.svg" class="img-fluid" alt="">
+            </div>
+        </div>
+    </div>
+
+    <svg class="hero-waves" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 24 150 28 " preserveAspectRatio="none">
+        <defs>
+            <path id="wave-path" d="M-160 44c30 0 58-18 88-18s 58 18 88 18 58-18 88-18 58 18 88 18 v44h-352z">
+        </defs>
+        <g class="wave1">
+            <use xlink:href="#wave-path" x="50" y="3" fill="rgba(255,255,255, .1)">
+        </g>
+        <g class="wave2">
+            <use xlink:href="#wave-path" x="50" y="0" fill="rgba(255,255,255, .2)">
+        </g>
+        <g class="wave3">
+            <use xlink:href="#wave-path" x="50" y="9" fill="#fff">
+        </g>
+    </svg>
+</section>
+<main id="main">
+    <section id="romantik" class="about">
+        <div class="container-fluid">
+            <div class="row d-flex ">
+                <div class="col-xl-5 col-lg-4 d-flex justify-content-center align-items-stretch" data-aos="fade-right">
+                    <img src="https://romantik.web.bps.go.id/assets/img/logo-romantik.svg" class="img-fluid" style="height:300px" alt="logo romantik">
+                </div>
+                <div class="col-xl-7 col-lg-8 icon-boxes d-flex flex-column align-items-stretch justify-content-center py-5 px-lg-5" data-aos="fade-left">
+                    <h3>Rekomendasi Kegiatan Statistik</h3>
+                    <p>
+                        Rekomendasi kegiatan statistik merupakan saran dan masukan yang diberikan oleh BPS terhadap rancangan kegiatan statistik sektoral yang disampaikan oleh Kementerian/Lembaga/Dinas/Instansi Pemerintah Lainnya (K/L/D/I).
+                    </p>
+                    <p>
+                        Mekanisme pemberian rekomendasi kegiatan statistik bertujuan untuk menghindari duplikasi penyelenggaraan kegiatan statistik sektoral dan mendorong perolehan hasil yang dapat dipertanggungjawabkan secara teknis.
+                    </p>
+                    <p>
+                        Peran aktif K/L/D/I dalam menyampaikan rancangan dan mengajukan rekomendasi kegiatan statistik kepada BPS dapat turut mewujudkan Sistem Statistik Nasional (SSN) yang andal, efektif, dan efisien.
+                    </p>
+                    <div class="col-4">
+                        <a href="https://romantik.web.bps.go.id/tentang" class="btn-more">
+                            Selengkapnya <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section><!-- End About Section -->
+    <!-- ======= Features Section ======= -->
+    <section id="features" class="about">
+        <div class="container mb-4">
+
+            <div class="section-title" data-aos="fade-up">
+                <h2>Standar Pelayanan</h2>
+                <p>Mekanisme Layanan Rekomendasi Kegiatan Statistik</p>
+            </div>
+            <div class="row">
+                <div class="col-lg-6 icon-boxes" data-aos="fade-left">
+                    <div class="icon-box" data-aos="zoom-in" data-aos-delay="100">
+                        <div class="icon"><i class="bi bi-1-circle-fill"></i></div>
+                        <h4 class="title"><a href="">Pengajuan</a></h4>
+                        <p class="description">
+                            Pengguna layanan masuk ke aplikasi Romantik dan mengisi formulir rancangan kegiatan statistik.
+                        </p>
+                    </div>
+
+                    <div class="icon-box" data-aos="zoom-in" data-aos-delay="200">
+                        <div class="icon"><i class="bi bi-2-circle-fill"></i></div>
+                        <h4 class="title"><a href="">Pemeriksaan</a></h4>
+                        <p class="description">Petugas layanan memeriksa formulir rancangan kegiatan statistik. Jika perlu perlu diperbaiki, petugas akan mengirim kembali ke pengguna layanan untuk diperbaiki.</p>
+                    </div>
+
+                    <div class="icon-box" data-aos="zoom-in" data-aos-delay="300">
+                        <div class="icon"><i class="bi bi-3-circle-fill"></i></div>
+                        <h4 class="title"><a href="">Perbaikan</a></h4>
+                        <p class="description">
+                            Pengguna layanan memperbaiki formulir sesuai catatan perbaikan yang diberikan petugas layanan.
+                        </p>
+                    </div>
+                </div>
+                <div class="col-lg-6 icon-boxes" data-aos="fade-left">
+                    <div class="icon-box" data-aos="zoom-in" data-aos-delay="400">
+                        <div class="icon"><i class="bi bi-4-circle-fill"></i></div>
+                        <h4 class="title"><a href="">Pengesahan</a></h4>
+                        <p class="description">
+                            Petugas layanan mengesahkan formulir rancangan kegiatan statistik yang layak.
+                        </p>
+                    </div>
+
+                    <div class="icon-box" data-aos="zoom-in" data-aos-delay="500">
+                        <div class="icon"><i class="bi bi-5-circle-fill"></i></div>
+                        <h4 class="title"><a href="">Penerbitan</a></h4>
+                        <p class="description">
+                            Petugas layanan menerbitkan surat rekomendasi dan mengirimkan ke pengguna layanan.
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+
+    </section><!-- End Features Section -->
+    <!-- ======= Testimonials Section ======= -->
+    <section id="testimonials" class="testimonials">
+        <div class="container">
+            <div class="testimonials-slider swiper" data-aos="fade-up" data-aos-delay="100">
+                <div class="swiper-wrapper">
+                    <div class="swiper-slide">
+                        <div class="testimonial-item">
+                            <h1>Maklumat Pelayanan</h1>
+                            <p>
+                                <i class="bx bxs-quote-alt-left quote-icon-left"></i>
+                                Dengan ini kami menyatakan sanggup menyelenggarakan pelayanan sesuai dengan standar pelayanan yang telah ditetapkan dan apabila kami tidak menepati janji, kami siap menerima sanksi sesuai dengan peraturan yang berlaku.
+                                <i class="bx bxs-quote-alt-right quote-icon-right"></i>
+                            </p>
+                        </div>
+                    </div><!-- End testimonial item -->
+                </div>
+            </div>
+
+        </div>
+    </section>
+    <section id="counts" class="counts">
+        <div class="container">
+            <div class="section-title" data-aos="fade-up">
+                <h2>Statistik Romantik 2025</h2>
+            </div>
+            <div class="row" data-aos="fade-up">
+                <div class="col-lg-4 col-md-4">
+                    <div class="count-box">
+                        <i class="bi bi-buildings"></i>
+                        <span data-purecounter-start="0" data-purecounter-end="2211" data-purecounter-duration="1" class="purecounter"></span>
+                        <p>K/L/D/I yang Mengajukan Rekomendasi</p>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 col-md-4 mt-5 mt-md-0">
+                    <div class="count-box">
+                        <i class="bi bi-file-arrow-down"></i>
+                        <span data-purecounter-start="0" data-purecounter-end="3071" data-purecounter-duration="1" class="purecounter"></span>
+                        <p>Pengajuan Rekomendasi</p>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 col-md-4 mt-5 mt-lg-0">
+                    <div class="count-box">
+                        <i class="bi bi-file-arrow-up"></i>
+                        <span data-purecounter-start="0" data-purecounter-end="2614" data-purecounter-duration="1" class="purecounter"></span>
+                        <p>Rekomendasi Terbit</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</main>
+    <footer class="site-footer noprint">
+        <div class="container noprint">
+            <div class="row">
+                <div class="col-lg-6 footer-hubungi">
+                    <h6>Hubungi Kami</h6>
+                    <div class="row align-items-start">
+                        <div class="col-1">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </div>
+                        <div class="col-11">
+                            <a target="_blank" class="footer-link" href="https://www.google.com/maps/place/Badan+Pusat+Statistik/@-6.1653197,106.8362427,18z/data=!4m5!3m4!1s0x2e69f5043d80af5b:0x606cc4c31fe3db80!8m2!3d-6.1653224!4d106.837337">
+                                <p class="footer-link">Gedung 2, BPS, Jl. Dr. Sutomo No.6-8, Ps. Baru, Kecamatan Sawah Besar, Kota Jakarta Pusat, Daerah Khusus Ibukota Jakarta 10710</p>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="row align-items-start">
+                        <div class="col-1">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div class="col-11">
+                            <a target="_blank" class="footer-link" href="mailto:pst@bps.go.id">
+                                <p class="footer-link">pst@bps.go.id</p>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="row align-items-start">
+                        <div class="col-1">
+                            <i class="fas fa-phone-alt"></i>
+                        </div>
+                        <div class="col-11">
+                            <p>Telp (0323) 321053</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-sm-12 footer-logo">
+                    <a href="" data-bs-toggle="modal" data-bs-target="#ISO"><img class="img-responsive " src="https://romantik.web.bps.go.id/assets/img/iso_5.png" alt="ISO 9001" style="width: 130px;"></a>
+                    <div class="modal fade" id="ISO" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="ISOLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                            <div class="modal-content">
+
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="staticBackdropLabel">Sertifikat ISO</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+
+                                <div class="modal-body">
+                                    <div class="container-fluid">
+                                        <div class="row mb-4">
+                                            <iframe src="https://romantik.web.bps.go.id/assets/file/sertifikat-iso.pdf" frameborder="0" width="100%" height="650px"></iframe>
+                                            <!-- <img src="https://romantik.web.bps.go.id/assets/file/sertifikat-iso.png" alt="ISO 9001:2015"> -->
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-primary btn-c2r2-custom" data-bs-dismiss="modal">Tutup</button>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 footer-aturan">
+                    <p><a href="" class="footer-link" data-bs-toggle="modal" data-bs-target="#unduh">Unduh Formulir</a></p>
+                    <div class="modal fade" id="unduh" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="unduhLabel" aria-hidden="true">
+                        <div class="modal-dialog  modal-dialog-centered modal-dialog-scrollable">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="unduhLabel">Unduh Dokumen Terkait Romantik</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body mx-auto my-auto">
+                                    <div class="row text-center">
+                                        <div class="col-12 justify-content-center">
+                                            <a target="_blank" href="https://romantik.web.bps.go.id/assets/file/formulir_romantik.pdf"><img src="https://romantik.web.bps.go.id/assets/file/Formulir.png" alt="Kuesioner Romantik" style="height: 500px;"></a>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer"><button type="button" class="btn btn-primary btn-c2r2-custom" data-bs-dismiss="modal">Tutup</button></div>
+                            </div>
+                        </div>
+                    </div>
+                    <p><a href="" class="footer-link" data-bs-toggle="modal" data-bs-target="#standar-pelayanan">Standar Pelayanan</a></p>
+                    <div class="modal fade" id="standar-pelayanan" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="StandarLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                            <div class="modal-content">
+
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="staticBackdropLabel">Standar Pelayanan</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+
+                                <div class="modal-body">
+                                    <div class="container-fluid">
+                                        <div class="row mb-4">
+                                            <img class="footer-content-modal" src="https://romantik.web.bps.go.id/assets/file/standar-pelayanan.png" alt="Standar Pelayanan">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-primary btn-c2r2-custom" data-bs-dismiss="modal">Tutup</button>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                    <p><a href="" class="footer-link" data-bs-toggle="modal" data-bs-target="#maklumat-pelayanan">Maklumat Pelayanan</a></p>
+                    <div class="modal fade" id="maklumat-pelayanan" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="StandarLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="width: fit-content;">
+                            <div class="modal-content">
+
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="staticBackdropLabel">Maklumat Pelayanan</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+
+                                <div class="modal-body">
+                                    <div class="container-fluid">
+                                        <div class="row mb-4">
+                                            <img src="https://romantik.web.bps.go.id/assets/file/maklumat-pelayanan.jpg" alt="Maklumat Pelayanan">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-primary btn-c2r2-custom" data-bs-dismiss="modal">Tutup</button>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                    <p><a href="https://pst.bps.go.id/#layanan" target="_blank" class="footer-link">Pelayanan Statistik Terpadu</a></p>
+                    <p><a href="https://webapps.bps.go.id/pengaduan/" target="_blank" class="footer-link">Pengaduan</a></p>
+                </div>
+            </div>
+            <hr>
+        </div>
+        <div class="container noprint">
+            <div class="row">
+                <div class="col-md-8 col-sm-6 col-xs-12">
+                    <p class="copyright-text footer-link">&copy;
+                        <a class="footer-link" href="https://www.bps.go.id/">Inspektorat Daerah</a> — 2025
+                    </p>
+                </div>
+
+                <div class="col-md-4 col-sm-6 col-xs-12">
+                    <ul class="social-icons">
+                        <li><a class="youtube" target="_blank" href="https://www.youtube.com/channel/UCn4IaaxHaaP-mAjZzrAtixA"><i class="fa-brands fa-youtube"></i></a></li>
+                        <li><a class="instagram" target="_blank" href="https://www.instagram.com/bps_statistics/"><i class="fa-brands fa-instagram"></i></a></li>
+                        <li><a class="facebook" target="_blank" href="https://www.facebook.com/bpsstatistics"><i class="fa-brands fa-facebook"></i></a></li>
+                        <li><a class="twitter" target="_blank" href="https://twitter.com/bps_statistics"><i class="fa-brands fa-twitter"></i></a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </footer>
+    <a href="https://silastik.bps.go.id/v3/index.php/transaksiKonsultasi/konsultasi_form/" target="_blank" class="silastik noprint" data-toggle="tooltip" data-placement="left" title="Konsultasi Rekomendasi Kegiatan Statistik via Silastik">
+        <i class="fas fa-comments my-silastik"></i>
+    </a>
+    <div class="noprint">
+        <a href="#" class="back-to-top d-flex align-items-center justify-content-center noprint active"><i class="bi bi-arrow-up-short noprint"></i></a>
+    </div>
+    <div id="preloader" class="noprint"></div>
+
+
+    <script src="https://romantik.web.bps.go.id/assets/vendors/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Template Main JS File -->
+    <script src="https://romantik.web.bps.go.id/assets/js/main.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://code.jquery.com/jquery-3.6.3.min.js" ></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/rateYo/2.3.4/jquery.rateyo.min.js" integrity="sha512-09bUVOnphTvb854qSgkpY/UGKLW9w7ISXGrN0FR/QdXTkjs0D+EfMFMTB+CGiIYvBoFXexYwGUD5FD8xVU89mw==" crossorigin="anonymous" referrerpolicy="no-referrer" ></script>
+    <!-- <script src="https://website-widgets.pages.dev/dist/sienna.min.js" defer></script> -->
+    <script src="https://cdn.ckeditor.com/ckeditor5/43.0.0/ckeditor5.umd.js"></script>
+
+    <script>
+        const LICENSE_KEY = 'GPL';
+        const {
+            ClassicEditor,
+            Autoformat,
+            Bold,
+            Italic,
+            Underline,
+            BlockQuote,
+            Base64UploadAdapter,
+            CloudServices,
+            Essentials,
+            Heading,
+            PictureEditing,
+            Indent,
+            IndentBlock,
+            Link,
+            List,
+            Mention,
+            PasteFromOffice,
+            Table,
+            TableColumnResize,
+            TableToolbar,
+            TextTransformation,
+            Alignment,
+            FontFamily,
+        } = CKEDITOR;
+        $(function() {
+            $('.asw-widget').addClass('noprint');
+            $('[data-toggle="tooltip"]').tooltip();
+            //if ('1') {
+            //    $('#carouselModal').modal('show');
+            //}
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (settings.type === 'POST') {
+                        xhr.setRequestHeader(csrfName, csrfHash);
+                    }
+                }
+            });
+        });
+    </script>
+    <script src="https://romantik.web.bps.go.id/assets/vendors/purecounter/purecounter_vanilla.js"></script>
+<script src="https://romantik.web.bps.go.id/assets/vendors/aos/aos.js"></script>
+<script >
+    /**
+     * Animation on scroll
+     */
+    window.addEventListener('load', () => {
+        AOS.init({
+            duration: 1000,
+            easing: 'ease-in-out',
+            once: true,
+            mirror: false
+        })
+    });
+
+    /**
+     * Initiate Pure Counter 
+     */
+    new PureCounter();
+</script>
+</body>
+<!-- Modal -->
+<div class="modal fade" id="carouselModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body">
+                <div id="carouselExampleIndicators" class="carousel slide" data-bs-ride="carousel">
+                    <div class="carousel-indicators">
+                        <button type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
+                    </div>
+                    <div class="carousel-inner text-center">
+                        <div class="carousel-item active">
+                            <img src="https://romantik.web.bps.go.id/assets/img/carousel/1.jpg" alt="">
+                        </div>
+                    </div>
+                    <!-- <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button> -->
+                </div>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+</html>
