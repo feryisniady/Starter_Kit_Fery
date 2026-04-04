@@ -6,6 +6,74 @@
     <title>Login — SIP Inspektorat</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="/assets/_main/css/auth.css">
+    <style>
+        /* Lockout Alert */
+        .alert-lockout {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            background: #fff1f2;
+            border: 1px solid #fecdd3;
+            border-left: 4px solid #dc2626;
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 20px;
+        }
+        .lockout-icon {
+            font-size: 22px;
+            color: #dc2626;
+            margin-top: 2px;
+        }
+        .lockout-body strong {
+            display: block;
+            color: #991b1b;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+        .lockout-body p {
+            color: #6b7280;
+            font-size: 13px;
+            margin: 0 0 6px;
+        }
+        .lockout-timer {
+            font-size: 13px;
+            color: #374151;
+        }
+        /* Attempt Progress Bar */
+        .attempt-bar {
+            margin-top: 10px;
+            margin-bottom: 4px;
+        }
+        .attempt-bar-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 5px;
+        }
+        .attempt-bar-track {
+            background: #f3f4f6;
+            border-radius: 99px;
+            height: 6px;
+            overflow: hidden;
+        }
+        .attempt-bar-fill {
+            background: linear-gradient(90deg, #f59e0b, #dc2626);
+            height: 100%;
+            border-radius: 99px;
+            transition: width .4s ease;
+        }
+        /* Disabled state */
+        .btn-login:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            opacity: .8;
+        }
+        input:disabled {
+            background: #f3f4f6 !important;
+            cursor: not-allowed;
+        }
+    </style>
 </head>
 <body>
 
@@ -26,14 +94,46 @@
         <h1>Sistem Informasi Pengawasan APIP..!</h1>
     </div>
 
-    <?php if(session()->getFlashdata('error')): ?>
+    <?php
+        $lockoutUntil = session()->getFlashdata('lockout_until');
+        $attempts     = (int) session()->getFlashdata('attempts');
+        $isLocked     = $lockoutUntil && ($lockoutUntil - time()) > 0;
+        $maxAttempts  = 5;
+    ?>
+
+    <?php if($isLocked): ?>
+    <!-- Alert Lockout -->
+    <div class="alert-lockout" id="alert-lockout">
+        <div class="lockout-icon"><i class="fas fa-lock"></i></div>
+        <div class="lockout-body">
+            <strong>Akses Diblokir Sementara</strong>
+            <p>Terlalu banyak percobaan login yang gagal.</p>
+            <div class="lockout-timer">
+                Coba lagi dalam: <span id="countdown" style="font-weight:700;color:#dc2626"></span>
+            </div>
+        </div>
+    </div>
+    <?php elseif(session()->getFlashdata('error')): ?>
+    <!-- Alert Error biasa -->
     <div class="alert-error">
         <i class="fas fa-circle-exclamation"></i>
-        <?= session()->getFlashdata('error') ?>
+        <?= esc(session()->getFlashdata('error')) ?>
+    </div>
+    <?php if($attempts > 0): ?>
+    <!-- Progress bar percobaan -->
+    <div class="attempt-bar">
+        <div class="attempt-bar-label">
+            <span>Percobaan ke-<?= $attempts ?> dari <?= $maxAttempts ?></span>
+            <span style="color:#dc2626;font-weight:600"><?= $maxAttempts - $attempts ?>x tersisa</span>
+        </div>
+        <div class="attempt-bar-track">
+            <div class="attempt-bar-fill" style="width:<?= ($attempts / $maxAttempts) * 100 ?>%"></div>
+        </div>
     </div>
     <?php endif; ?>
+    <?php endif; ?>
 
-    <form action="/login" method="post">
+    <form action="/login" method="post" id="login-form">
         <?= csrf_field() ?>
 
         <div class="form-group">
@@ -42,6 +142,7 @@
                 <input type="email" name="email"
                     value="<?= old('email') ?>"
                     placeholder="Masukkan email anda"
+                    <?= $isLocked ? 'disabled' : '' ?>
                     required autofocus>
             </div>
         </div>
@@ -52,6 +153,7 @@
                 <input type="password" name="password"
                     id="password-input"
                     placeholder="Masukkan password anda"
+                    <?= $isLocked ? 'disabled' : '' ?>
                     required>
                 <button type="button" class="toggle-pw" onclick="togglePassword()">
                     <i class="fas fa-eye" id="pw-icon"></i>
@@ -63,8 +165,9 @@
             </label>
         </div>
 
-        <button type="submit" class="btn-login">
-            <i class="fas fa-right-to-bracket"></i> Login
+        <button type="submit" class="btn-login" id="btn-login" <?= $isLocked ? 'disabled' : '' ?>>
+            <i class="fas fa-right-to-bracket"></i>
+            <?= $isLocked ? 'Akses Diblokir' : 'Login' ?>
         </button>
 
         <div class="form-footer">
@@ -159,15 +262,39 @@
 <script>
 function togglePassword() {
     var input = document.getElementById('password-input');
-    var icon = document.getElementById('pw-icon');
+    var icon  = document.getElementById('pw-icon');
     if (input.type === 'password') {
-        input.type = 'text';
+        input.type    = 'text';
         icon.className = 'fas fa-eye-slash';
     } else {
-        input.type = 'password';
+        input.type    = 'password';
         icon.className = 'fas fa-eye';
     }
 }
+
+// Countdown lockout timer
+<?php if($isLocked): ?>
+(function() {
+    var lockoutUntil = <?= (int) $lockoutUntil ?>;
+    var countdown    = document.getElementById('countdown');
+    var btnLogin     = document.getElementById('btn-login');
+
+    function updateTimer() {
+        var remaining = lockoutUntil - Math.floor(Date.now() / 1000);
+        if (remaining <= 0) {
+            // Waktu habis — reload halaman
+            window.location.reload();
+            return;
+        }
+        var m = Math.floor(remaining / 60);
+        var s = remaining % 60;
+        countdown.textContent = (m > 0 ? m + ' menit ' : '') + s + ' detik';
+    }
+
+    updateTimer();
+    var timer = setInterval(updateTimer, 1000);
+})();
+<?php endif; ?>
 </script>
 
 </body>
