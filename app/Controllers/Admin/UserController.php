@@ -76,17 +76,22 @@ class UserController extends BaseController
                 ->with('error', $errorString); // Kita gunakan key 'error' agar ditangkap layout
         }
 
-        $userId = $this->userModel->insert([
-            'name'     => $this->request->getPost('name'),
-            'email'    => $this->request->getPost('email'),
+        $newData = [
+            'name'   => $this->request->getPost('name'),
+            'email'  => $this->request->getPost('email'),
+            'status' => $this->request->getPost('status') ?? 'active',
+        ];
+
+        $userId = $this->userModel->insert(array_merge($newData, [
             'password' => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
-            'status'   => $this->request->getPost('status') ?? 'active',
-        ]);
+        ]));
 
         $roleIds = $this->request->getPost('roles') ?? [];
         $this->userModel->syncRoles($userId, $roleIds);
 
-        logActivity('user.create', 'user', "Tambah user baru: {$this->request->getPost('name')} ({$this->request->getPost('email')})");
+        logActivity('user.create', 'user', "Tambah user baru: {$newData['name']} ({$newData['email']})", null, null, [
+            'after' => $newData,
+        ]);
 
         return redirect()->to('/admin/users')->with('success', 'User berhasil ditambahkan!');
     }
@@ -111,6 +116,7 @@ class UserController extends BaseController
     // Update user
     public function update(int $id)
     {
+        $oldUser = $this->userModel->find($id);
         $rules = [
             'name'  => 'required|min_length[3]|max_length[100]',
             'email' => "required|valid_email|is_unique[users.email,id,{$id}]",
@@ -158,7 +164,10 @@ class UserController extends BaseController
         $roleIds = $this->request->getPost('roles') ?? [];
         $this->userModel->syncRoles($id, $roleIds);
 
-        logActivity('user.update', 'user', "Update user ID:{$id} — {$this->request->getPost('name')}");
+        logActivity('user.update', 'user', "Update user ID:{$id} — {$dataUpdate['name']}", null, null, [
+            'before' => ['name' => $oldUser['name'], 'email' => $oldUser['email'], 'status' => $oldUser['status']],
+            'after'  => ['name' => $dataUpdate['name'], 'email' => $dataUpdate['email'], 'status' => $dataUpdate['status']],
+        ]);
 
         return redirect()->to('/admin/users')->with('success', 'User berhasil diupdate!');
     }
@@ -174,7 +183,9 @@ class UserController extends BaseController
         $user = $this->userModel->find($id);
         $this->userModel->delete($id);
 
-        logActivity('user.delete', 'user', "Hapus user ID:{$id}" . ($user ? " — {$user['name']}" : ''));
+        logActivity('user.delete', 'user', "Hapus user ID:{$id}" . ($user ? " — {$user['name']}" : ''), null, null, [
+            'before' => $user ? ['name' => $user['name'], 'email' => $user['email'], 'status' => $user['status']] : [],
+        ]);
 
         return $this->response->setJSON([
             'status'  => 'success',

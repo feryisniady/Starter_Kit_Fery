@@ -59,5 +59,6 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	$routes->get('permissions/delete/(:num)', 'Admin\PermissionController::delete/$1', ['filter' => 'permission:permission.delete']);
 	// Activity Log
 	$routes->get('activity-logs', 'Admin\ActivityLogController::index', ['filter' => 'permission:activitylog.view']);
+	$routes->get('activity-logs/export', 'Admin\ActivityLogController::export', ['filter' => 'permission:activitylog.view']);
 });
 

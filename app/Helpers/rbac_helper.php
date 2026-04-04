@@ -99,9 +99,8 @@ if (!function_exists('isActiveMenu')) {
 
 
 if (!function_exists('logActivity')) {
-    function logActivity(string $action, string $module = '', string $description = '', ?int $userId = null, ?string $userName = null): void
+    function logActivity(string $action, string $module = '', string $description = '', ?int $userId = null, ?string $userName = null, array $meta = []): void
     {
-        // Ambil dari session jika tidak di-pass manual
         $userId   = $userId   ?? (int) session()->get('user_id');
         $userName = $userName ?? session()->get('user_name');
 
@@ -114,6 +113,7 @@ if (!function_exists('logActivity')) {
             'action'      => $action,
             'module'      => $module,
             'description' => $description,
+            'meta'        => !empty($meta) ? json_encode($meta, JSON_UNESCAPED_UNICODE) : null,
             'ip_address'  => $request->getIPAddress(),
             'user_agent'  => $request->getUserAgent()->getAgentString(),
         ]);

@@ -94,7 +94,9 @@ class MenuController extends BaseController
             }
         }
 
-        logActivity('menu.create', 'menu', "Tambah menu baru: {$this->request->getPost('label')}");
+        logActivity('menu.create', 'menu', "Tambah menu baru: {$this->request->getPost('label')}", null, null, [
+            'after' => ['label' => $this->request->getPost('label'), 'url' => $url, 'icon' => $this->request->getPost('icon')],
+        ]);
 
         return redirect()->to('/admin/menus')
         ->with('success', 'Menu berhasil ditambahkan!');
@@ -114,6 +116,7 @@ class MenuController extends BaseController
 
     public function update(int $id)
     {
+        $oldMenu  = $this->menuModel->find($id);
         $parentId = $this->request->getPost('parent_id') ?: null;
         $url      = $this->request->getPost('url');
 
@@ -142,7 +145,10 @@ class MenuController extends BaseController
             'section'    => $this->request->getPost('section') ?: 'main',
         ]);
 
-        logActivity('menu.update', 'menu', "Update menu ID:{$id} — {$this->request->getPost('label')}");
+        logActivity('menu.update', 'menu', "Update menu ID:{$id} — {$this->request->getPost('label')}", null, null, [
+            'before' => $oldMenu ? ['label' => $oldMenu['label'], 'url' => $oldMenu['url'], 'icon' => $oldMenu['icon']] : [],
+            'after'  => ['label' => $this->request->getPost('label'), 'url' => $url, 'icon' => $this->request->getPost('icon')],
+        ]);
 
         return redirect()->to('/admin/menus')
         ->with('success', 'Menu berhasil diupdate!');
@@ -157,7 +163,9 @@ class MenuController extends BaseController
         $menu = $this->menuModel->find($id);
         $this->menuModel->delete($id);
 
-        logActivity('menu.delete', 'menu', "Hapus menu ID:{$id}" . ($menu ? " — {$menu['label']}" : ''));
+        logActivity('menu.delete', 'menu', "Hapus menu ID:{$id}" . ($menu ? " — {$menu['label']}" : ''), null, null, [
+            'before' => $menu ? ['label' => $menu['label'], 'url' => $menu['url']] : [],
+        ]);
 
         return $this->response->setJSON([
             'status'  => 'success',

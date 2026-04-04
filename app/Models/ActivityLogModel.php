@@ -10,12 +10,29 @@ class ActivityLogModel extends Model
     protected $primaryKey = 'id';
 
     protected $allowedFields = [
-        'user_id', 'user_name', 'action', 'module', 'description', 'ip_address', 'user_agent',
+        'user_id', 'user_name', 'action', 'module', 'description', 'meta', 'ip_address', 'user_agent',
     ];
 
     protected $useTimestamps  = true;
     protected $updatedField   = ''; // hanya created_at
     protected $createdField   = 'created_at';
+
+    // Stats untuk summary cards
+    public function getStats(): array
+    {
+        $today = date('Y-m-d');
+        return [
+            'total'         => $this->countAll(),
+            'today'         => $this->where('DATE(created_at)', $today)->countAllResults(),
+            'login_today'   => $this->where('action', 'login')->where('DATE(created_at)', $today)->countAllResults(),
+            'failed_today'  => $this->like('action', 'login_failed')->where('DATE(created_at)', $today)->countAllResults(),
+            'top_user'      => $this->select('user_name, COUNT(*) as total')
+                                    ->where('user_name IS NOT NULL')
+                                    ->groupBy('user_name')
+                                    ->orderBy('total', 'DESC')
+                                    ->first(),
+        ];
+    }
 
     // Ambil log dengan filter — DataTables handle paginasi di sisi client
     public function getLogsFiltered(array $filters = []): array
@@ -24,6 +41,9 @@ class ActivityLogModel extends Model
 
         if (!empty($filters['module'])) {
             $builder->where('module', $filters['module']);
+        }
+        if (!empty($filters['user_id'])) {
+            $builder->where('user_id', $filters['user_id']);
         }
         if (!empty($filters['date_from'])) {
             $builder->where('created_at >=', $filters['date_from'] . ' 00:00:00');
