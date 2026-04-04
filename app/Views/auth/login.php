@@ -72,18 +72,39 @@
             justify-content: center;
             align-items: center;
             margin: 28px 0;
+            /* Ring luar paling tipis */
+            position: relative;
         }
-        .illustration-circle-ring {
-            width: 260px;
-            height: 260px;
+        /* Ring 3 — paling luar, transparan */
+        .illustration-circle::before {
+            content: '';
+            position: absolute;
+            width: 300px;
+            height: 300px;
             border-radius: 50%;
-            padding: 8px;
-            background: linear-gradient(135deg, rgba(255,255,255,.35), rgba(255,255,255,.08));
-            box-shadow:
-                0 0 0 3px rgba(255,255,255,.2),
-                0 0 0 10px rgba(255,255,255,.07),
-                0 20px 60px rgba(0,0,0,.3);
+            border: 1.5px solid rgba(255,255,255,.15);
+        }
+        /* Ring 2 — tengah */
+        .illustration-circle::after {
+            content: '';
+            position: absolute;
+            width: 278px;
+            height: 278px;
+            border-radius: 50%;
+            border: 1.5px solid rgba(255,255,255,.25);
+        }
+        /* Ring 1 — langsung membungkus gambar */
+        .illustration-circle-ring {
+            width: 240px;
+            height: 240px;
+            border-radius: 50%;
+            border: 3px solid rgba(255,255,255,.5);
+            overflow: hidden;
+            box-shadow: 0 8px 40px rgba(0,0,0,.35);
             animation: floatCircle 4s ease-in-out infinite;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 1;
         }
         .illustration-circle-ring img {
             width: 100%;
