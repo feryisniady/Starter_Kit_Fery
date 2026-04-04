@@ -1,68 +1,154 @@
-# CodeIgniter 4 Application Starter
+# CI4 RBAC Starter Kit
 
-## What is CodeIgniter?
+Starter kit berbasis **CodeIgniter 4** dengan sistem RBAC (Role-Based Access Control) lengkap, siap pakai ulang untuk berbagai proyek.
 
-CodeIgniter is a PHP full-stack web framework that is light, fast, flexible and secure.
-More information can be found at the [official site](https://codeigniter.com).
+## Fitur Utama
 
-This repository holds a composer-installable app starter.
-It has been built from the
-[development repository](https://github.com/codeigniter4/CodeIgniter4).
+- **Autentikasi** — Login, logout, manajemen sesi
+- **RBAC** — Role, permission, dan helper `hasRole()` / `hasPermission()`
+- **Rate Limiting Login** — Pembatasan percobaan login dengan lockout & countdown timer
+- **Activity Log** — Audit trail lengkap semua aksi CRUD + login/logout
+- **Manajemen Menu** — Menu dinamis berbasis database dengan sub-menu
+- **Manajemen User** — CRUD user, assign role
+- **Branding Terpusat** — Semua identitas aplikasi dikonfigurasi via `.env`, tanpa ubah kode view
 
-More information about the plans for version 4 can be found in [CodeIgniter 4](https://forum.codeigniter.com/forumdisplay.php?fid=28) on the forums.
+## Persyaratan
 
-You can read the [user guide](https://codeigniter.com/user_guide/)
-corresponding to the latest version of the framework.
+- PHP 8.1+
+- MySQL / MariaDB
+- Composer
+- PHP extensions: `intl`, `mbstring`, `mysqlnd`, `json`
 
-## Installation & updates
+## Instalasi
 
-`composer create-project codeigniter4/appstarter` then `composer update` whenever
-there is a new release of the framework.
+### 1. Clone & Install
 
-When updating, check the release notes to see if there are any changes you might need to apply
-to your `app` folder. The affected files can be copied or merged from
-`vendor/codeigniter4/framework/app`.
+```bash
+git clone <url-repo> nama-proyek
+cd nama-proyek
+composer install
+```
 
-## Setup
+### 2. Konfigurasi Environment
 
-Copy `env` to `.env` and tailor for your app, specifically the baseURL
-and any database settings.
+```bash
+cp .env.example .env
+```
 
-## Important Change with index.php
+Edit `.env` sesuai kebutuhan:
 
-`index.php` is no longer in the root of the project! It has been moved inside the *public* folder,
-for better security and separation of components.
+```env
+# Aplikasi
+CI_ENVIRONMENT = development
+app.baseURL     = 'http://localhost:8080/'
 
-This means that you should configure your web server to "point" to your project's *public* folder, and
-not to the project root. A better practice would be to configure a virtual host to point there. A poor practice would be to point your web server to the project root and expect to enter *public/...*, as the rest of your logic and the
-framework are exposed.
+# Branding (sesuaikan tanpa ubah kode apapun)
+brand.appName    = 'Nama Aplikasi Anda'
+brand.appVersion = '1.0'
+brand.orgName    = 'Nama Instansi / Perusahaan'
+brand.orgShort   = 'Nama Singkat'
+brand.orgWebsite = 'https://example.com'
+brand.appTagline = 'Tagline aplikasi Anda'
 
-**Please** read the user guide for a better explanation of how CI4 works!
+# Database
+database.default.hostname = localhost
+database.default.database = nama_database
+database.default.username = root
+database.default.password =
+```
 
-## Repository Management
+### 3. Migrasi & Seeder
 
-We use GitHub issues, in our main repository, to track **BUGS** and to track approved **DEVELOPMENT** work packages.
-We use our [forum](http://forum.codeigniter.com) to provide SUPPORT and to discuss
-FEATURE REQUESTS.
+```bash
+php spark migrate
+php spark db:seed RoleSeeder
+php spark db:seed UserSeeder
+php spark db:seed PermissionSeeder
+php spark db:seed MenuSeeder
+php spark db:seed ActivityLogSeeder
+```
 
-This repository is a "distribution" one, built by our release preparation script.
-Problems with it can be raised on our forum, or as issues in the main repository.
+### 4. Jalankan
 
-## Server Requirements
+```bash
+php spark serve
+```
 
-PHP version 8.1 or higher is required, with the following extensions installed:
+Buka `http://localhost:8080` di browser.
 
-- [intl](http://php.net/manual/en/intl.requirements.php)
-- [mbstring](http://php.net/manual/en/mbstring.installation.php)
+**Default login:**
+- Email: `admin@example.com`
+- Password: `password`
 
-> [!WARNING]
-> - The end of life date for PHP 7.4 was November 28, 2022.
-> - The end of life date for PHP 8.0 was November 26, 2023.
-> - If you are still using PHP 7.4 or 8.0, you should upgrade immediately.
-> - The end of life date for PHP 8.1 will be December 31, 2025.
+## Konfigurasi Branding
 
-Additionally, make sure that the following extensions are enabled in your PHP:
+Semua identitas aplikasi terpusat di `app/Config/Brand.php` dan dapat di-override via `.env`:
 
-- json (enabled by default - don't turn it off)
-- [mysqlnd](http://php.net/manual/en/mysqlnd.install.php) if you plan to use MySQL
-- [libcurl](http://php.net/manual/en/curl.requirements.php) if you plan to use the HTTP\CURLRequest library
+| Key `.env`          | Keterangan                          | Default               |
+|---------------------|-------------------------------------|-----------------------|
+| `brand.appName`     | Nama lengkap aplikasi               | `RBAC Starter Kit`    |
+| `brand.appVersion`  | Versi aplikasi                      | `1.0`                 |
+| `brand.orgName`     | Nama organisasi/instansi lengkap    | `Nama Instansi`       |
+| `brand.orgShort`    | Nama singkat (sidebar, header)      | `Instansi`            |
+| `brand.orgWebsite`  | URL website organisasi              | `#`                   |
+| `brand.appTagline`  | Tagline / deskripsi singkat         | `Sistem Informasi...` |
+
+## Struktur RBAC
+
+```
+Roles        → memiliki banyak Permissions
+Users        → memiliki banyak Roles
+Permissions  → digunakan sebagai gate di controller & view
+```
+
+**Helper functions:**
+```php
+hasRole('admin')              // cek role aktif
+hasPermission('user.create')  // cek permission
+```
+
+**Di view (sembunyikan tombol jika tidak ada permission):**
+```php
+<?php if(hasPermission('user.create')): ?>
+  <a href="/admin/users/create" class="btn btn-primary">Tambah</a>
+<?php endif; ?>
+```
+
+## Activity Log
+
+Semua aksi CRUD dan autentikasi otomatis tercatat. Untuk mencatat aksi custom:
+
+```php
+logActivity('modul.create', 'modul', 'Deskripsi aksi', $userId, $userName, [
+    'after' => $data,
+]);
+```
+
+**Purge log lama via CLI:**
+```bash
+php spark activitylog:purge 90   # hapus log lebih dari 90 hari
+```
+
+## Git Workflow
+
+```bash
+# Ambil perubahan terbaru
+git pull origin Main
+
+# Buat branch fitur baru
+git checkout -b fitur/nama-fitur
+
+# Setelah selesai, push
+git push -u origin fitur/nama-fitur
+
+# Merge ke Main (via PR atau langsung)
+git checkout Main
+git merge fitur/nama-fitur
+git push origin Main
+```
+
+## Persyaratan Server
+
+- Web server (Apache/Nginx) diarahkan ke folder `public/`
+- PHP 8.1+
+- MySQL 5.7+ / MariaDB 10.3+

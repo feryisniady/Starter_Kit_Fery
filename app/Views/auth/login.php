@@ -1,9 +1,10 @@
+<?php $brand = config('Brand'); ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Login — SIP Inspektorat</title>
+    <title>Login — <?= esc($brand->appName) ?></title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="/assets/_main/css/auth.css">
     <style>
@@ -84,14 +85,14 @@
             <i class="fas fa-shield-halved"></i>
         </div>
         <div class="logo-text">
-            <span>Inspektorat Daerah</span>
-            <strong>Kabupaten Sampang</strong>
+            <span><?= esc($brand->orgName) ?></span>
+            <strong><?= esc($brand->orgShort) ?></strong>
         </div>
     </div>
 
     <div class="welcome">
         <p>Selamat datang di,</p>
-        <h1>Sistem Informasi Pengawasan APIP..!</h1>
+        <h1><?= esc($brand->appTagline) ?></h1>
     </div>
 
     <?php
@@ -186,8 +187,8 @@
     <div class="circle circle-3"></div>
 
     <div class="right-content">
-        <h2>Sistem Informasi Pengawasan APIP</h2>
-        <p>Platform digital terintegrasi untuk mendukung pelaksanaan tugas pengawasan Inspektorat Daerah Kabupaten Sampang</p>
+        <h2><?= esc($brand->appName) ?></h2>
+        <p><?= esc($brand->appTagline) ?></p>
 
         <!-- Ilustrasi SVG -->
         <svg class="illustration" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">

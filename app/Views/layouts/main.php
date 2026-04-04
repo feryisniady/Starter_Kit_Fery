@@ -1,10 +1,11 @@
+<?php $brand = config('Brand'); ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="csrf-token" content="<?= csrf_hash() ?>">
-  <title><?= $title ?? 'Dashboard' ?> — SIP Inspektorat</title>
+  <title><?= esc($title ?? 'Dashboard') ?> — <?= esc($brand->appName) ?></title>
 
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -28,8 +29,8 @@
         <i class="fas fa-shield-halved"></i>
       </div>
       <div class="brand-text">
-        <span>Inspektorat Daerah</span>
-        <strong>Kab. Sampang</strong>
+        <span><?= esc($brand->appName) ?></span>
+        <strong><?= esc($brand->orgShort) ?></strong>
       </div>
     </div>
 
@@ -203,8 +204,8 @@
 
 <!-- Footer -->
 <footer class="page-footer">
-  <span>&copy; <?= date('Y') ?> <strong>Inspektorat Daerah Kabupaten Sampang</strong>. All rights reserved.</span>
-  <span>SIP v2.0 — Powered by CodeIgniter 4</span>
+  <span>&copy; <?= date('Y') ?> <strong><?= esc($brand->orgName) ?></strong>. All rights reserved.</span>
+  <span><?= esc($brand->appName) ?> v<?= esc($brand->appVersion) ?> — Powered by CodeIgniter 4</span>
 </footer>
 
 </div>
