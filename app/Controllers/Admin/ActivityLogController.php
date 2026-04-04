@@ -18,21 +18,19 @@ class ActivityLogController extends BaseController
     {
         $filters = [
             'module'    => $this->request->getGet('module'),
-            'action'    => $this->request->getGet('action'),
-            'user_id'   => $this->request->getGet('user_id'),
             'date_from' => $this->request->getGet('date_from'),
             'date_to'   => $this->request->getGet('date_to'),
         ];
 
-        $result = $this->logModel->getLogsFiltered($filters, 20);
+        $logs = $this->logModel->getLogsFiltered($filters);
 
         // Daftar modul unik untuk filter dropdown
-        $modules = $this->logModel->distinct()->select('module')->where('module IS NOT NULL')->findAll();
+        $modules = $this->logModel->distinct()->select('module')
+            ->where('module IS NOT NULL')->findAll();
 
         return view('admin/activity_logs/index', [
             'title'   => 'Activity Log',
-            'logs'    => $result['logs'],
-            'pager'   => $result['pager'],
+            'logs'    => $logs,
             'modules' => array_column($modules, 'module'),
             'filters' => $filters,
         ]);

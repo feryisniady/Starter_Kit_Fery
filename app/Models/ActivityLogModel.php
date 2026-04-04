@@ -17,19 +17,13 @@ class ActivityLogModel extends Model
     protected $updatedField   = ''; // hanya created_at
     protected $createdField   = 'created_at';
 
-    // Ambil log dengan filter, untuk halaman admin
-    public function getLogsFiltered(array $filters = [], int $perPage = 20): array
+    // Ambil log dengan filter — DataTables handle paginasi di sisi client
+    public function getLogsFiltered(array $filters = []): array
     {
         $builder = $this->orderBy('created_at', 'DESC');
 
         if (!empty($filters['module'])) {
             $builder->where('module', $filters['module']);
-        }
-        if (!empty($filters['action'])) {
-            $builder->where('action', $filters['action']);
-        }
-        if (!empty($filters['user_id'])) {
-            $builder->where('user_id', $filters['user_id']);
         }
         if (!empty($filters['date_from'])) {
             $builder->where('created_at >=', $filters['date_from'] . ' 00:00:00');
@@ -38,9 +32,6 @@ class ActivityLogModel extends Model
             $builder->where('created_at <=', $filters['date_to'] . ' 23:59:59');
         }
 
-        return [
-            'logs'   => $builder->paginate($perPage),
-            'pager'  => $this->pager,
-        ];
+        return $builder->findAll();
     }
 }
