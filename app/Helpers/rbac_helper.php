@@ -98,6 +98,28 @@ if (!function_exists('isActiveMenu')) {
 }
 
 
+if (!function_exists('logActivity')) {
+    function logActivity(string $action, string $module = '', string $description = '', ?int $userId = null, ?string $userName = null): void
+    {
+        // Ambil dari session jika tidak di-pass manual
+        $userId   = $userId   ?? (int) session()->get('user_id');
+        $userName = $userName ?? session()->get('user_name');
+
+        $request = service('request');
+
+        $model = new \App\Models\ActivityLogModel();
+        $model->insert([
+            'user_id'     => $userId ?: null,
+            'user_name'   => $userName,
+            'action'      => $action,
+            'module'      => $module,
+            'description' => $description,
+            'ip_address'  => $request->getIPAddress(),
+            'user_agent'  => $request->getUserAgent()->getAgentString(),
+        ]);
+    }
+}
+
 if (!function_exists('breadcrumb')) {
     function breadcrumb(): string
     {

@@ -94,6 +94,8 @@ class MenuController extends BaseController
             }
         }
 
+        logActivity('menu.create', 'menu', "Tambah menu baru: {$this->request->getPost('label')}");
+
         return redirect()->to('/admin/menus')
         ->with('success', 'Menu berhasil ditambahkan!');
     }
@@ -140,6 +142,8 @@ class MenuController extends BaseController
             'section'    => $this->request->getPost('section') ?: 'main',
         ]);
 
+        logActivity('menu.update', 'menu', "Update menu ID:{$id} — {$this->request->getPost('label')}");
+
         return redirect()->to('/admin/menus')
         ->with('success', 'Menu berhasil diupdate!');
     }
@@ -150,7 +154,10 @@ class MenuController extends BaseController
             return redirect()->to('/admin/menus');
         }
 
+        $menu = $this->menuModel->find($id);
         $this->menuModel->delete($id);
+
+        logActivity('menu.delete', 'menu', "Hapus menu ID:{$id}" . ($menu ? " — {$menu['label']}" : ''));
 
         return $this->response->setJSON([
             'status'  => 'success',

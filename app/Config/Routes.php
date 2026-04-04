@@ -57,5 +57,7 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	$routes->post('permissions/store', 'Admin\PermissionController::store', ['filter' => 'permission:permission.create']);
 	$routes->post('permissions/store-batch', 'Admin\PermissionController::storeBatch', ['filter' => 'permission:permission.create']);
 	$routes->get('permissions/delete/(:num)', 'Admin\PermissionController::delete/$1', ['filter' => 'permission:permission.delete']);
+	// Activity Log
+	$routes->get('activity-logs', 'Admin\ActivityLogController::index', ['filter' => 'permission:activitylog.view']);
 });
 

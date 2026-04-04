@@ -86,6 +86,8 @@ class UserController extends BaseController
         $roleIds = $this->request->getPost('roles') ?? [];
         $this->userModel->syncRoles($userId, $roleIds);
 
+        logActivity('user.create', 'user', "Tambah user baru: {$this->request->getPost('name')} ({$this->request->getPost('email')})");
+
         return redirect()->to('/admin/users')->with('success', 'User berhasil ditambahkan!');
     }
 
@@ -156,6 +158,8 @@ class UserController extends BaseController
         $roleIds = $this->request->getPost('roles') ?? [];
         $this->userModel->syncRoles($id, $roleIds);
 
+        logActivity('user.update', 'user', "Update user ID:{$id} — {$this->request->getPost('name')}");
+
         return redirect()->to('/admin/users')->with('success', 'User berhasil diupdate!');
     }
 
@@ -167,7 +171,10 @@ class UserController extends BaseController
             return redirect()->to('/admin/users');
         }
 
+        $user = $this->userModel->find($id);
         $this->userModel->delete($id);
+
+        logActivity('user.delete', 'user', "Hapus user ID:{$id}" . ($user ? " — {$user['name']}" : ''));
 
         return $this->response->setJSON([
             'status'  => 'success',

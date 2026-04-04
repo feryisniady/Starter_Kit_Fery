@@ -28,6 +28,7 @@ class Auth extends BaseController
             $remaining = $lockoutUntil - time();
             if ($remaining > 0) {
                 $minutes = ceil($remaining / 60);
+                logActivity('login_blocked', 'auth', "Login diblokir (lockout aktif) untuk IP {$ip}", null, $this->request->getPost('email'));
                 return redirect()->to('/login')->withInput()
                     ->with('lockout_until', $lockoutUntil)
                     ->with('error', "Terlalu banyak percobaan login. Coba lagi dalam {$minutes} menit.");
@@ -54,6 +55,8 @@ class Auth extends BaseController
                 cache()->save($lockoutKey, $lockoutUntil, $lockoutSecs);
                 cache()->delete($attemptKey);
 
+                logActivity('login_lockout', 'auth', "Akun diblokir sementara setelah {$attempts}x percobaan gagal (email: {$email})", null, $email);
+
                 return redirect()->to('/login')->withInput()
                     ->with('lockout_until', $lockoutUntil)
                     ->with('error', 'Akun diblokir sementara karena terlalu banyak percobaan login. Coba lagi dalam ' . self::LOCKOUT_MINUTES . ' menit.');
@@ -62,6 +65,8 @@ class Auth extends BaseController
             // Simpan attempt & info sisa percobaan
             cache()->save($attemptKey, $attempts, $lockoutSecs);
             $sisaPercobaan = self::MAX_ATTEMPTS - $attempts;
+
+            logActivity('login_failed', 'auth', "Login gagal percobaan ke-{$attempts} (email: {$email})", null, $email);
 
             return redirect()->to('/login')->withInput()
                 ->with('attempts', $attempts)
@@ -84,12 +89,15 @@ class Auth extends BaseController
             'logged_in' => true,
         ]);
 
+        logActivity('login', 'auth', "Login berhasil", $user['id'], $user['name']);
+
         return redirect()->to('/dashboard');
     }
 
     // Logout
     public function logout()
     {
+        logActivity('logout', 'auth', 'Logout');
         session()->destroy();
         return redirect()->to('/login');
     }

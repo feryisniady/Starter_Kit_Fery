@@ -71,6 +71,8 @@ class RoleController extends BaseController
         $permissionIds = $this->request->getPost('permissions') ?? [];
         $this->roleModel->syncPermissions($roleId, $permissionIds);
 
+        logActivity('role.create', 'role', "Tambah role baru: {$this->request->getPost('name')}");
+
         return redirect()->to('/admin/roles')->with('success', 'Role berhasil ditambahkan!');
     }
 
@@ -125,6 +127,8 @@ class RoleController extends BaseController
         $permissionIds = $this->request->getPost('permissions') ?? [];
         $this->roleModel->syncPermissions($id, $permissionIds);
 
+        logActivity('role.update', 'role', "Update role ID:{$id} — {$this->request->getPost('name')}");
+
         return redirect()->to('/admin/roles')->with('success', 'Role berhasil diupdate!');
     }
 
@@ -135,7 +139,10 @@ class RoleController extends BaseController
             return redirect()->to('/admin/roles');
         }
 
+        $role = $this->roleModel->find($id);
         $this->roleModel->delete($id);
+
+        logActivity('role.delete', 'role', "Hapus role ID:{$id}" . ($role ? " — {$role['name']}" : ''));
 
         return $this->response->setJSON([
             'status'  => 'success',

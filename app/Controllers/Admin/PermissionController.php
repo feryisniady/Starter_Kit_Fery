@@ -58,6 +58,8 @@ class PermissionController extends BaseController
 
         $this->permissionModel->insert(['name' => $name]);
 
+        logActivity('permission.create', 'permission', "Tambah permission: {$name}");
+
         return $this->response->setJSON([
             'status'  => 'success',
             'message' => 'Permission berhasil ditambahkan!',
@@ -102,6 +104,10 @@ class PermissionController extends BaseController
             }
         }
 
+        if (!empty($created)) {
+            logActivity('permission.create_batch', 'permission', "Generate batch permission: " . implode(', ', $created));
+        }
+
         return $this->response->setJSON([
             'status'   => 'success',
             'message'  => count($created) . ' permission berhasil dibuat!',
@@ -129,7 +135,10 @@ class PermissionController extends BaseController
             ]);
         }
 
+        $perm = $this->permissionModel->find($id);
         $this->permissionModel->delete($id);
+
+        logActivity('permission.delete', 'permission', "Hapus permission ID:{$id}" . ($perm ? " — {$perm['name']}" : ''));
 
         return $this->response->setJSON([
             'status'  => 'success',
