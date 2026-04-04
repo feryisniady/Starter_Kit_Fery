@@ -29,8 +29,6 @@ class NotificationController extends BaseController
     // Halaman semua notifikasi
     public function index()
     {
-        $this->model->markAllRead($this->userId);
-
         return view('notifications/index', [
             'title'         => 'Notifikasi',
             'notifications' => $this->model->getForUser($this->userId, 50),
