@@ -66,28 +66,50 @@
             border-radius: 99px;
             transition: width .4s ease;
         }
-        /* Gambar lingkaran di panel kanan */
+        /* Layout 2 kolom panel kanan */
+        .right-body {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            width: 100%;
+        }
+        .right-illustration {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .right-services {
+            flex: 1;
+            min-width: 0;
+        }
+        .services-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,.4);
+            margin-bottom: 10px;
+        }
+        /* Lingkaran ilustrasi */
         .illustration-circle {
             display: flex;
             justify-content: center;
             align-items: center;
-            margin: 28px 0;
             position: relative;
         }
-        /* Ring luar — dashed, berputar pelan */
         .illustration-circle::before {
             content: '';
             position: absolute;
-            width: 330px;
-            height: 330px;
+            width: 250px;
+            height: 250px;
             border-radius: 50%;
             border: 1px dashed rgba(255,255,255,.25);
             animation: spinSlow 20s linear infinite;
         }
-        /* Lingkaran gambar */
         .illustration-circle-ring {
-            width: 240px;
-            height: 240px;
+            width: 180px;
+            height: 180px;
             border-radius: 50%;
             border: 3px solid rgba(255,255,255,.65);
             overflow: hidden;
@@ -105,20 +127,17 @@
         }
         @keyframes floatCircle {
             0%, 100% { transform: translateY(0); }
-            50%       { transform: translateY(-12px); }
+            50%       { transform: translateY(-10px); }
         }
         @keyframes spinSlow {
             from { transform: rotate(0deg); }
             to   { transform: rotate(360deg); }
         }
-        /* Services card grid */
+        /* Services card grid — 1 kolom di layout split */
         .services-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            max-width: 420px;
-            margin-left: auto;
-            margin-right: auto;
+            grid-template-columns: 1fr;
+            gap: 8px;
         }
         .service-card {
             display: flex;
@@ -304,91 +323,86 @@
 
     <div class="right-content">
         <h2 style="margin-bottom:6px"><?= esc(app_setting('login_tagline') ?: app_setting('app_name')) ?></h2>
-        <p style="margin-bottom:20px"><?= esc(app_setting('login_desc') ?: app_setting('app_tagline')) ?></p>
+        <p style="margin-bottom:24px"><?= esc(app_setting('login_desc') ?: app_setting('app_tagline')) ?></p>
 
-        <?php if(app_setting('login_bg_path')): ?>
-        <!-- Gambar dalam lingkaran -->
-        <div class="illustration-circle">
-            <div class="illustration-circle-ring">
-                <img src="<?= base_url(esc(app_setting('login_bg_path'))) ?>"
-                     alt="Ilustrasi">
-            </div>
-        </div>
-        <?php else: ?>
-        <!-- Ilustrasi SVG default -->
-        <svg class="illustration" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
-            <!-- Meja -->
-            <rect x="60" y="220" width="280" height="12" rx="6" fill="rgba(255,255,255,.15)"/>
-            <rect x="80" y="232" width="12" height="50" rx="4" fill="rgba(255,255,255,.1)"/>
-            <rect x="308" y="232" width="12" height="50" rx="4" fill="rgba(255,255,255,.1)"/>
+        <!-- Layout 2 kolom: kiri=ilustrasi, kanan=card layanan -->
+        <div class="right-body">
 
-            <!-- Monitor kiri -->
-            <rect x="70" y="140" width="110" height="80" rx="8" fill="rgba(255,255,255,.1)" stroke="rgba(255,255,255,.2)" stroke-width="1.5"/>
-            <rect x="78" y="148" width="94" height="56" rx="4" fill="#1e3a8a"/>
-            <rect x="115" y="220" width="20" height="8" rx="2" fill="rgba(255,255,255,.15)"/>
-            <!-- Konten monitor -->
-            <rect x="84" y="154" width="60" height="6" rx="3" fill="rgba(255,255,255,.4)"/>
-            <rect x="84" y="164" width="80" height="4" rx="2" fill="rgba(255,255,255,.2)"/>
-            <rect x="84" y="172" width="70" height="4" rx="2" fill="rgba(255,255,255,.2)"/>
-            <rect x="84" y="180" width="75" height="4" rx="2" fill="rgba(255,255,255,.2)"/>
-            <rect x="84" y="190" width="40" height="10" rx="4" fill="#3b82f6"/>
-
-            <!-- Monitor kanan -->
-            <rect x="220" y="130" width="120" height="90" rx="8" fill="rgba(255,255,255,.1)" stroke="rgba(255,255,255,.2)" stroke-width="1.5"/>
-            <rect x="228" y="138" width="104" height="64" rx="4" fill="#1e3a8a"/>
-            <rect x="270" y="220" width="20" height="8" rx="2" fill="rgba(255,255,255,.15)"/>
-            <!-- Konten monitor -->
-            <circle cx="248" cy="160" r="14" fill="rgba(255,255,255,.15)"/>
-            <path d="M242 160 L247 165 L255 155" stroke="#60a5fa" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-            <rect x="268" y="152" width="50" height="5" rx="2" fill="rgba(255,255,255,.3)"/>
-            <rect x="268" y="161" width="40" height="4" rx="2" fill="rgba(255,255,255,.2)"/>
-            <rect x="228" y="178" width="30" height="16" rx="4" fill="#22c55e" opacity=".8"/>
-            <rect x="264" y="178" width="30" height="16" rx="4" fill="#f59e0b" opacity=".8"/>
-            <rect x="300" y="178" width="25" height="16" rx="4" fill="#ef4444" opacity=".8"/>
-
-            <!-- Orang kiri -->
-            <circle cx="130" cy="105" r="18" fill="#fbbf24"/>
-            <rect x="112" y="124" width="36" height="50" rx="8" fill="#3b82f6"/>
-            <rect x="100" y="128" width="12" height="35" rx="6" fill="#3b82f6"/>
-            <rect x="148" y="128" width="12" height="35" rx="6" fill="#3b82f6"/>
-            <rect x="115" y="174" width="13" height="40" rx="6" fill="#1e40af"/>
-            <rect x="132" y="174" width="13" height="40" rx="6" fill="#1e40af"/>
-
-            <!-- Orang kanan -->
-            <circle cx="270" cy="95" r="18" fill="#f9a8d4"/>
-            <rect x="252" y="114" width="36" height="50" rx="8" fill="#ef4444"/>
-            <rect x="240" y="118" width="12" height="35" rx="6" fill="#ef4444"/>
-            <rect x="288" y="118" width="12" height="35" rx="6" fill="#ef4444"/>
-            <rect x="255" y="164" width="13" height="45" rx="6" fill="#b91c1c"/>
-            <rect x="272" y="164" width="13" height="45" rx="6" fill="#b91c1c"/>
-
-            <!-- Dekorasi -->
-            <circle cx="50" cy="80" r="8" fill="rgba(96,165,250,.3)"/>
-            <circle cx="360" cy="100" r="12" fill="rgba(34,197,94,.2)"/>
-            <circle cx="190" cy="40" r="6" fill="rgba(251,191,36,.3)"/>
-        </svg>
-        <?php endif; ?>
-
-        <?php if(!empty($services)): ?>
-        <div class="services-grid" style="margin-top:28px">
-            <?php foreach($services as $svc): ?>
-            <a href="<?= esc($svc['url'] ?: '#') ?>" class="service-card" <?= $svc['url'] && str_starts_with($svc['url'], 'http') ? 'target="_blank"' : '' ?>>
-                <div class="service-icon"><i class="<?= esc($svc['icon']) ?>"></i></div>
-                <div class="service-body">
-                    <div class="service-name"><?= esc($svc['name']) ?></div>
-                    <?php if($svc['description']): ?>
-                    <div class="service-desc"><?= esc($svc['description']) ?></div>
-                    <?php endif; ?>
+            <!-- Kolom kiri: Ilustrasi -->
+            <div class="right-illustration">
+                <?php if(app_setting('login_bg_path')): ?>
+                <div class="illustration-circle">
+                    <div class="illustration-circle-ring">
+                        <img src="<?= base_url(esc(app_setting('login_bg_path'))) ?>" alt="Ilustrasi">
+                    </div>
                 </div>
-                <?php if($svc['require_login']): ?>
-                <span class="service-badge">Login</span>
                 <?php else: ?>
-                <span class="service-badge service-badge-pub">Publik</span>
+                <svg class="illustration" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="60" y="220" width="280" height="12" rx="6" fill="rgba(255,255,255,.15)"/>
+                    <rect x="80" y="232" width="12" height="50" rx="4" fill="rgba(255,255,255,.1)"/>
+                    <rect x="308" y="232" width="12" height="50" rx="4" fill="rgba(255,255,255,.1)"/>
+                    <rect x="70" y="140" width="110" height="80" rx="8" fill="rgba(255,255,255,.1)" stroke="rgba(255,255,255,.2)" stroke-width="1.5"/>
+                    <rect x="78" y="148" width="94" height="56" rx="4" fill="#1e3a8a"/>
+                    <rect x="115" y="220" width="20" height="8" rx="2" fill="rgba(255,255,255,.15)"/>
+                    <rect x="84" y="154" width="60" height="6" rx="3" fill="rgba(255,255,255,.4)"/>
+                    <rect x="84" y="164" width="80" height="4" rx="2" fill="rgba(255,255,255,.2)"/>
+                    <rect x="84" y="172" width="70" height="4" rx="2" fill="rgba(255,255,255,.2)"/>
+                    <rect x="84" y="180" width="75" height="4" rx="2" fill="rgba(255,255,255,.2)"/>
+                    <rect x="84" y="190" width="40" height="10" rx="4" fill="#3b82f6"/>
+                    <rect x="220" y="130" width="120" height="90" rx="8" fill="rgba(255,255,255,.1)" stroke="rgba(255,255,255,.2)" stroke-width="1.5"/>
+                    <rect x="228" y="138" width="104" height="64" rx="4" fill="#1e3a8a"/>
+                    <rect x="270" y="220" width="20" height="8" rx="2" fill="rgba(255,255,255,.15)"/>
+                    <circle cx="248" cy="160" r="14" fill="rgba(255,255,255,.15)"/>
+                    <path d="M242 160 L247 165 L255 155" stroke="#60a5fa" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+                    <rect x="268" y="152" width="50" height="5" rx="2" fill="rgba(255,255,255,.3)"/>
+                    <rect x="268" y="161" width="40" height="4" rx="2" fill="rgba(255,255,255,.2)"/>
+                    <rect x="228" y="178" width="30" height="16" rx="4" fill="#22c55e" opacity=".8"/>
+                    <rect x="264" y="178" width="30" height="16" rx="4" fill="#f59e0b" opacity=".8"/>
+                    <rect x="300" y="178" width="25" height="16" rx="4" fill="#ef4444" opacity=".8"/>
+                    <circle cx="130" cy="105" r="18" fill="#fbbf24"/>
+                    <rect x="112" y="124" width="36" height="50" rx="8" fill="#3b82f6"/>
+                    <rect x="100" y="128" width="12" height="35" rx="6" fill="#3b82f6"/>
+                    <rect x="148" y="128" width="12" height="35" rx="6" fill="#3b82f6"/>
+                    <rect x="115" y="174" width="13" height="40" rx="6" fill="#1e40af"/>
+                    <rect x="132" y="174" width="13" height="40" rx="6" fill="#1e40af"/>
+                    <circle cx="270" cy="95" r="18" fill="#f9a8d4"/>
+                    <rect x="252" y="114" width="36" height="50" rx="8" fill="#ef4444"/>
+                    <rect x="240" y="118" width="12" height="35" rx="6" fill="#ef4444"/>
+                    <rect x="288" y="118" width="12" height="35" rx="6" fill="#ef4444"/>
+                    <rect x="255" y="164" width="13" height="45" rx="6" fill="#b91c1c"/>
+                    <rect x="272" y="164" width="13" height="45" rx="6" fill="#b91c1c"/>
+                    <circle cx="50" cy="80" r="8" fill="rgba(96,165,250,.3)"/>
+                    <circle cx="360" cy="100" r="12" fill="rgba(34,197,94,.2)"/>
+                    <circle cx="190" cy="40" r="6" fill="rgba(251,191,36,.3)"/>
+                </svg>
                 <?php endif; ?>
-            </a>
-            <?php endforeach; ?>
-        </div>
-        <?php endif; ?>
+            </div>
+
+            <!-- Kolom kanan: Card Layanan -->
+            <?php if(!empty($services)): ?>
+            <div class="right-services">
+                <p class="services-label">Daftar Layanan</p>
+                <div class="services-grid">
+                    <?php foreach($services as $svc): ?>
+                    <a href="<?= esc($svc['url'] ?: '#') ?>" class="service-card"
+                       <?= ($svc['url'] && str_starts_with($svc['url'], 'http')) ? 'target="_blank"' : '' ?>>
+                        <div class="service-icon"><i class="<?= esc($svc['icon']) ?>"></i></div>
+                        <div class="service-body">
+                            <div class="service-name"><?= esc($svc['name']) ?></div>
+                            <?php if($svc['description']): ?>
+                            <div class="service-desc"><?= esc($svc['description']) ?></div>
+                            <?php endif; ?>
+                        </div>
+                        <span class="service-badge <?= $svc['require_login'] ? '' : 'service-badge-pub' ?>">
+                            <?= $svc['require_login'] ? 'Login' : 'Publik' ?>
+                        </span>
+                    </a>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+
+        </div><!-- end right-body -->
     </div>
 </div>
 
