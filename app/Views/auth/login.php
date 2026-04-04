@@ -100,9 +100,6 @@
             border-radius: 50%;
             border: 3px solid rgba(255,255,255,.7);
             overflow: hidden;
-            box-shadow:
-                0 0 0 6px rgba(255,255,255,.08),
-                0 16px 48px rgba(0,0,0,.4);
             animation: floatCircle 4s ease-in-out infinite;
             flex-shrink: 0;
             position: relative;
