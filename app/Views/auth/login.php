@@ -72,35 +72,37 @@
             justify-content: center;
             align-items: center;
             margin: 28px 0;
-            /* Ring luar paling tipis */
             position: relative;
         }
-        /* Ring 3 — paling luar, transparan */
+        /* Ring luar */
         .illustration-circle::before {
             content: '';
             position: absolute;
-            width: 300px;
-            height: 300px;
+            width: 320px;
+            height: 320px;
             border-radius: 50%;
-            border: 1.5px solid rgba(255,255,255,.15);
+            border: 1px dashed rgba(255,255,255,.2);
+            animation: spinSlow 20s linear infinite;
         }
-        /* Ring 2 — tengah */
+        /* Ring tengah */
         .illustration-circle::after {
             content: '';
             position: absolute;
-            width: 278px;
-            height: 278px;
+            width: 284px;
+            height: 284px;
             border-radius: 50%;
-            border: 1.5px solid rgba(255,255,255,.25);
+            border: 1.5px solid rgba(255,255,255,.3);
         }
-        /* Ring 1 — langsung membungkus gambar */
+        /* Lingkaran gambar */
         .illustration-circle-ring {
             width: 240px;
             height: 240px;
             border-radius: 50%;
-            border: 3px solid rgba(255,255,255,.5);
+            border: 3px solid rgba(255,255,255,.7);
             overflow: hidden;
-            box-shadow: 0 8px 40px rgba(0,0,0,.35);
+            box-shadow:
+                0 0 0 6px rgba(255,255,255,.08),
+                0 16px 48px rgba(0,0,0,.4);
             animation: floatCircle 4s ease-in-out infinite;
             flex-shrink: 0;
             position: relative;
@@ -109,14 +111,17 @@
         .illustration-circle-ring img {
             width: 100%;
             height: 100%;
-            border-radius: 50%;
             object-fit: cover;
             object-position: center;
             display: block;
         }
         @keyframes floatCircle {
             0%, 100% { transform: translateY(0); }
-            50%       { transform: translateY(-10px); }
+            50%       { transform: translateY(-12px); }
+        }
+        @keyframes spinSlow {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
         }
         /* Disabled state */
         .btn-login:disabled {

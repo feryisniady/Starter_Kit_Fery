@@ -60,6 +60,10 @@ writable/session/*
 writable/uploads/*
 !writable/uploads/index.html
 
+# User uploads — jangan commit file upload
+public/uploads/settings/*
+!public/uploads/settings/.gitkeep
+
 writable/debugbar/*
 !writable/debugbar/.gitkeep
 
