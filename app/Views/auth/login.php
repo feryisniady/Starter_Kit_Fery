@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Login — <?= esc(app_setting('app_name')) ?></title>
     <?php if(app_setting('favicon_path')): ?>
-    <link rel="icon" href="<?= base_url(esc(app_setting('favicon_path'))) ?>">
+        <link rel="icon" href="<?= base_url(esc(app_setting('favicon_path'))) ?>">
     <?php endif; ?>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="/assets/_main/css/auth.css">
@@ -72,19 +72,26 @@
             justify-content: center;
             margin-bottom: 20px;
         }
-        .left-illus-ring {
-            width: 110px;
-            height: 110px;
-            border-radius: 50%;
-            border: 3px solid #e2e8f0;
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0,0,0,.1);
-        }
         .left-illus-ring img {
+            object-fit: contain; 
+            padding: 10px; 
             width: 100%;
             height: 100%;
-            object-fit: cover;
             display: block;
+            background-color: #fff;
+        }
+        .left-illus-ring {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            border: 3px solid #e2e8f0;
+            
+            
+            overflow: hidden; 
+            box-shadow: 0 4px 20px rgba(0,0,0,.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         /* Services grid — 2 kolom full width di panel kanan */
         .services-label {
@@ -174,69 +181,69 @@
 </head>
 <body>
 
-<!-- LEFT PANEL -->
-<div class="left-panel" <?php if(app_setting('login_bg_path')): ?>style="padding-top:28px"<?php endif; ?>>
+    <!-- LEFT PANEL -->
+    <div class="left-panel" <?php if(app_setting('login_bg_path')): ?>style="padding-top:20px"<?php endif; ?>>
 
-    <?php if(app_setting('login_bg_path')): ?>
-    <div class="left-illustration">
-        <div class="left-illus-ring">
-            <img src="<?= base_url(esc(app_setting('login_bg_path'))) ?>" alt="Ilustrasi">
+        <?php if(app_setting('login_bg_path')): ?>
+            <div class="left-illustration">
+                <div class="left-illus-ring">
+                    <img src="<?= base_url(esc(app_setting('login_bg_path'))) ?>" alt="Ilustrasi">
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <div class="logo">
+            <div class="logo-icon">
+                <i class="fas fa-shield-halved"></i>
+            </div>
+            <div class="logo-text">
+                <span><?= esc(app_setting('login_title') ?: app_setting('org_name')) ?></span>
+                <strong><?= esc(app_setting('login_subtitle') ?: app_setting('org_short')) ?></strong>
+            </div>
         </div>
-    </div>
-    <?php endif; ?>
 
-    <div class="logo">
-        <div class="logo-icon">
-            <i class="fas fa-shield-halved"></i>
+        <div class="welcome">
+            <p>Selamat datang di,</p>
+            <h1><?= esc(app_setting('login_tagline') ?: app_setting('app_tagline')) ?></h1>
         </div>
-        <div class="logo-text">
-            <span><?= esc(app_setting('login_title') ?: app_setting('org_name')) ?></span>
-            <strong><?= esc(app_setting('login_subtitle') ?: app_setting('org_short')) ?></strong>
-        </div>
-    </div>
 
-    <div class="welcome">
-        <p>Selamat datang di,</p>
-        <h1><?= esc(app_setting('login_tagline') ?: app_setting('app_tagline')) ?></h1>
-    </div>
-
-    <?php
+        <?php
         $lockoutUntil = session()->getFlashdata('lockout_until');
         $attempts     = (int) session()->getFlashdata('attempts');
         $isLocked     = $lockoutUntil && ($lockoutUntil - time()) > 0;
         $maxAttempts  = 5;
-    ?>
+        ?>
 
-    <?php if($isLocked): ?>
-    <!-- Alert Lockout -->
-    <div class="alert-lockout" id="alert-lockout">
-        <div class="lockout-icon"><i class="fas fa-lock"></i></div>
-        <div class="lockout-body">
-            <strong>Akses Diblokir Sementara</strong>
-            <p>Terlalu banyak percobaan login yang gagal.</p>
-            <div class="lockout-timer">
-                Coba lagi dalam: <span id="countdown" style="font-weight:700;color:#dc2626"></span>
+        <?php if($isLocked): ?>
+            <!-- Alert Lockout -->
+            <div class="alert-lockout" id="alert-lockout">
+                <div class="lockout-icon"><i class="fas fa-lock"></i></div>
+                <div class="lockout-body">
+                    <strong>Akses Diblokir Sementara</strong>
+                    <p>Terlalu banyak percobaan login yang gagal.</p>
+                    <div class="lockout-timer">
+                        Coba lagi dalam: <span id="countdown" style="font-weight:700;color:#dc2626"></span>
+                    </div>
+                </div>
             </div>
+        <?php elseif(session()->getFlashdata('error')): ?>
+        <!-- Alert Error biasa -->
+        <div class="alert-error">
+            <i class="fas fa-circle-exclamation"></i>
+            <?= esc(session()->getFlashdata('error')) ?>
         </div>
-    </div>
-    <?php elseif(session()->getFlashdata('error')): ?>
-    <!-- Alert Error biasa -->
-    <div class="alert-error">
-        <i class="fas fa-circle-exclamation"></i>
-        <?= esc(session()->getFlashdata('error')) ?>
-    </div>
-    <?php if($attempts > 0): ?>
-    <!-- Progress bar percobaan -->
-    <div class="attempt-bar">
-        <div class="attempt-bar-label">
-            <span>Percobaan ke-<?= $attempts ?> dari <?= $maxAttempts ?></span>
-            <span style="color:#dc2626;font-weight:600"><?= $maxAttempts - $attempts ?>x tersisa</span>
-        </div>
-        <div class="attempt-bar-track">
-            <div class="attempt-bar-fill" style="width:<?= ($attempts / $maxAttempts) * 100 ?>%"></div>
-        </div>
-    </div>
-    <?php endif; ?>
+        <?php if($attempts > 0): ?>
+            <!-- Progress bar percobaan -->
+            <div class="attempt-bar">
+                <div class="attempt-bar-label">
+                    <span>Percobaan ke-<?= $attempts ?> dari <?= $maxAttempts ?></span>
+                    <span style="color:#dc2626;font-weight:600"><?= $maxAttempts - $attempts ?>x tersisa</span>
+                </div>
+                <div class="attempt-bar-track">
+                    <div class="attempt-bar-fill" style="width:<?= ($attempts / $maxAttempts) * 100 ?>%"></div>
+                </div>
+            </div>
+        <?php endif; ?>
     <?php endif; ?>
 
     <form action="/login" method="post" id="login-form">
@@ -246,10 +253,10 @@
             <label>Email <span>*</span></label>
             <div class="input-wrap">
                 <input type="email" name="email"
-                    value="<?= old('email') ?>"
-                    placeholder="Masukkan email anda"
-                    <?= $isLocked ? 'disabled' : '' ?>
-                    required autofocus>
+                value="<?= old('email') ?>"
+                placeholder="Masukkan email anda"
+                <?= $isLocked ? 'disabled' : '' ?>
+                required autofocus>
             </div>
         </div>
 
@@ -257,10 +264,10 @@
             <label>Password <span>*</span></label>
             <div class="input-wrap">
                 <input type="password" name="password"
-                    id="password-input"
-                    placeholder="Masukkan password anda"
-                    <?= $isLocked ? 'disabled' : '' ?>
-                    required>
+                id="password-input"
+                placeholder="Masukkan password anda"
+                <?= $isLocked ? 'disabled' : '' ?>
+                required>
                 <button type="button" class="toggle-pw" onclick="togglePassword()">
                     <i class="fas fa-eye" id="pw-icon"></i>
                 </button>
@@ -295,64 +302,64 @@
         <p><?= esc(app_setting('login_desc') ?: app_setting('app_tagline')) ?></p>
 
         <?php if(!empty($services)): ?>
-        <p class="services-label">Daftar Layanan</p>
-        <div class="services-grid">
-            <?php foreach($services as $svc): ?>
-            <a href="<?= esc($svc['url'] ?: '#') ?>" class="service-card"
-               <?= ($svc['url'] && str_starts_with($svc['url'], 'http')) ? 'target="_blank"' : '' ?>>
-                <div class="service-icon"><i class="<?= esc($svc['icon']) ?>"></i></div>
-                <div class="service-body">
-                    <div class="service-name"><?= esc($svc['name']) ?></div>
-                    <?php if($svc['description']): ?>
-                    <div class="service-desc"><?= esc($svc['description']) ?></div>
-                    <?php endif; ?>
-                </div>
-                <span class="service-badge <?= $svc['require_login'] ? '' : 'service-badge-pub' ?>">
-                    <?= $svc['require_login'] ? 'Login' : 'Publik' ?>
-                </span>
-            </a>
+            <p class="services-label">Daftar Layanan</p>
+            <div class="services-grid">
+                <?php foreach($services as $svc): ?>
+                    <a href="<?= esc($svc['url'] ?: '#') ?>" class="service-card"
+                       <?= ($svc['url'] && str_starts_with($svc['url'], 'http')) ? 'target="_blank"' : '' ?>>
+                       <div class="service-icon"><i class="<?= esc($svc['icon']) ?>"></i></div>
+                       <div class="service-body">
+                        <div class="service-name"><?= esc($svc['name']) ?></div>
+                        <?php if($svc['description']): ?>
+                            <div class="service-desc"><?= esc($svc['description']) ?></div>
+                        <?php endif; ?>
+                    </div>
+                    <span class="service-badge <?= $svc['require_login'] ? '' : 'service-badge-pub' ?>">
+                        <?= $svc['require_login'] ? 'Login' : 'Publik' ?>
+                    </span>
+                </a>
             <?php endforeach; ?>
         </div>
-        <?php endif; ?>
-    </div>
+    <?php endif; ?>
+</div>
 </div>
 
 <script>
-function togglePassword() {
-    var input = document.getElementById('password-input');
-    var icon  = document.getElementById('pw-icon');
-    if (input.type === 'password') {
-        input.type    = 'text';
-        icon.className = 'fas fa-eye-slash';
-    } else {
-        input.type    = 'password';
-        icon.className = 'fas fa-eye';
+    function togglePassword() {
+        var input = document.getElementById('password-input');
+        var icon  = document.getElementById('pw-icon');
+        if (input.type === 'password') {
+            input.type    = 'text';
+            icon.className = 'fas fa-eye-slash';
+        } else {
+            input.type    = 'password';
+            icon.className = 'fas fa-eye';
+        }
     }
-}
 
 // Countdown lockout timer
-<?php if($isLocked): ?>
-(function() {
-    var lockoutUntil = <?= (int) $lockoutUntil ?>;
-    var countdown    = document.getElementById('countdown');
-    var btnLogin     = document.getElementById('btn-login');
+    <?php if($isLocked): ?>
+        (function() {
+            var lockoutUntil = <?= (int) $lockoutUntil ?>;
+            var countdown    = document.getElementById('countdown');
+            var btnLogin     = document.getElementById('btn-login');
 
-    function updateTimer() {
-        var remaining = lockoutUntil - Math.floor(Date.now() / 1000);
-        if (remaining <= 0) {
+            function updateTimer() {
+                var remaining = lockoutUntil - Math.floor(Date.now() / 1000);
+                if (remaining <= 0) {
             // Waktu habis — reload halaman
-            window.location.reload();
-            return;
-        }
-        var m = Math.floor(remaining / 60);
-        var s = remaining % 60;
-        countdown.textContent = (m > 0 ? m + ' menit ' : '') + s + ' detik';
-    }
+                    window.location.reload();
+                    return;
+                }
+                var m = Math.floor(remaining / 60);
+                var s = remaining % 60;
+                countdown.textContent = (m > 0 ? m + ' menit ' : '') + s + ' detik';
+            }
 
-    updateTimer();
-    var timer = setInterval(updateTimer, 1000);
-})();
-<?php endif; ?>
+            updateTimer();
+            var timer = setInterval(updateTimer, 1000);
+        })();
+    <?php endif; ?>
 </script>
 
 </body>
