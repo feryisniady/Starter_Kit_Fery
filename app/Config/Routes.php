@@ -63,5 +63,6 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	// App Settings
 	$routes->get('settings', 'Admin\AppSettingController::index', ['filter' => 'permission:setting.manage']);
 	$routes->post('settings/update', 'Admin\AppSettingController::update', ['filter' => 'permission:setting.manage']);
+	$routes->get('settings/delete-image/(:segment)', 'Admin\AppSettingController::deleteImage/$1', ['filter' => 'permission:setting.manage']);
 });
 

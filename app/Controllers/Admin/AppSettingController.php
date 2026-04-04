@@ -42,6 +42,32 @@ class AppSettingController extends BaseController
         return redirect()->to('/admin/settings')->with('success', 'Pengaturan berhasil disimpan.');
     }
 
+    public function deleteImage(string $key)
+    {
+        // Validasi key hanya boleh image type
+        $setting = $this->settingModel->where('key', $key)->where('type', 'image')->first();
+        if (!$setting) {
+            return redirect()->back()->with('error', 'Setting tidak ditemukan.');
+        }
+
+        // Hapus file fisik
+        if ($setting['value']) {
+            $filePath = FCPATH . ltrim($setting['value'], '/');
+            if (is_file($filePath)) {
+                @unlink($filePath);
+            }
+        }
+
+        // Kosongkan nilai di DB
+        $this->settingModel->setValue($key, null);
+        clear_setting_cache();
+
+        logActivity('setting.delete_image', 'settings', "Gambar '{$key}' dihapus");
+
+        $tab = request()->getGet('tab') ?? 'appearance';
+        return redirect()->to('/admin/settings?tab=' . $tab)->with('success', 'Gambar berhasil dihapus.');
+    }
+
     // -------------------------------------------------------------------------
 
     private function handleUploads(): void

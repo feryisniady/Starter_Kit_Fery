@@ -1,5 +1,25 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
+<?php
+function imageFieldPreview(array $s, string $activeTab): string {
+    $key = esc($s['key']);
+    $tab = esc($activeTab);
+    $html = '';
+    if ($s['value']) {
+        $deleteUrl = '/admin/settings/delete-image/' . $s['key'] . '?tab=' . $activeTab;
+        $html .= '<div class="image-preview-wrap mb-2">';
+        $html .= '<img src="' . base_url(esc($s['value'])) . '" alt="' . esc($s['label']) . '" class="img-preview">';
+        $html .= '<span class="image-preview-name">' . esc(basename($s['value'])) . '</span>';
+        $html .= '<a href="' . $deleteUrl . '" class="btn-img-delete" onclick="return confirm(\'Hapus gambar ini?\')" title="Hapus gambar">';
+        $html .= '<i class="fas fa-trash-can"></i></a>';
+        $html .= '</div>';
+    } else {
+        $html .= '<div class="image-preview-wrap mb-2 text-muted"><i class="fas fa-image"></i> Belum ada gambar</div>';
+    }
+    $html .= '<input type="file" name="' . $key . '" accept="image/*" class="form-control" style="max-width:400px">';
+    return $html;
+}
+?>
 
 <div class="page-header">
     <div class="page-title">
@@ -87,25 +107,7 @@ $activeTab = $_GET['tab'] ?? 'general';
             <?php foreach(($grouped['appearance'] ?? []) as $s): ?>
             <div class="form-group">
                 <label><?= esc($s['label']) ?></label>
-
-                <?php if($s['value']): ?>
-                <div class="image-preview-wrap mb-2">
-                    <img src="<?= base_url(esc($s['value'])) ?>"
-                         alt="<?= esc($s['label']) ?>"
-                         style="max-height:80px;max-width:200px;border-radius:8px;border:1px solid #e2e8f0;padding:4px;background:#f8fafc">
-                    <span class="image-preview-name"><?= esc(basename($s['value'])) ?></span>
-                </div>
-                <?php else: ?>
-                <div class="image-preview-wrap mb-2" style="color:#94a3b8;font-size:13px">
-                    <i class="fas fa-image"></i> Belum ada gambar
-                </div>
-                <?php endif; ?>
-
-                <input type="file" name="<?= $s['key'] ?>" accept="image/*"
-                       class="form-control" style="max-width:400px">
-                <?php if($s['description']): ?>
-                <small class="form-hint"><?= esc($s['description']) ?></small>
-                <?php endif; ?>
+                <?= imageFieldPreview($s, $activeTab) ?>
             </div>
             <?php endforeach; ?>
         </div>
@@ -125,20 +127,7 @@ $activeTab = $_GET['tab'] ?? 'general';
                 <label for="s_<?= $s['key'] ?>"><?= esc($s['label']) ?></label>
 
                 <?php if($s['type'] === 'image'): ?>
-                    <?php if($s['value']): ?>
-                    <div class="image-preview-wrap mb-2">
-                        <img src="<?= base_url(esc($s['value'])) ?>"
-                             alt="Background"
-                             style="max-height:120px;max-width:300px;border-radius:8px;border:1px solid #e2e8f0">
-                        <span class="image-preview-name"><?= esc(basename($s['value'])) ?></span>
-                    </div>
-                    <?php else: ?>
-                    <div class="image-preview-wrap mb-2" style="color:#94a3b8;font-size:13px">
-                        <i class="fas fa-image"></i> Belum ada gambar (menggunakan gradient CSS)
-                    </div>
-                    <?php endif; ?>
-                    <input type="file" name="<?= $s['key'] ?>" accept="image/*"
-                           class="form-control" style="max-width:400px">
+                    <?= imageFieldPreview($s, $activeTab) ?>
 
                 <?php elseif($s['type'] === 'textarea'): ?>
                     <textarea id="s_<?= $s['key'] ?>" name="settings[<?= $s['key'] ?>]"
@@ -261,6 +250,35 @@ $activeTab = $_GET['tab'] ?? 'general';
     color: #64748b;
     font-style: italic;
 }
+.img-preview {
+    max-height: 80px;
+    max-width: 180px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    padding: 4px;
+    background: #f8fafc;
+    object-fit: contain;
+}
+.btn-img-delete {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #fff1f2;
+    border: 1px solid #fecdd3;
+    color: #dc2626;
+    font-size: 13px;
+    text-decoration: none;
+    transition: background .2s;
+    flex-shrink: 0;
+}
+.btn-img-delete:hover {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+.text-muted { color: #94a3b8; font-size: 13px; }
 </style>
 
 <?= $this->endSection() ?>
