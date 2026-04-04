@@ -60,5 +60,8 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	// Activity Log
 	$routes->get('activity-logs', 'Admin\ActivityLogController::index', ['filter' => 'permission:activitylog.view']);
 	$routes->get('activity-logs/export', 'Admin\ActivityLogController::export', ['filter' => 'permission:activitylog.view']);
+	// App Settings
+	$routes->get('settings', 'Admin\AppSettingController::index', ['filter' => 'permission:setting.manage']);
+	$routes->post('settings/update', 'Admin\AppSettingController::update', ['filter' => 'permission:setting.manage']);
 });
 

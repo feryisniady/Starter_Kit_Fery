@@ -1,11 +1,13 @@
-<?php $brand = config('Brand'); ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="csrf-token" content="<?= csrf_hash() ?>">
-  <title><?= esc($title ?? 'Dashboard') ?> — <?= esc($brand->appName) ?></title>
+  <title><?= esc($title ?? 'Dashboard') ?> — <?= esc(app_setting('app_name')) ?></title>
+  <?php if(app_setting('favicon_path')): ?>
+  <link rel="icon" href="<?= base_url(esc(app_setting('favicon_path'))) ?>">
+  <?php endif; ?>
 
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -25,12 +27,17 @@
 
     <!-- Brand -->
     <div class="sidebar-brand">
+      <?php if(app_setting('logo_path')): ?>
+      <img src="<?= base_url(esc(app_setting('logo_path'))) ?>"
+           alt="Logo" style="height:36px;width:36px;object-fit:contain;border-radius:8px">
+      <?php else: ?>
       <div class="brand-icon">
         <i class="fas fa-shield-halved"></i>
       </div>
+      <?php endif; ?>
       <div class="brand-text">
-        <span><?= esc($brand->appName) ?></span>
-        <strong><?= esc($brand->orgShort) ?></strong>
+        <span><?= esc(app_setting('app_name')) ?></span>
+        <strong><?= esc(app_setting('org_short')) ?></strong>
       </div>
     </div>
 
@@ -204,8 +211,14 @@
 
 <!-- Footer -->
 <footer class="page-footer">
-  <span>&copy; <?= date('Y') ?> <strong><?= esc($brand->orgName) ?></strong>. All rights reserved.</span>
-  <span><?= esc($brand->appName) ?> v<?= esc($brand->appVersion) ?> — Powered by CodeIgniter 4</span>
+  <?php
+    $footerText = app_setting('footer_text');
+    if ($footerText): ?>
+    <span><?= esc($footerText) ?></span>
+  <?php else: ?>
+    <span>&copy; <?= date('Y') ?> <strong><?= esc(app_setting('org_name')) ?></strong>. All rights reserved.</span>
+    <span><?= esc(app_setting('app_name')) ?> v<?= esc(app_setting('app_version')) ?> — Powered by CodeIgniter 4</span>
+  <?php endif; ?>
 </footer>
 
 </div>

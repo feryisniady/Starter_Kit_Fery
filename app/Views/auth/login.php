@@ -1,10 +1,12 @@
-<?php $brand = config('Brand'); ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Login — <?= esc($brand->appName) ?></title>
+    <title>Login — <?= esc(app_setting('app_name')) ?></title>
+    <?php if(app_setting('favicon_path')): ?>
+    <link rel="icon" href="<?= base_url(esc(app_setting('favicon_path'))) ?>">
+    <?php endif; ?>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="/assets/_main/css/auth.css">
     <style>
@@ -85,14 +87,14 @@
             <i class="fas fa-shield-halved"></i>
         </div>
         <div class="logo-text">
-            <span><?= esc($brand->orgName) ?></span>
-            <strong><?= esc($brand->orgShort) ?></strong>
+            <span><?= esc(app_setting('login_title') ?: app_setting('org_name')) ?></span>
+            <strong><?= esc(app_setting('login_subtitle') ?: app_setting('org_short')) ?></strong>
         </div>
     </div>
 
     <div class="welcome">
         <p>Selamat datang di,</p>
-        <h1><?= esc($brand->appTagline) ?></h1>
+        <h1><?= esc(app_setting('login_tagline') ?: app_setting('app_tagline')) ?></h1>
     </div>
 
     <?php
@@ -187,8 +189,8 @@
     <div class="circle circle-3"></div>
 
     <div class="right-content">
-        <h2><?= esc($brand->appName) ?></h2>
-        <p><?= esc($brand->appTagline) ?></p>
+        <h2><?= esc(app_setting('login_tagline') ?: app_setting('app_name')) ?></h2>
+        <p><?= esc(app_setting('login_desc') ?: app_setting('app_tagline')) ?></p>
 
         <!-- Ilustrasi SVG -->
         <svg class="illustration" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">

@@ -1,25 +1,27 @@
-<?php $brand = config('Brand'); ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
   <!-- Primary Meta Tags -->
-  <title><?= esc($brand->appName) ?></title>
-  <meta name="title" content="<?= esc($brand->appName) ?>" />
-  <meta name="description" content="<?= esc($brand->appTagline) ?>" />
+  <title><?= esc(app_setting('app_name')) ?></title>
+  <meta name="title" content="<?= esc(app_setting('app_name')) ?>" />
+  <meta name="description" content="<?= esc(app_setting('app_tagline')) ?>" />
+  <?php if(app_setting('favicon_path')): ?>
+  <link rel="icon" href="<?= base_url(esc(app_setting('favicon_path'))) ?>">
+  <?php endif; ?>
 
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content="<?= base_url() ?>" />
-  <meta property="og:title" content="<?= esc($brand->appName) ?>" />
-  <meta property="og:description" content="<?= esc($brand->appTagline) ?>" />
+  <meta property="og:title" content="<?= esc(app_setting('app_name')) ?>" />
+  <meta property="og:description" content="<?= esc(app_setting('app_tagline')) ?>" />
 
   <!-- Twitter -->
   <meta property="twitter:card" content="summary_large_image" />
   <meta property="twitter:url" content="<?= base_url() ?>" />
-  <meta property="twitter:title" content="<?= esc($brand->appName) ?>" />
-  <meta property="twitter:description" content="<?= esc($brand->appTagline) ?>" />
+  <meta property="twitter:title" content="<?= esc(app_setting('app_name')) ?>" />
+  <meta property="twitter:description" content="<?= esc(app_setting('app_tagline')) ?>" />
 
   <!-- Fonts -->
   <link href="https://fonts.googleapis.com" rel="preconnect">
@@ -44,7 +46,10 @@
     <div class="container-fluid container-xl position-relative d-flex align-items-center justify-content-between">
 
       <div class="logo d-flex align-items-center">
-        <span><?= esc($brand->orgName) ?></span>
+        <?php if(app_setting('logo_path')): ?>
+        <img src="<?= base_url(esc(app_setting('logo_path'))) ?>" alt="Logo" style="height:32px">
+        <?php endif; ?>
+        <span><?= esc(app_setting('org_name')) ?></span>
       </div>
 
       <nav id="navmenu" class="navmenu">
@@ -66,8 +71,8 @@
           <div class="col-lg-4 order-lg-last hero-img" data-aos="zoom-out" data-aos-delay="100"></div>
           <div class="col-lg-6 d-flex flex-column justify-content-center" data-aos="fade-in">
             <div data-aos="zoom-out">
-              <h1><span><?= esc($brand->appName) ?></span></h1>
-              <h5><?= esc($brand->appTagline) ?></h5>
+              <h1><span><?= esc(app_setting('app_name')) ?></span></h1>
+              <h5><?= esc(app_setting('app_tagline')) ?></h5>
               <div class="text-center text-lg-start">
                 <a href="/login" class="btn btn-warning mt-3"><strong>Login</strong></a>
               </div>
@@ -130,15 +135,15 @@
     <section id="tentang">
       <div class="container section-title" data-aos="fade-up">
         <h2>Tentang</h2>
-        <div><span><?= esc($brand->appName) ?></span></div>
+        <div><span><?= esc(app_setting('app_name')) ?></span></div>
       </div>
       <div class="container-fluid">
         <div class="row d-flex">
           <div class="col-xl-5 col-md-4 d-flex justify-content-center align-items-stretch" data-aos="fade-right"></div>
           <div class="col-xl-6 col-md-8 icon-boxes d-flex flex-column align-items-stretch justify-content-center py-5 px-lg-5" data-aos="fade-left">
-            <h1 class="fw-bold"><?= esc($brand->appName) ?></h1>
-            <p><?= esc($brand->appTagline) ?></p>
-            <p>Dikelola oleh <strong><?= esc($brand->orgName) ?></strong>.</p>
+            <h1 class="fw-bold"><?= esc(app_setting('app_name')) ?></h1>
+            <p><?= esc(app_setting('app_tagline')) ?></p>
+            <p>Dikelola oleh <strong><?= esc(app_setting('org_name')) ?></strong>.</p>
           </div>
         </div>
       </div>
@@ -149,9 +154,14 @@
   <footer id="footer" class="footer">
     <div class="container copyright text-center">
       <p>
+        <?php $footerText = app_setting('footer_text'); ?>
+        <?php if($footerText): ?>
+        <?= esc($footerText) ?>
+        <?php else: ?>
         <sup>&copy; <?= date('Y') ?></sup>
-        <span><a href="<?= esc($brand->orgWebsite) ?>" target="_blank"><?= esc($brand->orgName) ?></a></span>
-        &mdash; <?= esc($brand->appName) ?> v<?= esc($brand->appVersion) ?>
+        <span><a href="<?= esc(app_setting('org_website','#')) ?>" target="_blank"><?= esc(app_setting('org_name')) ?></a></span>
+        &mdash; <?= esc(app_setting('app_name')) ?> v<?= esc(app_setting('app_version')) ?>
+        <?php endif; ?>
       </p>
     </div>
   </footer>

@@ -120,6 +120,60 @@ if (!function_exists('logActivity')) {
     }
 }
 
+if (!function_exists('app_setting')) {
+    /**
+     * Ambil nilai pengaturan aplikasi dari DB.
+     * Fallback: Brand config → $default
+     */
+    function app_setting(string $key, mixed $default = null): mixed
+    {
+        static $map = null;
+
+        if ($map === null) {
+            $cache = \Config\Services::cache();
+            $map   = $cache->get('app_settings_map');
+
+            if ($map === null) {
+                try {
+                    $db   = \Config\Database::connect();
+                    $rows = $db->table('app_settings')->get()->getResultArray();
+                    $map  = [];
+                    foreach ($rows as $row) {
+                        $map[$row['key']] = $row['value'];
+                    }
+                    $cache->save('app_settings_map', $map, 3600);
+                } catch (\Throwable $e) {
+                    $map = [];
+                }
+            }
+        }
+
+        if (array_key_exists($key, $map) && $map[$key] !== null && $map[$key] !== '') {
+            return $map[$key];
+        }
+
+        // Fallback ke Brand config
+        $brand = config('Brand');
+        $brandMap = [
+            'app_name'    => $brand->appName,
+            'app_version' => $brand->appVersion,
+            'app_tagline' => $brand->appTagline,
+            'org_name'    => $brand->orgName,
+            'org_short'   => $brand->orgShort,
+            'org_website' => $brand->orgWebsite,
+        ];
+
+        return $brandMap[$key] ?? $default;
+    }
+}
+
+if (!function_exists('clear_setting_cache')) {
+    function clear_setting_cache(): void
+    {
+        \Config\Services::cache()->delete('app_settings_map');
+    }
+}
+
 if (!function_exists('breadcrumb')) {
     function breadcrumb(): string
     {
@@ -133,16 +187,20 @@ if (!function_exists('breadcrumb')) {
 
         // Label mapping — tambah sesuai kebutuhan
         $labels = [
-            'admin'     => null, // skip
-            'users'     => 'Users',
-            'roles'     => 'Roles',
-            'menus'     => 'Menus',
-            'dashboard' => 'Dashboard',
-            'create'    => 'Tambah',
-            'edit'      => 'Edit',
-            'store'     => 'Simpan',
-            'update'    => 'Update',
-            'delete'    => 'Hapus',
+            'admin'          => null, // skip
+            'users'          => 'Users',
+            'roles'          => 'Roles',
+            'menus'          => 'Menus',
+            'permissions'    => 'Permissions',
+            'settings'       => 'Pengaturan',
+            'activity-logs'  => 'Activity Log',
+            'dashboard'      => 'Dashboard',
+            'create'         => 'Tambah',
+            'edit'           => 'Edit',
+            'store'          => 'Simpan',
+            'update'         => 'Update',
+            'delete'         => 'Hapus',
+            'export'         => 'Export',
         ];
 
         $validSegments = [];
