@@ -231,7 +231,9 @@
 <div class="right-panel">
     <div class="circle circle-1"></div>
     <div class="circle circle-2"></div>
+    <?php if(!app_setting('login_bg_path')): ?>
     <div class="circle circle-3"></div>
+    <?php endif; ?>
 
     <div class="right-content">
         <h2><?= esc(app_setting('login_tagline') ?: app_setting('app_name')) ?></h2>
