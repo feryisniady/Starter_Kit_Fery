@@ -15,6 +15,17 @@ class NotificationController extends BaseController
         $this->userId = (int) session()->get('user_id');
     }
 
+    // TEST: kirim notif ke diri sendiri (hapus setelah selesai test)
+    public function test()
+    {
+        notify($this->userId, 'Test Info',    'Ini notifikasi tipe info',    '/dashboard', 'info');
+        notify($this->userId, 'Test Sukses',  'Upload dokumen berhasil',     '/dashboard', 'success');
+        notify($this->userId, 'Test Warning', 'Laporan belum diverifikasi',  '/dashboard', 'warning');
+        notify($this->userId, 'Test Bahaya',  'Login gagal 3x dari IP asing','/dashboard', 'danger');
+
+        return redirect()->to('/notifications')->with('success', '4 notifikasi test terkirim!');
+    }
+
     // Halaman semua notifikasi
     public function index()
     {

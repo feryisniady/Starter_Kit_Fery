@@ -29,6 +29,7 @@ $routes->group('', ['filter' => 'auth'], function($routes) {
 	$routes->post('/profile/change-password', 'ProfileController::changePassword');
 	$routes->post('/profile/delete-avatar', 'ProfileController::deleteAvatar');
 	// Notifikasi
+	$routes->get('/notifications/test', 'NotificationController::test');
 	$routes->get('/notifications', 'NotificationController::index');
 	$routes->get('/notifications/fetch', 'NotificationController::fetch');
 	$routes->get('/notifications/read/(:num)', 'NotificationController::read/$1');
