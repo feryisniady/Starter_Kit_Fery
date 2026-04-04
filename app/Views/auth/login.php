@@ -183,7 +183,7 @@
 </div>
 
 <!-- RIGHT PANEL -->
-<div class="right-panel">
+<div class="right-panel" <?php if(app_setting('login_bg_path')): ?>style="background-image: url('<?= base_url(esc(app_setting('login_bg_path'))) ?>'); background-size: cover; background-position: center;"<?php endif; ?>>
     <div class="circle circle-1"></div>
     <div class="circle circle-2"></div>
     <div class="circle circle-3"></div>
