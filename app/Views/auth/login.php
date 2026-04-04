@@ -22,8 +22,8 @@
     </div>
 
     <div class="welcome">
-        <p>Selamat datang,</p>
-        <h1>Sahabat Pengawasan!</h1>
+        <p>Selamat datang di,</p>
+        <h1>Sistem Informasi Pengawasan APIP..!</h1>
     </div>
 
     <?php if(session()->getFlashdata('error')): ?>
@@ -83,7 +83,7 @@
     <div class="circle circle-3"></div>
 
     <div class="right-content">
-        <h2>Sistem Informasi Pengawasan</h2>
+        <h2>Sistem Informasi Pengawasan APIP</h2>
         <p>Platform digital terintegrasi untuk mendukung pelaksanaan tugas pengawasan Inspektorat Daerah Kabupaten Sampang</p>
 
         <!-- Ilustrasi SVG -->
