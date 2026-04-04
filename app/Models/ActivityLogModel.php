@@ -34,6 +34,35 @@ class ActivityLogModel extends Model
         ];
     }
 
+    // Statistik 7 hari terakhir untuk chart
+    public function getLast7DaysStats(): array
+    {
+        $results = $this->select("DATE(created_at) as date, COUNT(*) as total")
+            ->where('created_at >=', date('Y-m-d', strtotime('-6 days')) . ' 00:00:00')
+            ->groupBy('DATE(created_at)')
+            ->orderBy('date', 'ASC')
+            ->findAll();
+
+        $map = [];
+        foreach ($results as $r) {
+            $map[$r['date']] = (int) $r['total'];
+        }
+
+        $data = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $date   = date('Y-m-d', strtotime("-$i days"));
+            $label  = date('d M', strtotime($date));
+            $data[] = ['date' => $date, 'label' => $label, 'total' => $map[$date] ?? 0];
+        }
+        return $data;
+    }
+
+    // Log terbaru (untuk recent activity di dashboard)
+    public function getRecent(int $limit = 5): array
+    {
+        return $this->orderBy('created_at', 'DESC')->findAll($limit);
+    }
+
     // Ambil log dengan filter — DataTables handle paginasi di sisi client
     public function getLogsFiltered(array $filters = []): array
     {
