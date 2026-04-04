@@ -129,9 +129,9 @@ body { font-family: 'Segoe UI', Arial, sans-serif; min-height: 100vh; display: f
     background: #0f2557;
     position: relative;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
-    overflow: hidden;
+    overflow-y: auto;
 }
 .circle {
     position: absolute;
@@ -160,7 +160,8 @@ body { font-family: 'Segoe UI', Arial, sans-serif; min-height: 100vh; display: f
     position: relative;
     z-index: 2;
     text-align: center;
-    padding: 40px;
+    padding: 50px 40px 40px;
+    width: 100%;
 }
 .right-content h2 {
     color: white;
