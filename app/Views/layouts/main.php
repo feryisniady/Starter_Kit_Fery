@@ -187,11 +187,32 @@
     </div>
 
     <div class="topbar-actions">
-      <!-- Notifikasi -->
-      <button class="topbar-btn" title="Notifikasi">
-        <i class="fas fa-bell"></i>
-        <span class="notif-dot"></span>
-      </button>
+      <!-- Notifikasi Bell -->
+      <div class="notif-wrap" id="notifWrap">
+        <button class="topbar-btn" id="notifBtn" title="Notifikasi" onclick="toggleNotifDropdown()">
+          <i class="fas fa-bell"></i>
+          <span class="notif-badge" id="notifBadge" style="display:none">0</span>
+        </button>
+
+        <!-- Dropdown -->
+        <div class="notif-dropdown" id="notifDropdown">
+          <div class="notif-header">
+            <span><i class="fas fa-bell"></i> Notifikasi</span>
+            <button class="notif-read-all" id="btnReadAll" onclick="readAllNotif()" title="Tandai semua dibaca">
+              <i class="fas fa-check-double"></i> Semua dibaca
+            </button>
+          </div>
+          <div class="notif-list" id="notifList">
+            <div class="notif-empty">
+              <i class="fas fa-bell-slash"></i>
+              <span>Tidak ada notifikasi</span>
+            </div>
+          </div>
+          <div class="notif-footer">
+            <a href="/notifications">Lihat semua notifikasi</a>
+          </div>
+        </div>
+      </div>
 
       <div class="topbar-divider"></div>
 
@@ -366,6 +387,232 @@
       });
     });
   });
+</script>
+
+<!-- Notifikasi CSS -->
+<style>
+/* ---- Notif Wrap ---- */
+.notif-wrap { position: relative; }
+.notif-badge {
+  position: absolute;
+  top: 2px; right: 2px;
+  background: #ef4444;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 99px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* ---- Dropdown ---- */
+.notif-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 340px;
+  background: white;
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.14);
+  border: 1px solid #e2e8f0;
+  z-index: 1100;
+  overflow: hidden;
+}
+.notif-dropdown.open { display: block; }
+.notif-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+}
+.notif-read-all {
+  background: none;
+  border: none;
+  font-size: 11px;
+  color: #2563eb;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background .15s;
+}
+.notif-read-all:hover { background: #eff6ff; }
+.notif-list { max-height: 320px; overflow-y: auto; }
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f8fafc;
+  cursor: pointer;
+  transition: background .15s;
+  text-decoration: none;
+  color: inherit;
+}
+.notif-item:hover { background: #f8fafc; }
+.notif-item.unread { background: #f0f9ff; }
+.notif-item.unread:hover { background: #e0f2fe; }
+.notif-icon {
+  width: 34px; height: 34px;
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.notif-icon.info    { background: #eff6ff; color: #2563eb; }
+.notif-icon.success { background: #f0fdf4; color: #16a34a; }
+.notif-icon.warning { background: #fffbeb; color: #d97706; }
+.notif-icon.danger  { background: #fef2f2; color: #dc2626; }
+.notif-body { flex: 1; min-width: 0; }
+.notif-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.notif-msg {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.notif-time { font-size: 11px; color: #94a3b8; margin-top: 3px; }
+.notif-unread-dot {
+  width: 7px; height: 7px;
+  background: #2563eb;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+.notif-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 16px;
+  color: #94a3b8;
+  font-size: 13px;
+}
+.notif-empty i { font-size: 28px; opacity: .4; }
+.notif-footer {
+  padding: 10px 16px;
+  border-top: 1px solid #f1f5f9;
+  text-align: center;
+}
+.notif-footer a {
+  font-size: 12px;
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 500;
+}
+.notif-footer a:hover { text-decoration: underline; }
+</style>
+
+<!-- Notifikasi JS -->
+<script>
+var _notifOpen = false;
+
+function toggleNotifDropdown() {
+  _notifOpen = !_notifOpen;
+  document.getElementById('notifDropdown').classList.toggle('open', _notifOpen);
+  if (_notifOpen) fetchNotif();
+}
+
+// Tutup dropdown kalau klik di luar
+document.addEventListener('click', function(e) {
+  var wrap = document.getElementById('notifWrap');
+  if (wrap && !wrap.contains(e.target)) {
+    _notifOpen = false;
+    document.getElementById('notifDropdown').classList.remove('open');
+  }
+});
+
+var _notifIconMap = {
+  info:    'fa-circle-info',
+  success: 'fa-circle-check',
+  warning: 'fa-triangle-exclamation',
+  danger:  'fa-circle-xmark',
+};
+
+function fetchNotif() {
+  $.get('/notifications/fetch', function(res) {
+    // Update badge
+    var badge = document.getElementById('notifBadge');
+    if (res.unread > 0) {
+      badge.style.display = 'flex';
+      badge.textContent   = res.unread > 99 ? '99+' : res.unread;
+    } else {
+      badge.style.display = 'none';
+    }
+
+    // Render list
+    var list = document.getElementById('notifList');
+    if (!res.notifications || res.notifications.length === 0) {
+      list.innerHTML = '<div class="notif-empty"><i class="fas fa-bell-slash"></i><span>Tidak ada notifikasi</span></div>';
+      return;
+    }
+
+    var html = '';
+    res.notifications.forEach(function(n) {
+      var icon    = _notifIconMap[n.type] || 'fa-circle-info';
+      var unread  = parseInt(n.is_read) === 0;
+      var href    = n.url ? '/notifications/read/' + n.id : 'javascript:void(0)';
+      var onclick = !n.url ? 'markRead(' + n.id + ');return false;' : '';
+
+      html += '<a href="' + href + '" class="notif-item' + (unread ? ' unread' : '') + '"'
+            + (onclick ? ' onclick="' + onclick + '"' : '')
+            + ' data-id="' + n.id + '">'
+            + '<div class="notif-icon ' + n.type + '"><i class="fas ' + icon + '"></i></div>'
+            + '<div class="notif-body">'
+            +   '<div class="notif-title">' + escHtml(n.title) + '</div>'
+            +   (n.message ? '<div class="notif-msg">' + escHtml(n.message) + '</div>' : '')
+            +   '<div class="notif-time">' + n.time_ago + '</div>'
+            + '</div>'
+            + (unread ? '<div class="notif-unread-dot"></div>' : '')
+            + '</a>';
+    });
+    list.innerHTML = html;
+  });
+}
+
+function markRead(id) {
+  $.post('/notifications/read/' + id, {<?= csrf_token() ?>: '<?= csrf_hash() ?>'}, function() {
+    $('[data-id="' + id + '"]').removeClass('unread').find('.notif-unread-dot').remove();
+    fetchNotif();
+  });
+}
+
+function readAllNotif() {
+  $.post('/notifications/read-all', {<?= csrf_token() ?>: '<?= csrf_hash() ?>'}, function() {
+    fetchNotif();
+  });
+}
+
+function escHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Poll badge tiap 30 detik
+$(document).ready(function() {
+  fetchNotif();
+  setInterval(fetchNotif, 30000);
+});
 </script>
 
 <!-- Scripts Per Halaman -->

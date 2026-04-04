@@ -28,6 +28,12 @@ $routes->group('', ['filter' => 'auth'], function($routes) {
 	$routes->post('/profile/update', 'ProfileController::update');
 	$routes->post('/profile/change-password', 'ProfileController::changePassword');
 	$routes->post('/profile/delete-avatar', 'ProfileController::deleteAvatar');
+	// Notifikasi
+	$routes->get('/notifications', 'NotificationController::index');
+	$routes->get('/notifications/fetch', 'NotificationController::fetch');
+	$routes->get('/notifications/read/(:num)', 'NotificationController::read/$1');
+	$routes->post('/notifications/read/(:num)', 'NotificationController::read/$1');
+	$routes->post('/notifications/read-all', 'NotificationController::readAll');
 });
 
 

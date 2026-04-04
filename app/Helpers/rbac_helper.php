@@ -174,6 +174,41 @@ if (!function_exists('clear_setting_cache')) {
     }
 }
 
+if (!function_exists('notify')) {
+    /**
+     * Kirim notifikasi in-app ke satu atau banyak user.
+     *
+     * Contoh pemakaian:
+     *   notify($userId, 'Judul', 'Pesan singkat', '/link/tujuan', 'info');
+     *   notify([1,2,3], 'Dokumen Baru', 'Budi mengupload SK', '/dokumen/5', 'success');
+     */
+    function notify(int|array $userIds, string $title, string $message = '', string $url = '', string $type = 'info'): void
+    {
+        $model = new \App\Models\NotificationModel();
+        $model->send($userIds, $title, $message, $url, $type);
+    }
+}
+
+if (!function_exists('notifyAllAdmins')) {
+    /**
+     * Kirim notifikasi ke semua user yang punya role admin/superadmin.
+     */
+    function notifyAllAdmins(string $title, string $message = '', string $url = '', string $type = 'info'): void
+    {
+        $db = \Config\Database::connect();
+        $rows = $db->table('user_roles ur')
+            ->select('ur.user_id')
+            ->join('roles r', 'r.id = ur.role_id')
+            ->whereIn('r.name', ['admin', 'superadmin'])
+            ->get()->getResultArray();
+
+        if (empty($rows)) return;
+
+        $ids = array_column($rows, 'user_id');
+        notify($ids, $title, $message, $url, $type);
+    }
+}
+
 if (!function_exists('breadcrumb')) {
     function breadcrumb(): string
     {
