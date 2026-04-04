@@ -36,12 +36,12 @@
                         <?php foreach($menus as $i => $menu): ?>
                             <tr>
                                 <td><?= $i+1 ?></td>
-                                <td><i class="<?= $menu['icon'] ?>"></i></td>
-                                <td><?= $menu['label'] ?></td>
-                                <td><code><?= $menu['url'] ?></code></td>
+                                <td><i class="<?= esc($menu['icon']) ?>"></i></td>
+                                <td><?= esc($menu['label']) ?></td>
+                                <td><code><?= esc($menu['url']) ?></code></td>
                                 <td>
                                     <?php if($menu['permission']): ?>
-                                        <span class="badge badge-info"><?= $menu['permission'] ?></span>
+                                        <span class="badge badge-info"><?= esc($menu['permission']) ?></span>
                                     <?php else: ?>
                                         <span class="text-muted">publik</span>
                                     <?php endif; ?>
@@ -53,9 +53,9 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <a href="/admin/menus/edit/<?= $menu['id'] ?>" class="btn btn-sm btn-info"><i class="fas fa-edit"></i></a>
+                                    <a href="/admin/menus/edit/<?= esc($menu['id']) ?>" class="btn btn-sm btn-info"><i class="fas fa-edit"></i></a>
                                     <button class="btn btn-danger btn-sm btn-icon btn-delete"
-                                    data-url="/admin/menus/delete/<?= $menu['id'] ?>">
+                                    data-url="/admin/menus/delete/<?= esc($menu['id']) ?>">
                                     <i class="fas fa-trash"></i>
                                 </button>
 

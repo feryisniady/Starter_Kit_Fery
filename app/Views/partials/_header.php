@@ -10,7 +10,7 @@
 			<li class="dropdown">
 				<a class="nav-link nav-link-user">
 					<div class="d-sm-none d-lg-inline-block">
-						<?= session()->get('user_name') ?>
+						<?= esc(session()->get('user_name')) ?>
 					</div>
 				</a>
 			</li>

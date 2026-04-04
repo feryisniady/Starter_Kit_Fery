@@ -53,7 +53,7 @@
 
       <?php foreach($menuGroups as $section => $items): ?>
 
-        <div class="nav-section-title"><?= $section ?></div>
+        <div class="nav-section-title"><?= esc($section) ?></div>
 
         <?php foreach($items as $menu): ?>
           <?php
@@ -77,19 +77,19 @@
                 <!-- Parent HANYA container — seluruh area toggle submenu -->
                 <div class="nav-link <?= $isActive ? 'open' : '' ?>"
                   onclick="toggleSubmenu(this)">
-                  <div class="nav-icon"><i class="<?= $menu['icon'] ?>"></i></div>
-                  <span class="nav-label"><?= $menu['label'] ?></span>
+                  <div class="nav-icon"><i class="<?= esc($menu['icon']) ?>"></i></div>
+                  <span class="nav-label"><?= esc($menu['label']) ?></span>
                   <i class="fas fa-chevron-right nav-arrow"></i>
                 </div>
 
               <?php else: ?>
                 <!-- Parent PUNYA URL — link + tombol toggle terpisah -->
                 <div class="nav-link <?= $isActive ? 'open' : '' ?>">
-                  <a href="<?= $menu['url'] ?>"
+                  <a href="<?= esc($menu['url']) ?>"
                     style="display:flex;align-items:center;gap:12px;
                     flex:1;color:inherit;text-decoration:none">
-                    <div class="nav-icon"><i class="<?= $menu['icon'] ?>"></i></div>
-                    <span class="nav-label"><?= $menu['label'] ?></span>
+                    <div class="nav-icon"><i class="<?= esc($menu['icon']) ?>"></i></div>
+                    <span class="nav-label"><?= esc($menu['label']) ?></span>
                   </a>
                   <i class="fas fa-chevron-right nav-arrow"
                   onclick="toggleSubmenu(this.closest('.nav-link'))"
@@ -101,9 +101,9 @@
                 <?php foreach($menuChildren as $child): ?>
                   <?php $childActive = $currentUrl === $child['url']
                   || str_starts_with($currentUrl, $child['url'] . '/'); ?>
-                  <a href="<?= $child['url'] ?>"
+                  <a href="<?= esc($child['url']) ?>"
                     class="submenu-link <?= $childActive ? 'active' : '' ?>">
-                    <?= $child['label'] ?>
+                    <?= esc($child['label']) ?>
                   </a>
                 <?php endforeach; ?>
               </div>
@@ -112,10 +112,10 @@
           <?php else: ?>
             <!-- Menu tanpa submenu -->
             <div class="nav-item">
-              <a href="<?= $menu['url'] ?>"
+              <a href="<?= esc($menu['url']) ?>"
                 class="nav-link <?= $isActive ? 'active' : '' ?>">
-                <div class="nav-icon"><i class="<?= $menu['icon'] ?>"></i></div>
-                <span class="nav-label"><?= $menu['label'] ?></span>
+                <div class="nav-icon"><i class="<?= esc($menu['icon']) ?>"></i></div>
+                <span class="nav-label"><?= esc($menu['label']) ?></span>
               </a>
             </div>
           <?php endif; ?>
@@ -129,10 +129,10 @@
     <div class="sidebar-footer">
       <div class="sidebar-user">
         <div class="user-avatar">
-          <?= strtoupper(substr(session()->get('user_name') ?? 'A', 0, 1)) ?>
+          <?= esc(strtoupper(substr(session()->get('user_name') ?? 'A', 0, 1))) ?>
         </div>
         <div class="user-info">
-          <div class="name"><?= session()->get('user_name') ?></div>
+          <div class="name"><?= esc(session()->get('user_name')) ?></div>
           <div class="role">
             <?php if(hasRole('superadmin')): ?>Super Admin
             <?php elseif(hasRole('admin')): ?>Administrator
@@ -164,7 +164,7 @@
         <i class="fas fa-house" style="font-size:12px"></i>
       </a>
       <i class="fas fa-chevron-right"></i>
-      <span class="current"><?= $title ?? 'Dashboard' ?></span>
+      <span class="current"><?= esc($title ?? 'Dashboard') ?></span>
     </div>
 
     <div class="topbar-actions">
@@ -179,10 +179,10 @@
       <!-- User dropdown -->
       <div class="topbar-user">
         <div class="topbar-avatar">
-          <?= strtoupper(substr(session()->get('user_name') ?? 'A', 0, 1)) ?>
+          <?= esc(strtoupper(substr(session()->get('user_name') ?? 'A', 0, 1))) ?>
         </div>
         <div class="topbar-user-info">
-          <div class="name"><?= session()->get('user_name') ?></div>
+          <div class="name"><?= esc(session()->get('user_name')) ?></div>
           <div class="role">
             <?php if(hasRole('superadmin')): ?>Super Admin
             <?php elseif(hasRole('admin')): ?>Administrator

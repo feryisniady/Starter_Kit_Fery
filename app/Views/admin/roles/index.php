@@ -36,18 +36,18 @@
                     <?php foreach($roles as $i => $role): ?>
                         <tr>
                             <td><?= $i+1 ?></td>
-                            <td><span class="badge badge-primary"><?= $role['name'] ?></span></td>
-                            <td><?= $role['total_permissions'] ?> permission</td>
+                            <td><span class="badge badge-primary"><?= esc($role['name']) ?></span></td>
+                            <td><?= esc($role['total_permissions']) ?> permission</td>
                             <td>
                                 <?php if(hasPermission('role.edit')): ?>
-                                    <a href="/admin/roles/edit/<?= $role['id'] ?>"
+                                    <a href="/admin/roles/edit/<?= esc($role['id']) ?>"
                                         class="btn btn-info btn-sm btn-icon" data-tooltip="Edit">
                                         <i class="fas fa-pen"></i>
                                     </a>
                                 <?php endif; ?>
                                 <?php if(hasPermission('role.delete')): ?>
                                     <button class="btn btn-danger btn-sm btn-icon btn-delete"
-                                    data-url="/admin/roles/delete/<?= $role['id'] ?>"
+                                    data-url="/admin/roles/delete/<?= esc($role['id']) ?>"
                                     data-tooltip="Hapus">
                                     <i class="fas fa-trash"></i>
                                 </button>

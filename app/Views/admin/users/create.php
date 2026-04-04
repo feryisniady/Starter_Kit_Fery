@@ -13,9 +13,6 @@
     </div>
 </div>
 
-<?php if(session()->getFlashdata('errors')): ?>
-<?php endif; ?>
-
 <div class="card">
     <div class="card-header">
         <div class="card-title">
@@ -61,7 +58,7 @@
                         <?php foreach($roles as $role): ?>
                             <label class="check-group">
                                 <input type="checkbox" name="roles[]" value="<?= $role['id'] ?>">
-                                <span><?= ucfirst($role['name']) ?></span>
+                                <span><?= esc(ucfirst($role['name'])) ?></span>
                             </label>
                         <?php endforeach; ?>
                     </div>

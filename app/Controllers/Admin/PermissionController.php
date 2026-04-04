@@ -2,8 +2,6 @@
 
 namespace App\Controllers\Admin;
 
-date_default_timezone_set('Asia/Jakarta');
-
 use App\Controllers\BaseController;
 use App\Models\PermissionModel;
 
