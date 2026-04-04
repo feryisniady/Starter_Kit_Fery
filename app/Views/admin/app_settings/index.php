@@ -10,7 +10,7 @@ function imageFieldPreview(array $s, string $activeTab): string {
         $html .= '<div class="image-preview-wrap mb-2">';
         $html .= '<img src="' . base_url(esc($s['value'])) . '" alt="' . esc($s['label']) . '" class="img-preview">';
         $html .= '<span class="image-preview-name">' . esc(basename($s['value'])) . '</span>';
-        $html .= '<a href="' . $deleteUrl . '" class="btn-img-delete" onclick="return confirm(\'Hapus gambar ini?\')" title="Hapus gambar">';
+        $html .= '<a href="' . $deleteUrl . '" class="btn-img-delete btn-delete-image" data-url="' . $deleteUrl . '" title="Hapus gambar">';
         $html .= '<i class="fas fa-trash-can"></i></a>';
         $html .= '</div>';
     } else {
@@ -280,5 +280,29 @@ $activeTab = $_GET['tab'] ?? 'general';
 }
 .text-muted { color: #94a3b8; font-size: 13px; }
 </style>
+
+<?= $this->section('scripts') ?>
+<script>
+$(document).on('click', '.btn-delete-image', function(e) {
+    e.preventDefault();
+    var url = $(this).data('url');
+    Swal.fire({
+        icon: 'warning',
+        title: 'Hapus Gambar?',
+        text: 'Gambar akan dihapus dan diganti dengan tampilan default.',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: '<i class="fas fa-trash-can"></i> Ya, Hapus!',
+        cancelButtonText: 'Batal',
+        reverseButtons: true,
+    }).then(function(result) {
+        if (result.isConfirmed) {
+            window.location.href = url;
+        }
+    });
+});
+</script>
+<?= $this->endSection() ?>
 
 <?= $this->endSection() ?>
