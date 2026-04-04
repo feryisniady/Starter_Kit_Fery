@@ -4,7 +4,7 @@
 <div class="page-header">
     <div class="page-title">
         <h1>Edit User</h1>
-        <p>Update data user <strong><?= $user['name'] ?></strong></p>
+        <p>Update data user <strong><?= esc($user['name']) ?></strong></p>
     </div>
     <div class="page-actions">
         <a href="/admin/users" class="btn btn-secondary">
@@ -12,20 +12,6 @@
         </a>
     </div>
 </div>
-
-<?php if(session()->getFlashdata('errors')): ?>
-<div class="alert alert-danger">
-    <i class="fas fa-circle-exclamation"></i>
-    <div>
-        <strong>Terdapat kesalahan:</strong>
-        <ul>
-            <?php foreach(session()->getFlashdata('errors') as $error): ?>
-            <li><?= $error ?></li>
-        <?php endforeach; ?>
-    </ul>
-</div>
-</div>
-<?php endif; ?>
 
 <div class="card">
     <div class="card-header">
@@ -76,7 +62,7 @@
                             <label class="check-group">
                                 <input type="checkbox" name="roles[]" value="<?= $role['id'] ?>"
                                 <?= in_array($role['id'], $userRoles) ? 'checked' : '' ?>>
-                                <span><?= ucfirst($role['name']) ?></span>
+                                <span><?= esc(ucfirst($role['name'])) ?></span>
                             </label>
                         <?php endforeach; ?>
                     </div>

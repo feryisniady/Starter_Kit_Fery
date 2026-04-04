@@ -2,8 +2,6 @@
 
 namespace App\Controllers\Admin;
 
-date_default_timezone_set('Asia/Jakarta');
-
 use App\Controllers\BaseController;
 use App\Models\UserModel;
 use App\Models\RoleModel;
@@ -132,10 +130,6 @@ class UserController extends BaseController
             ],
         ];
 
-        /*if (!$this->validate($rules, $messages)) {
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
-        }*/
-
         if (!$this->validate($rules, $messages)) {
             // Gabungkan semua pesan error menjadi list dengan baris baru (<br>)
             $errorString = implode('<br>', $this->validator->getErrors());
@@ -153,7 +147,7 @@ class UserController extends BaseController
         $password = $this->request->getPost('password');
         if (!empty($password)) {
             if (strlen($password) < 6) {
-                return redirect()->back()->withInput()->with('errors', ['password' => 'Password minimal 6 karakter.']);
+                return redirect()->back()->withInput()->with('error', 'Password minimal 6 karakter.');
             }
             $dataUpdate['password'] = password_hash($password, PASSWORD_DEFAULT);
         }

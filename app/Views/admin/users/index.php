@@ -42,12 +42,12 @@
                         <?php foreach($users as $i => $user): ?>
                             <tr>
                                 <td><?= $i+1 ?></td>
-                                <td><?= $user['name'] ?></td>
-                                <td><?= $user['email'] ?></td>
+                                <td><?= esc($user['name']) ?></td>
+                                <td><?= esc($user['email']) ?></td>
                                 <td>
                                     <?php if($user['roles']): ?>
                                         <?php foreach(explode(',', $user['roles']) as $role): ?>
-                                            <span class="badge badge-primary"><?= $role ?></span>
+                                            <span class="badge badge-primary"><?= esc($role) ?></span>
                                         <?php endforeach; ?>
                                     <?php else: ?>
                                         <span class="text-muted">-</span>
@@ -55,14 +55,14 @@
                                 </td>
                                 <td>
                                     <span class="badge badge-<?= $user['status']=='active' ? 'success' : 'danger' ?>">
-                                        <?= $user['status'] ?>
+                                        <?= esc($user['status']) ?>
                                     </span>
                                 </td>
                                 <td>
-                                    <a href="/admin/users/edit/<?= $user['id'] ?>" class="btn btn-sm btn-info"><i class="fas fa-edit"></i></a>
-                                    <button class="btn btn-sm btn-danger btn-delete" 
-                                    data-id="<?= $user['id'] ?>"
-                                    data-url="/admin/users/delete/<?= $user['id'] ?>">
+                                    <a href="/admin/users/edit/<?= esc($user['id']) ?>" class="btn btn-sm btn-info"><i class="fas fa-edit"></i></a>
+                                    <button class="btn btn-sm btn-danger btn-delete"
+                                    data-id="<?= esc($user['id']) ?>"
+                                    data-url="/admin/users/delete/<?= esc($user['id']) ?>">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </td>

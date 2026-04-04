@@ -31,9 +31,9 @@
                         <div class="card-header py-2">
                             <div class="d-flex align-items-center">
                                 <label class="check-group">
-                                    <strong class="check-group"><?= $group ?> </strong>
-                                    <input type="checkbox" class="custom-control-input check-all" 
-                                    id="all_<?= $group ?>" data-group="<?= $group ?>">
+                                    <strong class="check-group"><?= esc($group) ?> </strong>
+                                    <input type="checkbox" class="custom-control-input check-all"
+                                    id="all_<?= esc($group) ?>" data-group="<?= esc($group) ?>">
                                     <span>
                                         <label class="custom-control-label" for="all_<?= $group ?>">Pilih semua</label>
                                     </span>
@@ -46,11 +46,11 @@
                                 <?php foreach($items as $permission): ?>
                                     <div class="col-md-3">
                                         <div class="custom-control custom-checkbox">
-                                            <input type="checkbox" class="custom-control-input perm-<?= $group ?>"
-                                            name="permissions[]" value="<?= $permission['id'] ?>"
-                                            id="perm_<?= $permission['id'] ?>">
-                                            <label class="custom-control-label" for="perm_<?= $permission['id'] ?>">
-                                                <?= $permission['name'] ?>
+                                            <input type="checkbox" class="custom-control-input perm-<?= esc($group) ?>"
+                                            name="permissions[]" value="<?= esc($permission['id']) ?>"
+                                            id="perm_<?= esc($permission['id']) ?>">
+                                            <label class="custom-control-label" for="perm_<?= esc($permission['id']) ?>">
+                                                <?= esc($permission['name']) ?>
                                             </label>
                                         </div>
                                     </div>

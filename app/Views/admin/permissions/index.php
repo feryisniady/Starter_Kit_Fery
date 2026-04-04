@@ -47,12 +47,12 @@
         <div class="card-header">
             <div class="card-title">
                 <i class="fas fa-folder-open"></i>
-                <span style="text-transform:capitalize"><?= $prefix ?></span>
+                <span style="text-transform:capitalize"><?= esc($prefix) ?></span>
                 <span class="badge badge-primary"><?= count($items) ?></span>
             </div>
             <?php if(hasPermission('permission.create')): ?>
             <button class="btn btn-sm btn-secondary"
-                onclick="quickGenerate('<?= $prefix ?>')">
+                onclick="quickGenerate('<?= esc($prefix) ?>')">
                 <i class="fas fa-wand-magic-sparkles"></i> Quick Add
             </button>
             <?php endif; ?>
@@ -65,12 +65,12 @@
                     border-radius:8px;padding:6px 12px">
                     <span style="font-size:13px;color:#334155">
                         <i class="fas fa-key" style="color:#94a3b8;font-size:11px;margin-right:4px"></i>
-                        <?= $perm['name'] ?>
+                        <?= esc($perm['name']) ?>
                     </span>
                     <?php if(hasPermission('permission.delete')): ?>
                     <button class="btn-delete-perm"
-                        data-id="<?= $perm['id'] ?>"
-                        data-name="<?= $perm['name'] ?>"
+                        data-id="<?= esc($perm['id']) ?>"
+                        data-name="<?= esc($perm['name']) ?>"
                         style="background:none;border:none;cursor:pointer;
                         color:#cbd5e1;font-size:12px;padding:0 0 0 4px;
                         transition:color .2s"

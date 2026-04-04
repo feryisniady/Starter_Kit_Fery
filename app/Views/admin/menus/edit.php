@@ -4,7 +4,7 @@
 <div class="page-header">
     <div class="page-title">
         <h1>Edit Menu</h1>
-        <p>Update data menu <strong><?= $menu['label'] ?></strong></p>
+        <p>Update data menu <strong><?= esc($menu['label']) ?></strong></p>
     </div>
     <div class="page-actions">
         <a href="/admin/menus" class="btn btn-secondary">
@@ -74,9 +74,9 @@
                 onchange="handleParentChange(this.value)">
                 <option value="">-- Tidak ada (menu utama) --</option>
                 <?php foreach($parents as $parent): ?>
-                    <option value="<?= $parent['id'] ?>"
+                    <option value="<?= esc($parent['id']) ?>"
                         <?= old('parent_id', $menu['parent_id']) == $parent['id'] ? 'selected' : '' ?>>
-                        <?= $parent['label'] ?>
+                        <?= esc($parent['label']) ?>
                     </option>
                 <?php endforeach; ?>
             </select>
@@ -99,9 +99,9 @@
             <select name="permission" class="form-control">
                 <option value="">-- Publik --</option>
                 <?php foreach($permissions as $perm): ?>
-                    <option value="<?= $perm['name'] ?>"
+                    <option value="<?= esc($perm['name']) ?>"
                         <?= old('permission', $menu['permission']) == $perm['name'] ? 'selected' : '' ?>>
-                        <?= $perm['name'] ?>
+                        <?= esc($perm['name']) ?>
                     </option>
                 <?php endforeach; ?>
             </select>

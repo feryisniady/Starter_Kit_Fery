@@ -11,9 +11,9 @@
 		<ul class="sidebar-menu">
 			<?php foreach(getMenus() as $menu): ?>
 				<li class="<?= isActiveMenu($menu['url']) ? 'active' : '' ?>">
-					<a href="<?= $menu['url'] ?>" class="nav-link">
-						<i class="<?= $menu['icon'] ?>"></i>
-						<span><?= $menu['label'] ?></span>
+					<a href="<?= esc($menu['url']) ?>" class="nav-link">
+						<i class="<?= esc($menu['icon']) ?>"></i>
+						<span><?= esc($menu['label']) ?></span>
 					</a>
 				</li>
 			<?php endforeach; ?>

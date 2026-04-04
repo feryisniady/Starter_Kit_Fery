@@ -2,8 +2,6 @@
 
 namespace App\Controllers\Admin;
 
-date_default_timezone_set('Asia/Jakarta');
-
 use App\Controllers\BaseController;
 use App\Models\MenuModel;
 use App\Models\PermissionModel;
@@ -66,7 +64,7 @@ class MenuController extends BaseController
             $url = '#';
         } elseif (!empty($parentId) && empty($url)) {
             return redirect()->back()->withInput()
-            ->with('errors', ['url' => 'URL wajib diisi untuk sub menu!']);
+            ->with('error', 'URL wajib diisi untuk sub menu!');
         }
 
         $this->menuModel->insert([
@@ -121,13 +119,14 @@ class MenuController extends BaseController
             $url = '#';
         } elseif (!empty($parentId) && empty($url)) {
             return redirect()->back()->withInput()
-            ->with('errors', ['url' => 'URL wajib diisi untuk sub menu!']);
+            ->with('error', 'URL wajib diisi untuk sub menu!');
         }
 
         $rules = ['label' => 'required|min_length[2]|max_length[100]'];
         if (!$this->validate($rules)) {
+            $errorString = implode('<br>', $this->validator->getErrors());
             return redirect()->back()->withInput()
-            ->with('errors', $this->validator->getErrors());
+            ->with('error', $errorString);
         }
 
         $this->menuModel->update($id, [

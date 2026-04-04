@@ -12,9 +12,6 @@
     </div>
 </div>
 
-<?php if(session()->getFlashdata('errors')): ?>
-<?php endif; ?>
-
 <div class="card">
     <div class="card-body">
         <form action="/admin/menus/store" method="post">
@@ -67,8 +64,8 @@
                 onchange="handleParentChange(this.value)">
                 <option value="">-- Tidak ada (menu utama) --</option>
                 <?php foreach($parents as $parent): ?>
-                    <option value="<?= $parent['id'] ?>" <?= old('parent_id') == $parent['id'] ? 'selected' : '' ?>>
-                        <?= $parent['label'] ?>
+                    <option value="<?= esc($parent['id']) ?>" <?= old('parent_id') == $parent['id'] ? 'selected' : '' ?>>
+                        <?= esc($parent['label']) ?>
                     </option>
                 <?php endforeach; ?>
             </select>
@@ -88,8 +85,8 @@
             <select name="permission" class="form-control">
                 <option value="">-- Publik --</option>
                 <?php foreach($permissions as $perm): ?>
-                    <option value="<?= $perm['name'] ?>" <?= old('permission') == $perm['name'] ? 'selected' : '' ?>>
-                        <?= $perm['name'] ?>
+                    <option value="<?= esc($perm['name']) ?>" <?= old('permission') == $perm['name'] ? 'selected' : '' ?>>
+                        <?= esc($perm['name']) ?>
                     </option>
                 <?php endforeach; ?>
             </select>
