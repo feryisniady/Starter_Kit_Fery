@@ -137,7 +137,18 @@
     <div class="sidebar-footer">
       <div class="sidebar-user">
         <div class="user-avatar">
+          <?php
+            $dbAvatar = \Config\Database::connect()
+                ->table('users')->select('avatar')
+                ->where('id', session()->get('user_id'))->get()->getRowArray();
+            $avatarPath = $dbAvatar['avatar'] ?? null;
+          ?>
+          <?php if($avatarPath): ?>
+          <img src="<?= base_url(esc($avatarPath)) ?>" alt="avatar"
+               style="width:100%;height:100%;object-fit:cover;border-radius:50%">
+          <?php else: ?>
           <?= esc(strtoupper(substr(session()->get('user_name') ?? 'A', 0, 1))) ?>
+          <?php endif; ?>
         </div>
         <div class="user-info">
           <div class="name"><?= esc(session()->get('user_name')) ?></div>
@@ -186,9 +197,16 @@
 
       <!-- User dropdown -->
       <div class="topbar-user">
+        <a href="/profile" style="text-decoration:none">
         <div class="topbar-avatar">
+          <?php if($avatarPath): ?>
+          <img src="<?= base_url(esc($avatarPath)) ?>" alt="avatar"
+               style="width:100%;height:100%;object-fit:cover;border-radius:50%">
+          <?php else: ?>
           <?= esc(strtoupper(substr(session()->get('user_name') ?? 'A', 0, 1))) ?>
+          <?php endif; ?>
         </div>
+      </a>
         <div class="topbar-user-info">
           <div class="name"><?= esc(session()->get('user_name')) ?></div>
           <div class="role">

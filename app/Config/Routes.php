@@ -23,6 +23,11 @@ $routes->group('', ['filter' => 'guest'], function($routes) {
 $routes->group('', ['filter' => 'auth'], function($routes) {
 	$routes->get('/dashboard', 'Dashboard::index');
 	$routes->get('/users', 'Dashboard::index', ['filter' => 'permission:user.view']);
+	// Profile
+	$routes->get('/profile', 'ProfileController::index');
+	$routes->post('/profile/update', 'ProfileController::update');
+	$routes->post('/profile/change-password', 'ProfileController::changePassword');
+	$routes->post('/profile/delete-avatar', 'ProfileController::deleteAvatar');
 });
 
 

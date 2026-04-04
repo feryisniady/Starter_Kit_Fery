@@ -63,6 +63,8 @@ writable/uploads/*
 # User uploads — jangan commit file upload
 public/uploads/settings/*
 !public/uploads/settings/.gitkeep
+public/uploads/avatars/*
+!public/uploads/avatars/.gitkeep
 
 writable/debugbar/*
 !writable/debugbar/.gitkeep
