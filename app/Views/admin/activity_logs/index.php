@@ -192,42 +192,94 @@
 <?= $this->section('scripts') ?>
 <script>
 $(document).on('click', '.btn-detail', function() {
-    const meta = $(this).data('meta');
-    let html    = '';
+    const meta   = $(this).data('meta');
+    const hasBefore = meta.before && Object.keys(meta.before).length;
+    const hasAfter  = meta.after  && Object.keys(meta.after).length;
 
-    if (meta.before && Object.keys(meta.before).length) {
-        html += '<div style="margin-bottom:12px">';
-        html += '<div style="font-size:11px;font-weight:700;color:#dc2626;text-transform:uppercase;margin-bottom:6px"><i class="fas fa-circle-minus"></i> Sebelum</div>';
-        html += '<table style="width:100%;font-size:13px;border-collapse:collapse">';
-        $.each(meta.before, function(key, val) {
-            html += `<tr>
-                <td style="padding:4px 8px;background:#fef2f2;color:#6b7280;width:40%">${key}</td>
-                <td style="padding:4px 8px;background:#fef2f2;color:#374151">${val}</td>
-            </tr>`;
+    // Kumpulkan semua key unik
+    const allKeys = [...new Set([
+        ...(hasBefore ? Object.keys(meta.before) : []),
+        ...(hasAfter  ? Object.keys(meta.after)  : []),
+    ])];
+
+    let html = '<div style="font-family:inherit">';
+
+    // Mode: ada before DAN after → tampilkan tabel perbandingan
+    if (hasBefore && hasAfter) {
+        html += `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:4px">
+            <div style="text-align:center;font-size:11px;font-weight:700;color:#dc2626;letter-spacing:.5px">
+                <i class="fas fa-circle-minus"></i> SEBELUM
+            </div>
+            <div style="text-align:center;font-size:11px;font-weight:700;color:#16a34a;letter-spacing:.5px">
+                <i class="fas fa-circle-plus"></i> SESUDAH
+            </div>
+        </div>`;
+
+        allKeys.forEach(key => {
+            const before  = meta.before[key] ?? '';
+            const after   = meta.after[key]  ?? '';
+            const changed = before != after;
+
+            html += `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;margin-bottom:6px;border-radius:8px;overflow:hidden;border:1px solid ${changed ? '#fca5a5' : '#e2e8f0'}">
+                <div style="background:${changed ? '#fef2f2' : '#f8fafc'};padding:8px 12px">
+                    <div style="font-size:10px;color:#9ca3af;margin-bottom:2px;text-transform:uppercase">${key}</div>
+                    <div style="font-size:13px;color:${changed ? '#dc2626' : '#374151'};word-break:break-word">
+                        ${before !== '' ? before : '<span style="color:#d1d5db;font-style:italic">kosong</span>'}
+                    </div>
+                </div>
+                <div style="background:${changed ? '#f0fdf4' : '#f8fafc'};padding:8px 12px;border-left:1px solid ${changed ? '#bbf7d0' : '#e2e8f0'}">
+                    <div style="font-size:10px;color:#9ca3af;margin-bottom:2px;text-transform:uppercase">${key}</div>
+                    <div style="font-size:13px;font-weight:${changed ? '600' : '400'};color:${changed ? '#16a34a' : '#374151'};word-break:break-word">
+                        ${after !== '' ? after : '<span style="color:#d1d5db;font-style:italic">kosong</span>'}
+                        ${changed ? '<span style="font-size:10px;background:#dcfce7;color:#16a34a;padding:1px 6px;border-radius:99px;margin-left:6px">berubah</span>' : ''}
+                    </div>
+                </div>
+            </div>`;
         });
-        html += '</table></div>';
+
+    // Mode: hanya after (create)
+    } else if (hasAfter) {
+        html += `<div style="font-size:11px;font-weight:700;color:#16a34a;letter-spacing:.5px;margin-bottom:10px">
+            <i class="fas fa-circle-plus"></i> DATA DITAMBAHKAN
+        </div>`;
+        Object.entries(meta.after).forEach(([key, val]) => {
+            html += `
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;
+                padding:8px 12px;background:#f0fdf4;border-radius:8px;margin-bottom:6px;
+                border:1px solid #bbf7d0">
+                <span style="font-size:12px;color:#6b7280;text-transform:uppercase;min-width:80px">${key}</span>
+                <span style="font-size:13px;color:#15803d;font-weight:600;text-align:right;word-break:break-word">${val}</span>
+            </div>`;
+        });
+
+    // Mode: hanya before (delete)
+    } else if (hasBefore) {
+        html += `<div style="font-size:11px;font-weight:700;color:#dc2626;letter-spacing:.5px;margin-bottom:10px">
+            <i class="fas fa-circle-minus"></i> DATA DIHAPUS
+        </div>`;
+        Object.entries(meta.before).forEach(([key, val]) => {
+            html += `
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;
+                padding:8px 12px;background:#fef2f2;border-radius:8px;margin-bottom:6px;
+                border:1px solid #fecaca">
+                <span style="font-size:12px;color:#6b7280;text-transform:uppercase;min-width:80px">${key}</span>
+                <span style="font-size:13px;color:#dc2626;font-weight:600;text-align:right;word-break:break-word">${val}</span>
+            </div>`;
+        });
     }
 
-    if (meta.after && Object.keys(meta.after).length) {
-        html += '<div>';
-        html += '<div style="font-size:11px;font-weight:700;color:#16a34a;text-transform:uppercase;margin-bottom:6px"><i class="fas fa-circle-plus"></i> Sesudah</div>';
-        html += '<table style="width:100%;font-size:13px;border-collapse:collapse">';
-        $.each(meta.after, function(key, val) {
-            const changed = meta.before && meta.before[key] !== undefined && meta.before[key] != val;
-            html += `<tr>
-                <td style="padding:4px 8px;background:#f0fdf4;color:#6b7280;width:40%">${key}</td>
-                <td style="padding:4px 8px;background:#f0fdf4;color:#374151;${changed ? 'font-weight:700;color:#16a34a' : ''}">${val}</td>
-            </tr>`;
-        });
-        html += '</table></div>';
-    }
+    html += '</div>';
 
     Swal.fire({
-        title: 'Detail Perubahan',
-        html: html || '<p class="text-muted">Tidak ada detail tersedia</p>',
-        width: 480,
+        title: '<span style="font-size:16px;font-weight:700">Detail Perubahan</span>',
+        html: html || '<p style="color:#9ca3af;font-size:13px">Tidak ada detail tersedia</p>',
+        width: hasBefore && hasAfter ? 560 : 420,
+        padding: '24px',
         showConfirmButton: false,
         showCloseButton: true,
+        customClass: { popup: 'swal-detail-popup' },
     });
 });
 </script>
