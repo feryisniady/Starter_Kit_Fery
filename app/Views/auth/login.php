@@ -66,6 +66,37 @@
             border-radius: 99px;
             transition: width .4s ease;
         }
+        /* Gambar lingkaran di panel kanan */
+        .illustration-circle {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 28px 0;
+        }
+        .illustration-circle-ring {
+            width: 260px;
+            height: 260px;
+            border-radius: 50%;
+            padding: 8px;
+            background: linear-gradient(135deg, rgba(255,255,255,.35), rgba(255,255,255,.08));
+            box-shadow:
+                0 0 0 3px rgba(255,255,255,.2),
+                0 0 0 10px rgba(255,255,255,.07),
+                0 20px 60px rgba(0,0,0,.3);
+            animation: floatCircle 4s ease-in-out infinite;
+        }
+        .illustration-circle-ring img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            object-position: center;
+            display: block;
+        }
+        @keyframes floatCircle {
+            0%, 100% { transform: translateY(0); }
+            50%       { transform: translateY(-10px); }
+        }
         /* Disabled state */
         .btn-login:disabled {
             background: #9ca3af;
@@ -183,7 +214,7 @@
 </div>
 
 <!-- RIGHT PANEL -->
-<div class="right-panel" <?php if(app_setting('login_bg_path')): ?>style="background-image: url('<?= base_url(esc(app_setting('login_bg_path'))) ?>'); background-size: cover; background-position: center;"<?php endif; ?>>
+<div class="right-panel">
     <div class="circle circle-1"></div>
     <div class="circle circle-2"></div>
     <div class="circle circle-3"></div>
@@ -192,7 +223,16 @@
         <h2><?= esc(app_setting('login_tagline') ?: app_setting('app_name')) ?></h2>
         <p><?= esc(app_setting('login_desc') ?: app_setting('app_tagline')) ?></p>
 
-        <!-- Ilustrasi SVG -->
+        <?php if(app_setting('login_bg_path')): ?>
+        <!-- Gambar dalam lingkaran -->
+        <div class="illustration-circle">
+            <div class="illustration-circle-ring">
+                <img src="<?= base_url(esc(app_setting('login_bg_path'))) ?>"
+                     alt="Ilustrasi">
+            </div>
+        </div>
+        <?php else: ?>
+        <!-- Ilustrasi SVG default -->
         <svg class="illustration" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
             <!-- Meja -->
             <rect x="60" y="220" width="280" height="12" rx="6" fill="rgba(255,255,255,.15)"/>
@@ -244,6 +284,7 @@
             <circle cx="360" cy="100" r="12" fill="rgba(34,197,94,.2)"/>
             <circle cx="190" cy="40" r="6" fill="rgba(251,191,36,.3)"/>
         </svg>
+        <?php endif; ?>
 
         <div class="features">
             <div class="feature-item">
