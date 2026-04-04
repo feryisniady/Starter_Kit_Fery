@@ -64,5 +64,10 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	$routes->get('settings', 'Admin\AppSettingController::index', ['filter' => 'permission:setting.manage']);
 	$routes->post('settings/update', 'Admin\AppSettingController::update', ['filter' => 'permission:setting.manage']);
 	$routes->get('settings/delete-image/(:segment)', 'Admin\AppSettingController::deleteImage/$1', ['filter' => 'permission:setting.manage']);
+	// Login Services
+	$routes->get('login-services', 'Admin\LoginServiceController::index', ['filter' => 'permission:setting.manage']);
+	$routes->post('login-services/store', 'Admin\LoginServiceController::store', ['filter' => 'permission:setting.manage']);
+	$routes->post('login-services/update/(:num)', 'Admin\LoginServiceController::update/$1', ['filter' => 'permission:setting.manage']);
+	$routes->get('login-services/delete/(:num)', 'Admin\LoginServiceController::delete/$1', ['filter' => 'permission:setting.manage']);
 });
 

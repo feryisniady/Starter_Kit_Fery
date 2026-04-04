@@ -111,6 +111,73 @@
             from { transform: rotate(0deg); }
             to   { transform: rotate(360deg); }
         }
+        /* Services card grid */
+        .services-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            max-width: 420px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .service-card {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255,255,255,.07);
+            border: 1px solid rgba(255,255,255,.12);
+            border-radius: 12px;
+            padding: 12px 14px;
+            text-decoration: none;
+            color: inherit;
+            transition: background .2s, border-color .2s;
+            position: relative;
+        }
+        .service-card:hover {
+            background: rgba(255,255,255,.13);
+            border-color: rgba(255,255,255,.25);
+        }
+        .service-icon {
+            width: 36px;
+            height: 36px;
+            background: rgba(99,102,241,.3);
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .service-icon i { color: #a5b4fc; font-size: 15px; }
+        .service-body { flex: 1; min-width: 0; }
+        .service-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: rgba(255,255,255,.9);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .service-desc {
+            font-size: 11px;
+            color: rgba(255,255,255,.5);
+            margin-top: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .service-badge {
+            font-size: 10px;
+            padding: 2px 7px;
+            border-radius: 99px;
+            background: rgba(251,191,36,.2);
+            color: #fde68a;
+            flex-shrink: 0;
+            align-self: flex-start;
+        }
+        .service-badge-pub {
+            background: rgba(34,197,94,.15);
+            color: #86efac;
+        }
         /* Disabled state */
         .btn-login:disabled {
             background: #9ca3af;
@@ -236,8 +303,8 @@
     <?php endif; ?>
 
     <div class="right-content">
-        <h2><?= esc(app_setting('login_tagline') ?: app_setting('app_name')) ?></h2>
-        <p><?= esc(app_setting('login_desc') ?: app_setting('app_tagline')) ?></p>
+        <h2 style="margin-bottom:6px"><?= esc(app_setting('login_tagline') ?: app_setting('app_name')) ?></h2>
+        <p style="margin-bottom:20px"><?= esc(app_setting('login_desc') ?: app_setting('app_tagline')) ?></p>
 
         <?php if(app_setting('login_bg_path')): ?>
         <!-- Gambar dalam lingkaran -->
@@ -302,20 +369,26 @@
         </svg>
         <?php endif; ?>
 
-        <div class="features">
-            <div class="feature-item">
-                <div class="icon"><i class="fas fa-clipboard-list"></i></div>
-                <span>Manajemen PKPT & Surat Perintah Tugas</span>
-            </div>
-            <div class="feature-item">
-                <div class="icon"><i class="fas fa-magnifying-glass-chart"></i></div>
-                <span>Monitoring Pelaksanaan Pengawasan</span>
-            </div>
-            <div class="feature-item">
-                <div class="icon"><i class="fas fa-file-shield"></i></div>
-                <span>Pengelolaan Temuan & Tindak Lanjut</span>
-            </div>
+        <?php if(!empty($services)): ?>
+        <div class="services-grid" style="margin-top:28px">
+            <?php foreach($services as $svc): ?>
+            <a href="<?= esc($svc['url'] ?: '#') ?>" class="service-card" <?= $svc['url'] && str_starts_with($svc['url'], 'http') ? 'target="_blank"' : '' ?>>
+                <div class="service-icon"><i class="<?= esc($svc['icon']) ?>"></i></div>
+                <div class="service-body">
+                    <div class="service-name"><?= esc($svc['name']) ?></div>
+                    <?php if($svc['description']): ?>
+                    <div class="service-desc"><?= esc($svc['description']) ?></div>
+                    <?php endif; ?>
+                </div>
+                <?php if($svc['require_login']): ?>
+                <span class="service-badge">Login</span>
+                <?php else: ?>
+                <span class="service-badge service-badge-pub">Publik</span>
+                <?php endif; ?>
+            </a>
+            <?php endforeach; ?>
         </div>
+        <?php endif; ?>
     </div>
 </div>
 

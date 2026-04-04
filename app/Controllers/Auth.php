@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\UserModel;
+use App\Models\LoginServiceModel;
 
 class Auth extends BaseController
 {
@@ -12,7 +13,10 @@ class Auth extends BaseController
     // Form login
     public function login()
     {
-        return view('auth/login');
+        $serviceModel = new LoginServiceModel();
+        return view('auth/login', [
+            'services' => $serviceModel->getActive(),
+        ]);
     }
 
     // Proses login
