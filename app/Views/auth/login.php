@@ -74,31 +74,22 @@
             margin: 28px 0;
             position: relative;
         }
-        /* Ring luar */
+        /* Ring luar — dashed, berputar pelan */
         .illustration-circle::before {
             content: '';
             position: absolute;
-            width: 320px;
-            height: 320px;
+            width: 330px;
+            height: 330px;
             border-radius: 50%;
-            border: 1px dashed rgba(255,255,255,.2);
+            border: 1px dashed rgba(255,255,255,.25);
             animation: spinSlow 20s linear infinite;
-        }
-        /* Ring tengah */
-        .illustration-circle::after {
-            content: '';
-            position: absolute;
-            width: 284px;
-            height: 284px;
-            border-radius: 50%;
-            border: 1.5px solid rgba(255,255,255,.3);
         }
         /* Lingkaran gambar */
         .illustration-circle-ring {
             width: 240px;
             height: 240px;
             border-radius: 50%;
-            border: 3px solid rgba(255,255,255,.7);
+            border: 3px solid rgba(255,255,255,.65);
             overflow: hidden;
             animation: floatCircle 4s ease-in-out infinite;
             flex-shrink: 0;
