@@ -7,21 +7,13 @@
         <p>Kelola pengguna sistem</p>
     </div>
     <div class="page-actions">
-        <?php if(hasPermission('role.create')): ?>
+        <?php if(hasPermission('user.create')): ?>
             <a href="/admin/users/create" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Tambah Users
+                <i class="fas fa-plus"></i> Tambah User
             </a>
         <?php endif; ?>
     </div>
 </div>
-
-
-<!-- <div class="section-header">
-    <h1>Manajemen Users</h1>
-    <div class="section-header-button mb-3">
-        <a href="/admin/users/create" class="btn btn-primary"><i class="fas fa-plus"></i> Tambah User</a>
-    </div>
-</div> -->
 
 <div class="card">
     <div class="card-body">
@@ -59,13 +51,17 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <a href="/admin/users/edit/<?= esc($user['id']) ?>" class="btn btn-sm btn-info"><i class="fas fa-edit"></i></a>
-                                    <button class="btn btn-sm btn-danger btn-delete"
-                                    data-id="<?= esc($user['id']) ?>"
-                                    data-url="/admin/users/delete/<?= esc($user['id']) ?>">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </td>
+                                    <?php if(hasPermission('user.edit')): ?>
+                                        <a href="/admin/users/edit/<?= esc($user['id']) ?>" class="btn btn-sm btn-info"><i class="fas fa-edit"></i></a>
+                                    <?php endif; ?>
+                                    <?php if(hasPermission('user.delete')): ?>
+                                        <button class="btn btn-sm btn-danger btn-delete"
+                                            data-id="<?= esc($user['id']) ?>"
+                                            data-url="/admin/users/delete/<?= esc($user['id']) ?>">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    <?php endif; ?>
+                                </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>

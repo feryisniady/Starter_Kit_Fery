@@ -7,7 +7,7 @@
         <p>Kelola menu sidebar</p>
     </div>
     <div class="page-actions">
-        <?php if(hasPermission('role.create')): ?>
+        <?php if(hasPermission('menu.create')): ?>
             <a href="/admin/menus/create" class="btn btn-primary">
                 <i class="fas fa-plus"></i> Tambah Menu
             </a>
@@ -53,13 +53,16 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <a href="/admin/menus/edit/<?= esc($menu['id']) ?>" class="btn btn-sm btn-info"><i class="fas fa-edit"></i></a>
-                                    <button class="btn btn-danger btn-sm btn-icon btn-delete"
-                                    data-url="/admin/menus/delete/<?= esc($menu['id']) ?>">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-
-                            </td>
+                                    <?php if(hasPermission('menu.edit')): ?>
+                                        <a href="/admin/menus/edit/<?= esc($menu['id']) ?>" class="btn btn-sm btn-info"><i class="fas fa-edit"></i></a>
+                                    <?php endif; ?>
+                                    <?php if(hasPermission('menu.delete')): ?>
+                                        <button class="btn btn-danger btn-sm btn-icon btn-delete"
+                                            data-url="/admin/menus/delete/<?= esc($menu['id']) ?>">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    <?php endif; ?>
+                                </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
