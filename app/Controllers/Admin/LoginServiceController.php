@@ -19,7 +19,7 @@ class LoginServiceController extends BaseController
 
     public function index()
     {
-        return view('admin/login_services/index', ['title' => 'Daftar Layanan Login']);
+        return view('admin/login_services/index', ['title' => 'Daftar Layanan']);
     }
 
     // AJAX: DataTables server-side

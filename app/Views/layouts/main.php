@@ -7,7 +7,7 @@
   <meta name="csrf-token-name" content="<?= csrf_token() ?>">
   <title><?= esc($title ?? 'Dashboard') ?> — <?= esc(app_setting('app_name')) ?></title>
   <?php if(app_setting('favicon_path')): ?>
-  <link rel="icon" href="<?= base_url(esc(app_setting('favicon_path'))) ?>">
+    <link rel="icon" href="<?= base_url(esc(app_setting('favicon_path'))) ?>">
   <?php endif; ?>
 
   <!-- Font Awesome -->
@@ -33,12 +33,12 @@
     <!-- Brand -->
     <div class="sidebar-brand">
       <?php if(app_setting('logo_path')): ?>
-      <img src="<?= base_url(esc(app_setting('logo_path'))) ?>"
-           alt="Logo" style="height:36px;width:36px;object-fit:contain;border-radius:8px">
+        <img src="<?= base_url(esc(app_setting('logo_path'))) ?>"
+        alt="Logo" style="height:36px;width:36px;object-fit:contain;border-radius:8px">
       <?php else: ?>
-      <div class="brand-icon">
-        <i class="fas fa-shield-halved"></i>
-      </div>
+        <div class="brand-icon">
+          <i class="fas fa-shield-halved"></i>
+        </div>
       <?php endif; ?>
       <div class="brand-text">
         <span><?= esc(app_setting('app_name')) ?></span>
@@ -143,16 +143,16 @@
       <div class="sidebar-user">
         <div class="user-avatar">
           <?php
-            $dbAvatar = \Config\Database::connect()
-                ->table('users')->select('avatar')
-                ->where('id', session()->get('user_id'))->get()->getRowArray();
-            $avatarPath = $dbAvatar['avatar'] ?? null;
+          $dbAvatar = \Config\Database::connect()
+          ->table('users')->select('avatar')
+          ->where('id', session()->get('user_id'))->get()->getRowArray();
+          $avatarPath = $dbAvatar['avatar'] ?? null;
           ?>
           <?php if($avatarPath): ?>
-          <img src="<?= base_url(esc($avatarPath)) ?>" alt="avatar"
-               style="width:100%;height:100%;object-fit:cover;border-radius:50%">
+            <img src="<?= base_url(esc($avatarPath)) ?>" alt="avatar"
+            style="width:100%;height:100%;object-fit:cover;border-radius:50%">
           <?php else: ?>
-          <?= esc(strtoupper(substr(session()->get('user_name') ?? 'A', 0, 1))) ?>
+            <?= esc(strtoupper(substr(session()->get('user_name') ?? 'A', 0, 1))) ?>
           <?php endif; ?>
         </div>
         <div class="user-info">
@@ -224,15 +224,15 @@
       <!-- User dropdown -->
       <div class="topbar-user">
         <a href="/profile" style="text-decoration:none">
-        <div class="topbar-avatar">
-          <?php if($avatarPath): ?>
-          <img src="<?= base_url(esc($avatarPath)) ?>" alt="avatar"
-               style="width:100%;height:100%;object-fit:cover;border-radius:50%">
-          <?php else: ?>
-          <?= esc(strtoupper(substr(session()->get('user_name') ?? 'A', 0, 1))) ?>
-          <?php endif; ?>
-        </div>
-      </a>
+          <div class="topbar-avatar">
+            <?php if($avatarPath): ?>
+              <img src="<?= base_url(esc($avatarPath)) ?>" alt="avatar"
+              style="width:100%;height:100%;object-fit:cover;border-radius:50%">
+            <?php else: ?>
+              <?= esc(strtoupper(substr(session()->get('user_name') ?? 'A', 0, 1))) ?>
+            <?php endif; ?>
+          </div>
+        </a>
         <div class="topbar-user-info">
           <div class="name"><?= esc(session()->get('user_name')) ?></div>
           <div class="role">
@@ -256,8 +256,8 @@
 <!-- Footer -->
 <footer class="page-footer">
   <?php
-    $footerText = app_setting('footer_text');
-    if ($footerText): ?>
+  $footerText = app_setting('footer_text');
+  if ($footerText): ?>
     <span><?= esc($footerText) ?></span>
   <?php else: ?>
     <span>&copy; <?= date('Y') ?> <strong><?= esc(app_setting('org_name')) ?></strong>. All rights reserved.</span>
@@ -328,30 +328,30 @@
   $(document).ready(function() {
     // Notifikasi Sukses (Sudah benar)
     if(window._flashSuccess) {
-        Swal.fire({
-            icon: 'success',
-            title: 'Berhasil!',
-            text: window._flashSuccess,
-            timer: 2500,
-            showConfirmButton: false,
-            toast: true,
-            position: 'top-end',
-            timerProgressBar: true
-        });
+      Swal.fire({
+        icon: 'success',
+        title: 'Berhasil!',
+        text: window._flashSuccess,
+        timer: 2500,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end',
+        timerProgressBar: true
+      });
     }
 
     // UPDATE: Notifikasi Error/Validasi menjadi Toast
     if(window._flashError) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Gagal!',
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal!',
             html: window._flashError, // Gunakan 'html' agar tag <br> dari controller terbaca
             timer: 5000,               // Beri waktu lebih lama (5 detik) untuk membaca error
             showConfirmButton: false,
             toast: true,
             position: 'top-end',
             timerProgressBar: true
-        });
+          });
     }
 
     // AJAX Delete ditangani di admin.js (DT-aware reload)
@@ -494,94 +494,94 @@
 
 <!-- Notifikasi JS -->
 <script>
-var _notifOpen = false;
+  var _notifOpen = false;
 
-function toggleNotifDropdown() {
-  _notifOpen = !_notifOpen;
-  document.getElementById('notifDropdown').classList.toggle('open', _notifOpen);
-  if (_notifOpen) fetchNotif();
-}
+  function toggleNotifDropdown() {
+    _notifOpen = !_notifOpen;
+    document.getElementById('notifDropdown').classList.toggle('open', _notifOpen);
+    if (_notifOpen) fetchNotif();
+  }
 
 // Tutup dropdown kalau klik di luar
-document.addEventListener('click', function(e) {
-  var wrap = document.getElementById('notifWrap');
-  if (wrap && !wrap.contains(e.target)) {
-    _notifOpen = false;
-    document.getElementById('notifDropdown').classList.remove('open');
-  }
-});
-
-var _notifIconMap = {
-  info:    'fa-circle-info',
-  success: 'fa-circle-check',
-  warning: 'fa-triangle-exclamation',
-  danger:  'fa-circle-xmark',
-};
-
-function fetchNotif() {
-  $.get('/notifications/fetch', function(res) {
-    // Update badge
-    var badge = document.getElementById('notifBadge');
-    if (res.unread > 0) {
-      badge.style.display = 'flex';
-      badge.textContent   = res.unread > 99 ? '99+' : res.unread;
-    } else {
-      badge.style.display = 'none';
+  document.addEventListener('click', function(e) {
+    var wrap = document.getElementById('notifWrap');
+    if (wrap && !wrap.contains(e.target)) {
+      _notifOpen = false;
+      document.getElementById('notifDropdown').classList.remove('open');
     }
+  });
+
+  var _notifIconMap = {
+    info:    'fa-circle-info',
+    success: 'fa-circle-check',
+    warning: 'fa-triangle-exclamation',
+    danger:  'fa-circle-xmark',
+  };
+
+  function fetchNotif() {
+    $.get('/notifications/fetch', function(res) {
+    // Update badge
+      var badge = document.getElementById('notifBadge');
+      if (res.unread > 0) {
+        badge.style.display = 'flex';
+        badge.textContent   = res.unread > 99 ? '99+' : res.unread;
+      } else {
+        badge.style.display = 'none';
+      }
 
     // Render list
-    var list = document.getElementById('notifList');
-    if (!res.notifications || res.notifications.length === 0) {
-      list.innerHTML = '<div class="notif-empty"><i class="fas fa-bell-slash"></i><span>Tidak ada notifikasi</span></div>';
-      return;
-    }
+      var list = document.getElementById('notifList');
+      if (!res.notifications || res.notifications.length === 0) {
+        list.innerHTML = '<div class="notif-empty"><i class="fas fa-bell-slash"></i><span>Tidak ada notifikasi</span></div>';
+        return;
+      }
 
-    var html = '';
-    res.notifications.forEach(function(n) {
-      var icon    = _notifIconMap[n.type] || 'fa-circle-info';
-      var unread  = parseInt(n.is_read) === 0;
-      var href    = n.url ? '/notifications/read/' + n.id : 'javascript:void(0)';
-      var onclick = !n.url ? 'markRead(' + n.id + ');return false;' : '';
+      var html = '';
+      res.notifications.forEach(function(n) {
+        var icon    = _notifIconMap[n.type] || 'fa-circle-info';
+        var unread  = parseInt(n.is_read) === 0;
+        var href    = n.url ? '/notifications/read/' + n.id : 'javascript:void(0)';
+        var onclick = !n.url ? 'markRead(' + n.id + ');return false;' : '';
 
-      html += '<a href="' + href + '" class="notif-item' + (unread ? ' unread' : '') + '"'
-            + (onclick ? ' onclick="' + onclick + '"' : '')
-            + ' data-id="' + n.id + '">'
-            + '<div class="notif-icon ' + n.type + '"><i class="fas ' + icon + '"></i></div>'
-            + '<div class="notif-body">'
-            +   '<div class="notif-title">' + escHtml(n.title) + '</div>'
-            +   (n.message ? '<div class="notif-msg">' + escHtml(n.message) + '</div>' : '')
-            +   '<div class="notif-time">' + n.time_ago + '</div>'
-            + '</div>'
-            + (unread ? '<div class="notif-unread-dot"></div>' : '')
-            + '</a>';
+        html += '<a href="' + href + '" class="notif-item' + (unread ? ' unread' : '') + '"'
+        + (onclick ? ' onclick="' + onclick + '"' : '')
+        + ' data-id="' + n.id + '">'
+        + '<div class="notif-icon ' + n.type + '"><i class="fas ' + icon + '"></i></div>'
+        + '<div class="notif-body">'
+        +   '<div class="notif-title">' + escHtml(n.title) + '</div>'
+        +   (n.message ? '<div class="notif-msg">' + escHtml(n.message) + '</div>' : '')
+        +   '<div class="notif-time">' + n.time_ago + '</div>'
+        + '</div>'
+        + (unread ? '<div class="notif-unread-dot"></div>' : '')
+        + '</a>';
+      });
+      list.innerHTML = html;
     });
-    list.innerHTML = html;
-  });
-}
+  }
 
-function markRead(id) {
-  $.post('/notifications/read/' + id, {<?= csrf_token() ?>: '<?= csrf_hash() ?>'}, function() {
-    $('[data-id="' + id + '"]').removeClass('unread').find('.notif-unread-dot').remove();
-    fetchNotif();
-  });
-}
+  function markRead(id) {
+    $.post('/notifications/read/' + id, {<?= csrf_token() ?>: '<?= csrf_hash() ?>'}, function() {
+      $('[data-id="' + id + '"]').removeClass('unread').find('.notif-unread-dot').remove();
+      fetchNotif();
+    });
+  }
 
-function readAllNotif() {
-  $.post('/notifications/read-all', {<?= csrf_token() ?>: '<?= csrf_hash() ?>'}, function() {
-    fetchNotif();
-  });
-}
+  function readAllNotif() {
+    $.post('/notifications/read-all', {<?= csrf_token() ?>: '<?= csrf_hash() ?>'}, function() {
+      fetchNotif();
+    });
+  }
 
-function escHtml(str) {
-  if (!str) return '';
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
+  function escHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
 
 // Poll badge tiap 30 detik
-$(document).ready(function() {
-  fetchNotif();
-  setInterval(fetchNotif, 30000);
-});
+  $(document).ready(function() {
+    fetchNotif();
+    setInterval(fetchNotif, 30000);
+  });
 </script>
 
 <!-- Scripts Per Halaman -->
