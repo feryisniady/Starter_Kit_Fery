@@ -20,7 +20,7 @@
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css">
   <!-- Admin Extra (override DataTables default) — HARUS paling akhir -->
-  <link rel="stylesheet" href="/assets/_main/css/admin-extra.css?v=5">
+  <link rel="stylesheet" href="/assets/_main/css/admin-extra.css?v=6">
 
   <!-- CSS Tambahan Per Halaman -->
   <?= $this->renderSection('styles') ?>
@@ -284,7 +284,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/11.10.1/sweetalert2.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
-<script src="/assets/_main/js/admin.js?v=5"></script>
+<script src="/assets/_main/js/admin.js?v=6"></script>
 
 <script>
 // CSRF Setup

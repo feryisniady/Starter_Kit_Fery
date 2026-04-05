@@ -127,6 +127,20 @@ function initServerDT() {
             ],
         });
     });
+
+    // Recalculate column widths saat viewport berubah (misal exit DevTools responsive mode)
+    // Debounce 200ms agar tidak terlalu sering terpanggil
+    var _dtResizeTimer;
+    $(window).off('resize.dtAdjust').on('resize.dtAdjust', function() {
+        clearTimeout(_dtResizeTimer);
+        _dtResizeTimer = setTimeout(function() {
+            Object.keys(DT_INSTANCES).forEach(function(id) {
+                if (DT_INSTANCES[id]) {
+                    DT_INSTANCES[id].columns.adjust();
+                }
+            });
+        }, 200);
+    });
 }
 
 /**

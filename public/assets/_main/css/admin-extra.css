@@ -600,15 +600,24 @@ button.dt-button {
 
 /* ─── Table + scroll horizontal tanpa scrollX DataTables ─── */
 /* DataTables scrollX menyebabkan header/body tidak sinkron saat server-side AJAX.
-   Solusi: overflow-x pada wrapper saja, tanpa scrollX option. */
+   Solusi: overflow-x pada card-body, tanpa scrollX option. */
 .dataTables_wrapper { min-width: 0; }
-div.dataTables_wrapper div.dataTables_scroll,
-.card-body > .dataTables_wrapper > table,
-.card-body > .dataTables_wrapper {
-    /* tidak diperlukan overflow di sini, cukup di card-body */
-}
 .card-body { overflow-x: auto; }
-table.dataTable { border-collapse: collapse !important; min-width: 480px; }
+
+/* Force tabel selalu full-width container — penting agar tidak "melayang di tengah"
+   setelah viewport berubah (misal exit DevTools responsive mode) */
+table.dataTable {
+    border-collapse: collapse !important;
+    width: 100% !important;
+    min-width: 480px;
+}
+
+/* DT Buttons CSS default punya float:left yang bisa mengganggu layout tabel.
+   Paksa float:none agar tidak ada side-effect di luar flex container. */
+.dt-buttons {
+    float: none !important;
+    position: static !important;
+}
 table.dataTable thead th {
     background: #f8fafc;
     color: #475569;
