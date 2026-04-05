@@ -90,14 +90,15 @@ function initServerDT() {
         DT_INSTANCES[id] = $tbl.DataTable({
             processing:  true,
             serverSide:  true,
+            scrollX:     true,
             ajax: {
                 url:  url,
                 type: 'POST',
                 data: function(d) {
-                    var csrfName  = $('meta[name="csrf-token-name"]').attr('content')  || 'csrf_token';
-                    var csrfHash  = $('meta[name="csrf-token"]').attr('content') || '';
-                    d[csrfName]   = csrfHash;
-                    var extra = DT_EXTRA_PARAMS[id] || {};
+                    var csrfName = $('meta[name="csrf-token-name"]').attr('content') || 'csrf_token';
+                    var csrfHash = $('meta[name="csrf-token"]').attr('content') || '';
+                    d[csrfName]  = csrfHash;
+                    var extra    = DT_EXTRA_PARAMS[id] || {};
                     return $.extend({}, d, extra);
                 },
                 error: function(xhr) {
@@ -109,33 +110,19 @@ function initServerDT() {
             language:   DT_LANG_ID,
             pageLength: 10,
             lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
-            dom:        '<"dt-top"lf>rt<"dt-bottom"ip>',
-            responsive: false,
-            initComplete: function(settings) {
-                var tId      = settings.nTable.id;
-                var $wrapper = $(settings.nTableWrapper);
-
-                // Rebuild search input — hilangkan teks "Search:" bawaan DT, tambah icon FA
-                var $filterDiv = $wrapper.find('.dataTables_filter');
-                var $inp       = $filterDiv.find('input').detach();
-                $inp.attr('placeholder', 'Cari...');
-                $filterDiv.html(
-                    '<div class="dt-search-inner">'
-                    + '<i class="fas fa-magnifying-glass"></i>'
-                    + '</div>'
-                );
-                $filterDiv.find('.dt-search-inner').append($inp);
-
-                // Tambah tombol Export Excel + Print di kiri toolbar
-                $wrapper.find('.dt-top').prepend(
-                    '<div class="dt-export-wrap">'
-                    + '<button type="button" class="btn-export excel" onclick="dtExportExcel(\'' + tId + '\')">'
-                    + '<i class="fas fa-file-excel"></i> Excel</button>'
-                    + '<button type="button" class="btn-export print" onclick="dtPrint(\'' + tId + '\')">'
-                    + '<i class="fas fa-print"></i> Print</button>'
-                    + '</div>'
-                );
-            },
+            dom:        '<"dt-top"<"dt-top-l"Bl>f>rt<"dt-bottom"ip>',
+            buttons: [
+                {
+                    text:      '<i class="fas fa-file-excel"></i> Excel',
+                    className: 'btn-dt-export btn-dt-excel',
+                    action:    function(e, dt) { dtExportExcel(dt.table().node().id); }
+                },
+                {
+                    text:      '<i class="fas fa-print"></i> Print',
+                    className: 'btn-dt-export btn-dt-print',
+                    action:    function(e, dt) { dtPrint(dt.table().node().id); }
+                }
+            ],
         });
     });
 }

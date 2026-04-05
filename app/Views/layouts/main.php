@@ -16,10 +16,11 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/11.10.1/sweetalert2.min.css">
   <!-- Admin CSS -->
   <link rel="stylesheet" href="/assets/_main/css/admin.css">
-  <!-- DataTables CSS — load sebelum admin-extra agar override kita menang -->
+  <!-- DataTables + Buttons CSS — load sebelum admin-extra agar override kita menang -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css">
-  <!-- Admin Extra (override DataTables default) -->
-  <link rel="stylesheet" href="/assets/_main/css/admin-extra.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css">
+  <!-- Admin Extra (override DataTables default) — HARUS paling akhir -->
+  <link rel="stylesheet" href="/assets/_main/css/admin-extra.css?v=4">
 
   <!-- CSS Tambahan Per Halaman -->
   <?= $this->renderSection('styles') ?>
@@ -282,7 +283,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/11.10.1/sweetalert2.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
-<script src="/assets/_main/js/admin.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+<script src="/assets/_main/js/admin.js?v=4"></script>
 
 <script>
 // CSRF Setup
@@ -352,45 +354,7 @@
         });
     }
 
-    // AJAX Delete
-    $(document).on('click', '.btn-delete', function() {
-      var url = $(this).data('url');
-      var row = $(this).closest('tr');
-      Swal.fire({
-        icon: 'warning',
-        title: 'Yakin hapus?',
-        text: 'Data yang dihapus tidak bisa dikembalikan!',
-        showCancelButton: true,
-        confirmButtonColor: '#dc2626',
-        cancelButtonColor: '#64748b',
-        confirmButtonText: '<i class="fas fa-trash"></i> Ya, Hapus!',
-        cancelButtonText: 'Batal'
-      }).then(function(result) {
-        if (result.isConfirmed) {
-          $.ajax({
-            url: url,
-            type: 'GET',
-            success: function(res) {
-              if(res.status === 'success') {
-                row.fadeOut(300, function() { $(this).remove(); });
-                Swal.fire({
-                  icon: 'success',
-                  title: 'Dihapus!',
-                  text: res.message,
-                  timer: 1500,
-                  showConfirmButton: false,
-                  toast: true,
-                  position: 'top-end'
-                });
-              }
-            },
-            error: function() {
-              Swal.fire({ icon: 'error', title: 'Gagal!', text: 'Terjadi kesalahan.' });
-            }
-          });
-        }
-      });
-    });
+    // AJAX Delete ditangani di admin.js (DT-aware reload)
   });
 </script>
 
