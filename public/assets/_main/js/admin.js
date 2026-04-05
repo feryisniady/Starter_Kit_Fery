@@ -94,11 +94,9 @@ function initServerDT() {
                 url:  url,
                 type: 'POST',
                 data: function(d) {
-                    // CSRF token
                     var csrfName  = $('meta[name="csrf-token-name"]').attr('content')  || 'csrf_token';
                     var csrfHash  = $('meta[name="csrf-token"]').attr('content') || '';
                     d[csrfName]   = csrfHash;
-                    // Extra filter params
                     var extra = DT_EXTRA_PARAMS[id] || {};
                     return $.extend({}, d, extra);
                 },
@@ -113,6 +111,31 @@ function initServerDT() {
             lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
             dom:        '<"dt-top"lf>rt<"dt-bottom"ip>',
             responsive: false,
+            initComplete: function(settings) {
+                var tId      = settings.nTable.id;
+                var $wrapper = $(settings.nTableWrapper);
+
+                // Rebuild search input — hilangkan teks "Search:" bawaan DT, tambah icon FA
+                var $filterDiv = $wrapper.find('.dataTables_filter');
+                var $inp       = $filterDiv.find('input').detach();
+                $inp.attr('placeholder', 'Cari...');
+                $filterDiv.html(
+                    '<div class="dt-search-inner">'
+                    + '<i class="fas fa-magnifying-glass"></i>'
+                    + '</div>'
+                );
+                $filterDiv.find('.dt-search-inner').append($inp);
+
+                // Tambah tombol Export Excel + Print di kiri toolbar
+                $wrapper.find('.dt-top').prepend(
+                    '<div class="dt-export-wrap">'
+                    + '<button type="button" class="btn-export excel" onclick="dtExportExcel(\'' + tId + '\')">'
+                    + '<i class="fas fa-file-excel"></i> Excel</button>'
+                    + '<button type="button" class="btn-export print" onclick="dtPrint(\'' + tId + '\')">'
+                    + '<i class="fas fa-print"></i> Print</button>'
+                    + '</div>'
+                );
+            },
         });
     });
 }
@@ -203,6 +226,62 @@ function dtPrint(tableId) {
     }).fail(function() {
         SIP.close();
         SIP.error('Gagal memuat data untuk print.');
+    });
+}
+
+/**
+ * Export semua data ke CSV/Excel (fetch ulang dengan length=-1).
+ */
+function dtExportExcel(tableId) {
+    var dt = DT_INSTANCES[tableId];
+    if (!dt) return;
+
+    var url    = $('table#' + tableId).attr('data-url');
+    var search = dt.search();
+    var order  = dt.order();
+
+    SIP.loading('Menyiapkan data ekspor...');
+
+    var csrfName = $('meta[name="csrf-token-name"]').attr('content') || 'csrf_token';
+    var csrfHash = $('meta[name="csrf-token"]').attr('content') || '';
+    var postData = {
+        draw: 1, start: 0, length: -1,
+        'search[value]': search,
+        'order[0][column]': order[0] ? order[0][0] : 0,
+        'order[0][dir]':    order[0] ? order[0][1] : 'asc',
+    };
+    postData[csrfName] = csrfHash;
+
+    $.post(url, postData, function(res) {
+        SIP.close();
+        var rows    = res.data || [];
+        var headers = [];
+        $('table#' + tableId + ' thead th').each(function() {
+            headers.push('"' + this.textContent.trim().replace(/"/g, '""') + '"');
+        });
+
+        var csv = '\uFEFF'; // BOM agar Excel baca UTF-8 dengan benar
+        csv += headers.join(',') + '\n';
+        rows.forEach(function(row) {
+            var cols = row.map(function(cell) {
+                var tmp = document.createElement('div');
+                tmp.innerHTML = cell;
+                var text = (tmp.textContent || tmp.innerText || '').trim();
+                return '"' + text.replace(/"/g, '""') + '"';
+            });
+            csv += cols.join(',') + '\n';
+        });
+
+        var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        var link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = (document.title || 'data') + '.csv';
+        link.click();
+        URL.revokeObjectURL(link.href);
+        SIP.success('Data berhasil diekspor!');
+    }).fail(function() {
+        SIP.close();
+        SIP.error('Gagal mengekspor data.');
     });
 }
 

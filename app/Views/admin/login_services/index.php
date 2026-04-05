@@ -89,6 +89,19 @@
 
 <?= $this->section('scripts') ?>
 <script>
+// Dipanggil dari tombol Edit di DataTables server-side (baca data-* attributes)
+function openEditFromDT(btn) {
+    var d = btn.dataset;
+    openEditModal(d.id, {
+        name:          d.name,
+        description:   d.description,
+        url:           d.url2,
+        icon:          d.icon,
+        require_login: d.require_login,
+        is_active:     d.is_active,
+    });
+}
+
 function openModal() {
     document.getElementById('modalTitle').textContent = 'Tambah Layanan';
     document.getElementById('serviceForm').action = '/admin/login-services/store';

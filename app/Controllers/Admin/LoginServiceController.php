@@ -49,9 +49,18 @@ class LoginServiceController extends BaseController
             $icon    = $row['icon'] ? '<i class="'.esc($row['icon']).'" style="font-size:18px;color:#6366f1"></i>' : '-';
             $login   = $row['require_login'] ? '<span class="badge badge-warning">Login</span>' : '<span class="badge badge-info">Publik</span>';
             $status  = '<span class="badge '.($row['is_active']?'badge-success':'badge-gray').'">'.($row['is_active']?'Aktif':'Nonaktif').'</span>';
+            $h = fn($v) => htmlspecialchars((string)($v ?? ''), ENT_QUOTES, 'UTF-8');
+            $editExtra = 'data-id="'.$row['id'].'"'
+                .' data-name="'.$h($row['name']).'"'
+                .' data-description="'.$h($row['description']).'"'
+                .' data-url2="'.$h($row['url']).'"'
+                .' data-icon="'.$h($row['icon']).'"'
+                .' data-require_login="'.(int)$row['require_login'].'"'
+                .' data-is_active="'.(int)$row['is_active'].'"'
+                .' onclick="openEditFromDT(this)"';
             $actions = $this->dtActions([
-                ['show'=>true, 'type'=>'secondary', 'icon'=>'fa-pen',   'title'=>'Edit',   'href'=>'#', 'extra'=>'onclick="openEditModal('.$row['id'].')" data-row=\''.esc(json_encode($row), ENT_QUOTES).'\''],
-                ['show'=>true, 'type'=>'danger',    'icon'=>'fa-trash', 'title'=>'Hapus',  'href'=>'/admin/login-services/delete/'.$row['id'], 'ajax'=>true],
+                ['show'=>true, 'type'=>'secondary', 'icon'=>'fa-pen',   'title'=>'Edit',  'href'=>'#', 'extra'=>$editExtra],
+                ['show'=>true, 'type'=>'danger',    'icon'=>'fa-trash', 'title'=>'Hapus', 'href'=>'/admin/login-services/delete/'.$row['id'], 'ajax'=>true],
             ]);
             $data[] = [$start+$i+1, $icon, esc($row['name']), esc($row['description']), '<span style="font-size:12px;color:#94a3b8">'.esc($row['url']).'</span>', $login, $status, $actions];
         }

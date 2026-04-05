@@ -528,17 +528,39 @@
     cursor: pointer;
 }
 .dataTables_filter { margin-left: auto; }
-.dataTables_filter label { display: flex; align-items: center; gap: 8px; }
+.dataTables_filter label { font-size: 0; } /* sembunyikan semua teks bawaan DT di label */
+
+/* Search wrapper dengan icon FA */
+.dt-search-inner {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+.dt-search-inner i {
+    position: absolute;
+    left: 10px;
+    color: #94a3b8;
+    font-size: 13px;
+    pointer-events: none;
+    z-index: 1;
+}
 .dataTables_filter input {
     padding: 7px 12px 7px 32px;
     border: 1px solid #e2e8f0;
     border-radius: 8px;
     font-size: 13px;
     width: 220px;
-    background: white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%2394a3b8'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.868-3.834zm-5.242 1.156a5 5 0 1 1 0-10 5 5 0 0 1 0 10z'/%3E%3C/svg%3E") no-repeat 10px center / 14px;
+    background: white;
+    color: #374151;
 }
 .dataTables_filter input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
-.dataTables_filter label > span:first-child { display: none; } /* sembunyikan label "Search:" */
+
+/* Export buttons wrapper */
+.dt-export-wrap {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
 
 /* Table */
 table.dataTable { border-collapse: collapse !important; width: 100% !important; }
