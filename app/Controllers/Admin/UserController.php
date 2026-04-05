@@ -5,11 +5,12 @@ namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Models\UserModel;
 use App\Models\RoleModel;
-
-
+use App\Traits\DatatableTrait;
 
 class UserController extends BaseController
 {
+    use DatatableTrait;
+
     protected $userModel;
     protected $roleModel;
 
@@ -22,11 +23,70 @@ class UserController extends BaseController
     // List semua user
     public function index()
     {
-        $data = [
-            'title' => 'Manajemen Users',
-            'users' => $this->userModel->getUsersWithRoles(),
-        ];
-        return view('admin/users/index', $data);
+        return view('admin/users/index', ['title' => 'Manajemen Users']);
+    }
+
+    // AJAX: DataTables server-side
+    public function getData()
+    {
+        if (!$this->request->isAJAX()) return $this->response->setStatusCode(403);
+
+        ['draw'=>$draw,'start'=>$start,'length'=>$length,'search'=>$search,'order'=>$order] = $this->dtRequest();
+
+        $db = \Config\Database::connect();
+
+        // Total (tanpa filter)
+        $total = $db->table('users')->countAllResults();
+
+        // Filtered count
+        $countQ = $db->table('users u')
+            ->select('u.id')
+            ->join('user_roles ur', 'ur.user_id = u.id', 'left')
+            ->join('roles r', 'r.id = ur.role_id', 'left')
+            ->groupBy('u.id');
+        if ($search) {
+            $countQ->groupStart()->like('u.name', $search)->orLike('u.email', $search)->groupEnd();
+        }
+        $filtered = $search ? count($countQ->get()->getResultArray()) : $total;
+
+        // Data query
+        $dataQ = $db->table('users u')
+            ->select('u.id, u.name, u.email, u.status, u.created_at, GROUP_CONCAT(r.name SEPARATOR ", ") as roles')
+            ->join('user_roles ur', 'ur.user_id = u.id', 'left')
+            ->join('roles r', 'r.id = ur.role_id', 'left')
+            ->groupBy('u.id');
+        if ($search) {
+            $dataQ->groupStart()->like('u.name', $search)->orLike('u.email', $search)->groupEnd();
+        }
+
+        [$ordCol, $ordDir] = $this->dtOrder($order, [
+            0 => 'u.id', 1 => 'u.name', 2 => 'u.email', 3 => 'u.status',
+        ], 'u.id');
+        $dataQ->orderBy($ordCol, $ordDir);
+        if ($length > 0) $dataQ->limit($length, $start);
+
+        $rows = $dataQ->get()->getResultArray();
+        $data = [];
+        foreach ($rows as $i => $row) {
+            $roleBadges = '';
+            if ($row['roles']) {
+                foreach (explode(',', $row['roles']) as $r) {
+                    $roleBadges .= '<span class="badge badge-primary">'.esc(trim($r)).'</span> ';
+                }
+            } else {
+                $roleBadges = '<span class="text-muted">-</span>';
+            }
+            $statusBadge = '<span class="badge badge-'.($row['status']==='active'?'success':'danger').'">'.esc($row['status']).'</span>';
+
+            $actions = $this->dtActions([
+                ['show'=>hasPermission('user.edit'),   'type'=>'info',   'icon'=>'fa-pen',   'title'=>'Edit',  'href'=>'/admin/users/edit/'.$row['id']],
+                ['show'=>hasPermission('user.delete'), 'type'=>'danger', 'icon'=>'fa-trash', 'title'=>'Hapus', 'href'=>'/admin/users/delete/'.$row['id'], 'ajax'=>true],
+            ]);
+
+            $data[] = [$start+$i+1, esc($row['name']), esc($row['email']), $roleBadges, $statusBadge, $actions];
+        }
+
+        return $this->dtResponse($draw, $total, $filtered, $data);
     }
 
     // Form tambah user

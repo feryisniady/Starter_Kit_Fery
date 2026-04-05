@@ -5,9 +5,12 @@ namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Models\RoleModel;
 use App\Models\PermissionModel;
+use App\Traits\DatatableTrait;
 
 class RoleController extends BaseController
 {
+    use DatatableTrait;
+
     protected $roleModel;
     protected $permissionModel;
 
@@ -20,11 +23,50 @@ class RoleController extends BaseController
     // List semua role
     public function index()
     {
-        $data = [
-            'title' => 'Manajemen Roles',
-            'roles' => $this->roleModel->getRolesWithPermissions(),
-        ];
-        return view('admin/roles/index', $data);
+        return view('admin/roles/index', ['title' => 'Manajemen Roles']);
+    }
+
+    // AJAX: DataTables server-side
+    public function getData()
+    {
+        if (!$this->request->isAJAX()) return $this->response->setStatusCode(403);
+
+        ['draw'=>$draw,'start'=>$start,'length'=>$length,'search'=>$search,'order'=>$order] = $this->dtRequest();
+
+        $db = \Config\Database::connect();
+
+        $total = $db->table('roles')->countAllResults();
+
+        $countQ = $db->table('roles r')->select('r.id')->join('role_permissions rp', 'rp.role_id = r.id', 'left')->groupBy('r.id');
+        if ($search) $countQ->like('r.name', $search);
+        $filtered = $search ? count($countQ->get()->getResultArray()) : $total;
+
+        $dataQ = $db->table('roles r')
+            ->select('r.id, r.name, COUNT(rp.permission_id) as total_permissions')
+            ->join('role_permissions rp', 'rp.role_id = r.id', 'left')
+            ->groupBy('r.id');
+        if ($search) $dataQ->like('r.name', $search);
+
+        [$ordCol, $ordDir] = $this->dtOrder($order, [0=>'r.id', 1=>'r.name', 2=>'total_permissions'], 'r.id');
+        $dataQ->orderBy($ordCol, $ordDir);
+        if ($length > 0) $dataQ->limit($length, $start);
+
+        $rows = $dataQ->get()->getResultArray();
+        $data = [];
+        foreach ($rows as $i => $row) {
+            $actions = $this->dtActions([
+                ['show'=>hasPermission('role.edit'),   'type'=>'info',   'icon'=>'fa-pen',   'title'=>'Edit',  'href'=>'/admin/roles/edit/'.$row['id']],
+                ['show'=>hasPermission('role.delete'), 'type'=>'danger', 'icon'=>'fa-trash', 'title'=>'Hapus', 'href'=>'/admin/roles/delete/'.$row['id'], 'ajax'=>true],
+            ]);
+            $data[] = [
+                $start+$i+1,
+                '<span class="badge badge-primary">'.esc($row['name']).'</span>',
+                $row['total_permissions'].' permission',
+                $actions,
+            ];
+        }
+
+        return $this->dtResponse($draw, $total, $filtered, $data);
     }
 
     // Form tambah role

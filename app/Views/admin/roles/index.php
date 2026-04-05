@@ -8,57 +8,27 @@
     </div>
     <div class="page-actions">
         <?php if(hasPermission('role.create')): ?>
-            <a href="/admin/roles/create" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Tambah Role
-            </a>
+        <a href="/admin/roles/create" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Tambah Role
+        </a>
         <?php endif; ?>
     </div>
 </div>
 
 <div class="card">
-    <div class="card-header">
-        <div class="card-title">
-            <i class="fas fa-shield"></i> Daftar Roles
-        </div>
-    </div>
     <div class="card-body">
-        <div class="table-wrap">
-            <table id="tabel-roles" data-datatable class="data-table">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Nama Role</th>
-                        <th>Total Permission</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach($roles as $i => $role): ?>
-                        <tr>
-                            <td><?= $i+1 ?></td>
-                            <td><span class="badge badge-primary"><?= esc($role['name']) ?></span></td>
-                            <td><?= esc($role['total_permissions']) ?> permission</td>
-                            <td>
-                                <?php if(hasPermission('role.edit')): ?>
-                                    <a href="/admin/roles/edit/<?= esc($role['id']) ?>"
-                                        class="btn btn-info btn-sm btn-icon" data-tooltip="Edit">
-                                        <i class="fas fa-pen"></i>
-                                    </a>
-                                <?php endif; ?>
-                                <?php if(hasPermission('role.delete')): ?>
-                                    <button class="btn btn-danger btn-sm btn-icon btn-delete"
-                                    data-url="/admin/roles/delete/<?= esc($role['id']) ?>"
-                                    data-tooltip="Hapus">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
+        <table id="dt-roles" data-url="/admin/roles/data" class="w-100">
+            <thead>
+                <tr>
+                    <th class="dt-nosort dt-nosearch" width="50">#</th>
+                    <th>Nama Role</th>
+                    <th>Total Permission</th>
+                    <th class="dt-nosort dt-nosearch" width="100">Aksi</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
         </table>
     </div>
-</div>
 </div>
 
 <?= $this->endSection() ?>

@@ -4,9 +4,12 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\LoginServiceModel;
+use App\Traits\DatatableTrait;
 
 class LoginServiceController extends BaseController
 {
+    use DatatableTrait;
+
     protected LoginServiceModel $model;
 
     public function __construct()
@@ -16,10 +19,44 @@ class LoginServiceController extends BaseController
 
     public function index()
     {
-        return view('admin/login_services/index', [
-            'title'    => 'Daftar Layanan Login',
-            'services' => $this->model->orderBy('sort_order')->findAll(),
-        ]);
+        return view('admin/login_services/index', ['title' => 'Daftar Layanan Login']);
+    }
+
+    // AJAX: DataTables server-side
+    public function getData()
+    {
+        if (!$this->request->isAJAX()) return $this->response->setStatusCode(403);
+
+        ['draw'=>$draw,'start'=>$start,'length'=>$length,'search'=>$search,'order'=>$order] = $this->dtRequest();
+
+        $db    = \Config\Database::connect();
+        $total = $db->table('login_services')->countAllResults();
+
+        $countQ = $db->table('login_services');
+        if ($search) $countQ->groupStart()->like('name', $search)->orLike('description', $search)->groupEnd();
+        $filtered = $search ? $countQ->countAllResults() : $total;
+
+        $dataQ = $db->table('login_services');
+        if ($search) $dataQ->groupStart()->like('name', $search)->orLike('description', $search)->groupEnd();
+
+        [$ordCol, $ordDir] = $this->dtOrder($order, [0=>'id',1=>'name',2=>'sort_order',3=>'is_active'], 'sort_order');
+        $dataQ->orderBy($ordCol, $ordDir);
+        if ($length > 0) $dataQ->limit($length, $start);
+
+        $rows = $dataQ->get()->getResultArray();
+        $data = [];
+        foreach ($rows as $i => $row) {
+            $icon    = $row['icon'] ? '<i class="'.esc($row['icon']).'" style="font-size:18px;color:#6366f1"></i>' : '-';
+            $login   = $row['require_login'] ? '<span class="badge badge-warning">Login</span>' : '<span class="badge badge-info">Publik</span>';
+            $status  = '<span class="badge '.($row['is_active']?'badge-success':'badge-gray').'">'.($row['is_active']?'Aktif':'Nonaktif').'</span>';
+            $actions = $this->dtActions([
+                ['show'=>true, 'type'=>'secondary', 'icon'=>'fa-pen',   'title'=>'Edit',   'href'=>'#', 'extra'=>'onclick="openEditModal('.$row['id'].')" data-row=\''.esc(json_encode($row), ENT_QUOTES).'\''],
+                ['show'=>true, 'type'=>'danger',    'icon'=>'fa-trash', 'title'=>'Hapus',  'href'=>'/admin/login-services/delete/'.$row['id'], 'ajax'=>true],
+            ]);
+            $data[] = [$start+$i+1, $icon, esc($row['name']), esc($row['description']), '<span style="font-size:12px;color:#94a3b8">'.esc($row['url']).'</span>', $login, $status, $actions];
+        }
+
+        return $this->dtResponse($draw, $total, $filtered, $data);
     }
 
     public function store()

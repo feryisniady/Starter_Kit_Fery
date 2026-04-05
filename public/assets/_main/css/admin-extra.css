@@ -500,3 +500,119 @@
 .switch input:checked + .switch-track { background: #2563eb; }
 .switch input:checked + .switch-track .switch-thumb { transform: translateX(16px); }
 .switch-label { font-size: 13.5px; color: #374151; }
+/* ================================================
+   DataTables.js — Override sesuai design system
+   ================================================ */
+
+/* Wrapper */
+.dataTables_wrapper { font-size: 13px; color: #374151; }
+
+/* Top bar */
+.dt-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.dataTables_length { white-space: nowrap; }
+.dataTables_length label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #64748b; }
+.dataTables_length select {
+    padding: 6px 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #374151;
+    background: white;
+    cursor: pointer;
+}
+.dataTables_filter { margin-left: auto; }
+.dataTables_filter label { display: flex; align-items: center; gap: 8px; }
+.dataTables_filter input {
+    padding: 7px 12px 7px 32px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 13px;
+    width: 220px;
+    background: white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%2394a3b8'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.868-3.834zm-5.242 1.156a5 5 0 1 1 0-10 5 5 0 0 1 0 10z'/%3E%3C/svg%3E") no-repeat 10px center / 14px;
+}
+.dataTables_filter input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
+.dataTables_filter label > span:first-child { display: none; } /* sembunyikan label "Search:" */
+
+/* Table */
+table.dataTable { border-collapse: collapse !important; width: 100% !important; }
+table.dataTable thead th {
+    background: #f8fafc;
+    color: #475569;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    padding: 12px 14px;
+    border-bottom: 2px solid #e2e8f0;
+    white-space: nowrap;
+}
+table.dataTable thead th.sorting::after,
+table.dataTable thead th.sorting_asc::after,
+table.dataTable thead th.sorting_desc::after { opacity: .5; }
+table.dataTable thead th.sorting_asc  { color: #1a3c6e; }
+table.dataTable thead th.sorting_desc { color: #1a3c6e; }
+
+table.dataTable tbody tr { border-bottom: 1px solid #f1f5f9; transition: background .15s; }
+table.dataTable tbody tr:hover { background: #f8fafc; }
+table.dataTable tbody td { padding: 12px 14px; vertical-align: middle; }
+table.dataTable tbody tr:last-child { border-bottom: none; }
+
+/* Processing overlay */
+.dataTables_processing {
+    background: rgba(255,255,255,.9) !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    padding: 16px 24px !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,.08) !important;
+    font-size: 13px;
+    color: #64748b;
+}
+
+/* Bottom bar */
+.dt-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.dataTables_info { font-size: 12px; color: #94a3b8; }
+.dataTables_paginate { display: flex; gap: 4px; }
+.dataTables_paginate .paginate_button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    color: #475569 !important;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all .15s;
+    text-decoration: none !important;
+}
+.dataTables_paginate .paginate_button:hover:not(.disabled) {
+    background: #eff6ff;
+    border-color: #93c5fd;
+    color: #1d4ed8 !important;
+}
+.dataTables_paginate .paginate_button.current {
+    background: #1a3c6e !important;
+    border-color: #1a3c6e !important;
+    color: white !important;
+    font-weight: 600;
+}
+.dataTables_paginate .paginate_button.disabled {
+    opacity: .4;
+    cursor: not-allowed;
+}

@@ -5,9 +5,12 @@ namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Models\MenuModel;
 use App\Models\PermissionModel;
+use App\Traits\DatatableTrait;
 
 class MenuController extends BaseController
 {
+    use DatatableTrait;
+
     protected $menuModel;
     protected $permissionModel;
 
@@ -19,11 +22,44 @@ class MenuController extends BaseController
 
     public function index()
     {
-        $data = [
-            'title' => 'Manajemen Menu',
-            'menus' => $this->menuModel->orderBy('sort_order')->findAll(),
-        ];
-        return view('admin/menus/index', $data);
+        return view('admin/menus/index', ['title' => 'Manajemen Menu']);
+    }
+
+    // AJAX: DataTables server-side
+    public function getData()
+    {
+        if (!$this->request->isAJAX()) return $this->response->setStatusCode(403);
+
+        ['draw'=>$draw,'start'=>$start,'length'=>$length,'search'=>$search,'order'=>$order] = $this->dtRequest();
+
+        $db = \Config\Database::connect();
+        $total = $db->table('menus')->countAllResults();
+
+        $countQ = $db->table('menus');
+        if ($search) $countQ->groupStart()->like('label', $search)->orLike('url', $search)->groupEnd();
+        $filtered = $search ? $countQ->countAllResults() : $total;
+
+        $dataQ = $db->table('menus');
+        if ($search) $dataQ->groupStart()->like('label', $search)->orLike('url', $search)->groupEnd();
+
+        [$ordCol, $ordDir] = $this->dtOrder($order, [0=>'id',1=>'label',2=>'url',3=>'sort_order',4=>'is_active'], 'sort_order');
+        $dataQ->orderBy($ordCol, $ordDir);
+        if ($length > 0) $dataQ->limit($length, $start);
+
+        $rows = $dataQ->get()->getResultArray();
+        $data = [];
+        foreach ($rows as $i => $row) {
+            $icon       = $row['icon'] ? '<i class="'.esc($row['icon']).'"></i>' : '-';
+            $permission = $row['permission'] ? '<span class="badge badge-info">'.esc($row['permission']).'</span>' : '<span class="text-muted">publik</span>';
+            $status     = '<span class="badge badge-'.($row['is_active']?'success':'danger').'">'.($row['is_active']?'Aktif':'Nonaktif').'</span>';
+            $actions    = $this->dtActions([
+                ['show'=>hasPermission('menu.edit'),   'type'=>'info',   'icon'=>'fa-pen',   'title'=>'Edit',  'href'=>'/admin/menus/edit/'.$row['id']],
+                ['show'=>hasPermission('menu.delete'), 'type'=>'danger', 'icon'=>'fa-trash', 'title'=>'Hapus', 'href'=>'/admin/menus/delete/'.$row['id'], 'ajax'=>true],
+            ]);
+            $data[] = [$start+$i+1, $icon, esc($row['label']), '<code>'.esc($row['url']).'</code>', $permission, $row['sort_order'], $status, $actions];
+        }
+
+        return $this->dtResponse($draw, $total, $filtered, $data);
     }
 
     public function create()

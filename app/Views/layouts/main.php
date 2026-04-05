@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="csrf-token" content="<?= csrf_hash() ?>">
+  <meta name="csrf-token-name" content="<?= csrf_token() ?>">
   <title><?= esc($title ?? 'Dashboard') ?> — <?= esc(app_setting('app_name')) ?></title>
   <?php if(app_setting('favicon_path')): ?>
   <link rel="icon" href="<?= base_url(esc(app_setting('favicon_path'))) ?>">
@@ -16,6 +17,8 @@
   <!-- Admin CSS -->
   <link rel="stylesheet" href="/assets/_main/css/admin.css">
   <link rel="stylesheet" href="/assets/_main/css/admin-extra.css">
+  <!-- DataTables CSS -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css">
 
   <!-- CSS Tambahan Per Halaman -->
   <?= $this->renderSection('styles') ?>
@@ -277,6 +280,7 @@
 <!-- Scripts -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/11.10.1/sweetalert2.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
 <script src="/assets/_main/js/admin.js"></script>
 
 <script>

@@ -40,304 +40,167 @@ document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') Modal.closeAll();
 });
 
-// ===================== DATATABLE =====================
-class DataTable {
-    constructor(tableId, options = {}) {
-        this.table    = document.getElementById(tableId);
-        this.options  = Object.assign({
-            perPage: 10,
-            searchable: true,
-            sortable: true,
-            exportable: true,
-            pagination: true,
-        }, options);
+// ===================== DATATABLE SERVER-SIDE (DataTables.js) =====================
 
-        if (!this.table) return;
+// Registry instance DT per table ID
+const DT_INSTANCES   = {};
+// Extra params per table (untuk filter tambahan)
+const DT_EXTRA_PARAMS = {};
 
-        this.data       = [];
-        this.filtered   = [];
-        this.currentPage = 1;
-        this.sortCol    = -1;
-        this.sortDir    = 'asc';
+// Bahasa Indonesia untuk DataTables
+const DT_LANG_ID = {
+    processing:      '<span style="font-size:13px;color:#64748b"><i class="fas fa-spinner fa-spin"></i> Memuat data...</span>',
+    search:          '',
+    searchPlaceholder: 'Cari...',
+    lengthMenu:      'Tampilkan _MENU_ data',
+    zeroRecords:     '<div style="text-align:center;padding:32px;color:#94a3b8"><i class="fas fa-inbox" style="font-size:28px;display:block;margin-bottom:8px;opacity:.4"></i>Tidak ada data ditemukan</div>',
+    emptyTable:      '<div style="text-align:center;padding:32px;color:#94a3b8"><i class="fas fa-inbox" style="font-size:28px;display:block;margin-bottom:8px;opacity:.4"></i>Belum ada data</div>',
+    info:            'Menampilkan _START_\u2013_END_ dari _TOTAL_ data',
+    infoEmpty:       'Menampilkan 0 data',
+    infoFiltered:    '(difilter dari _MAX_ total)',
+    paginate: {
+        first:    '<i class="fas fa-angles-left"></i>',
+        previous: '<i class="fas fa-chevron-left"></i>',
+        next:     '<i class="fas fa-chevron-right"></i>',
+        last:     '<i class="fas fa-angles-right"></i>',
+    },
+};
 
-        this._init();
-    }
+/**
+ * Init semua tabel dengan atribut data-url sebagai DataTables server-side.
+ * Dipanggil otomatis saat DOMContentLoaded.
+ */
+function initServerDT() {
+    $('table[data-url]').each(function() {
+        var $tbl = $(this);
+        var id   = this.id;
+        if (!id) return; // tabel harus punya id
 
-    _init() {
-        // Ambil data dari tbody
-        const rows = this.table.querySelectorAll('tbody tr');
-        rows.forEach(row => {
-            this.data.push(row.cloneNode(true));
+        if ($.fn.DataTable && $.fn.DataTable.isDataTable($tbl)) return;
+
+        var url  = this.getAttribute('data-url');
+        var cols = [];
+        $tbl.find('thead th').each(function() {
+            cols.push({
+                orderable:  !this.classList.contains('dt-nosort'),
+                searchable: !this.classList.contains('dt-nosearch'),
+            });
         });
-        this.filtered = [...this.data];
 
-        // Wrap table
-        const wrapper = document.createElement('div');
-        wrapper.className = 'dt-wrapper';
-        this.table.parentNode.insertBefore(wrapper, this.table);
+        DT_INSTANCES[id] = $tbl.DataTable({
+            processing:  true,
+            serverSide:  true,
+            ajax: {
+                url:  url,
+                type: 'POST',
+                data: function(d) {
+                    // CSRF token
+                    var csrfName  = $('meta[name="csrf-token-name"]').attr('content')  || 'csrf_token';
+                    var csrfHash  = $('meta[name="csrf-token"]').attr('content') || '';
+                    d[csrfName]   = csrfHash;
+                    // Extra filter params
+                    var extra = DT_EXTRA_PARAMS[id] || {};
+                    return $.extend({}, d, extra);
+                },
+                error: function(xhr) {
+                    if (xhr.status === 403) SIP.error('Sesi habis, silakan login ulang.');
+                    else SIP.error('Gagal memuat data. Silakan refresh halaman.');
+                }
+            },
+            columns:    cols,
+            language:   DT_LANG_ID,
+            pageLength: 10,
+            lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+            dom:        '<"dt-top"lf>rt<"dt-bottom"ip>',
+            responsive: false,
+        });
+    });
+}
 
-        // Toolbar
-        wrapper.appendChild(this._buildToolbar());
-        wrapper.appendChild(this.table);
-        this.table.className += ' data-table';
-
-        // Pagination
-        if (this.options.pagination) {
-            this.paginationEl = document.createElement('div');
-            wrapper.appendChild(this.paginationEl);
-        }
-
-        // Sortable headers
-        if (this.options.sortable) {
-            this.table.querySelectorAll('thead th').forEach((th, i) => {
-                th.classList.add('sortable');
-                th.addEventListener('click', () => this._sort(i));
-            });
-        }
-
-        this._render();
+/**
+ * Reload DataTable tanpa reset ke halaman 1.
+ */
+function dtReload(tableId) {
+    if (DT_INSTANCES[tableId]) {
+        DT_INSTANCES[tableId].ajax.reload(null, false);
     }
+}
 
-    _buildToolbar() {
-        const bar = document.createElement('div');
-        bar.className = 'dt-toolbar';
+/**
+ * Print semua data (fetch ulang dengan length=-1) dari endpoint yang sama.
+ */
+function dtPrint(tableId) {
+    var dt = DT_INSTANCES[tableId];
+    if (!dt) return;
 
-        // Left: show per page
-        const left = document.createElement('div');
-        left.className = 'dt-toolbar-left';
-        left.innerHTML = `
-            <div class="dt-show">
-                Tampilkan
-                <select id="dt-perpage">
-                    ${[5,10,25,50].map(n =>
-                        `<option value="${n}" ${n===this.options.perPage?'selected':''}>${n}</option>`
-                    ).join('')}
-                </select>
-                data
-            </div>
-        `;
-
-        // Right: export + search
-        const right = document.createElement('div');
-        right.className = 'dt-toolbar-right';
-
-        if (this.options.exportable) {
-            right.innerHTML += `
-                <div class="dt-export-btns">
-                    <button class="btn-export excel" onclick="SIP.exportExcel()" data-tooltip="Export Excel">
-                        <i class="fas fa-file-excel"></i> Excel
-                    </button>
-                    <button class="btn-export pdf" onclick="this.closest('.dt-wrapper')._dt.printTable()" data-tooltip="Print">
-                        <i class="fas fa-print"></i> Print
-                    </button>
-                </div>
-            `;
+    var url    = $('table#'+tableId).attr('data-url');
+    var search = dt.search();
+    var order  = dt.order();
+    var headers = [];
+    $('table#'+tableId+' thead th').each(function() {
+        if (!this.classList.contains('dt-nosearch')) {
+            headers.push(this.textContent.trim());
         }
+    });
 
-        if (this.options.searchable) {
-            right.innerHTML += `
-                <div class="dt-search">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="dt-search" placeholder="Cari...">
-                </div>
-            `;
-        }
+    SIP.loading('Menyiapkan data cetak...');
 
-        bar.appendChild(left);
-        bar.appendChild(right);
+    $.post(url, {
+        draw: 1, start: 0, length: -1,
+        'search[value]': search,
+        'order[0][column]': order[0] ? order[0][0] : 0,
+        'order[0][dir]':    order[0] ? order[0][1] : 'asc',
+        $('meta[name="csrf-token-name"]').attr('content') || 'csrf_token':
+            $('meta[name="csrf-token"]').attr('content'),
+    }, function(res) {
+        SIP.close();
+        var rows  = res.data || [];
+        var title = document.title;
 
-        // Events
-        setTimeout(() => {
-            const perpage = document.getElementById('dt-perpage');
-            const search  = document.getElementById('dt-search');
-            if (perpage) perpage.addEventListener('change', e => {
-                this.options.perPage = parseInt(e.target.value);
-                this.currentPage = 1;
-                this._render();
-            });
-            if (search) search.addEventListener('input', e => {
-                this._search(e.target.value);
-            });
-        }, 0);
+        var html = '<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"><title>'+title+'</title>'
+            +'<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:12px;color:#111;padding:20px}'
+            +'h2{font-size:15px;margin-bottom:4px}.meta{font-size:11px;color:#555;margin-bottom:16px}'
+            +'table{width:100%;border-collapse:collapse}thead{background:#1a3c6e;color:white}'
+            +'thead th{padding:8px 10px;text-align:left;font-size:11px;font-weight:600}'
+            +'tbody tr:nth-child(even){background:#f5f7fa}'
+            +'tbody td{padding:7px 10px;border-bottom:1px solid #e2e8f0;vertical-align:top}'
+            +'tfoot td{padding:8px 10px;font-size:11px;color:#555;border-top:2px solid #1a3c6e}'
+            +'@media print{body{padding:0}}</style></head><body>'
+            +'<h2>'+title+'</h2>'
+            +'<div class="meta">Total data: '+res.recordsFiltered+'&nbsp;|&nbsp;Dicetak: '+new Date().toLocaleString('id-ID')+'</div>'
+            +'<table><thead><tr>';
 
-        return bar;
-    }
+        // Semua header
+        $('table#'+tableId+' thead th').each(function() {
+            html += '<th>'+this.textContent.trim()+'</th>';
+        });
+        html += '</tr></thead><tbody>';
 
-    _search(query) {
-        const q = query.toLowerCase();
-        this.filtered = q
-            ? this.data.filter(row =>
-                row.textContent.toLowerCase().includes(q))
-            : [...this.data];
-        this.currentPage = 1;
-        this._render();
-    }
-
-    _sort(colIndex) {
-        if (this.sortCol === colIndex) {
-            this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
+        if (rows.length === 0) {
+            html += '<tr><td colspan="99" style="text-align:center;padding:20px;color:#888">Tidak ada data</td></tr>';
         } else {
-            this.sortCol = colIndex;
-            this.sortDir = 'asc';
-        }
-
-        this.filtered.sort((a, b) => {
-            const aText = a.cells[colIndex]?.textContent.trim() || '';
-            const bText = b.cells[colIndex]?.textContent.trim() || '';
-            const aNum = parseFloat(aText);
-            const bNum = parseFloat(bText);
-            let cmp = isNaN(aNum) || isNaN(bNum)
-                ? aText.localeCompare(bText)
-                : aNum - bNum;
-            return this.sortDir === 'asc' ? cmp : -cmp;
-        });
-
-        // Update header classes
-        this.table.querySelectorAll('thead th').forEach((th, i) => {
-            th.classList.remove('sort-asc', 'sort-desc');
-            if (i === colIndex) th.classList.add(`sort-${this.sortDir}`);
-        });
-
-        this._render();
-    }
-
-    _render() {
-        const start = (this.currentPage - 1) * this.options.perPage;
-        const end   = start + this.options.perPage;
-        const page  = this.filtered.slice(start, end);
-
-        const tbody = this.table.querySelector('tbody');
-        tbody.innerHTML = '';
-
-        if (page.length === 0) {
-            tbody.innerHTML = `
-                <tr><td colspan="99" class="dt-empty">
-                    <i class="fas fa-inbox"></i>
-                    <p>Tidak ada data ditemukan</p>
-                </td></tr>`;
-        } else {
-            page.forEach((row, i) => {
-                const r = row.cloneNode(true);
-                r.style.animation = `fadeIn .15s ease ${i * 30}ms both`;
-                tbody.appendChild(r);
+            rows.forEach(function(row) {
+                html += '<tr>';
+                row.forEach(function(cell) {
+                    // Strip HTML tags untuk print
+                    var tmp = document.createElement('div');
+                    tmp.innerHTML = cell;
+                    html += '<td>'+(tmp.textContent||tmp.innerText||'')+'</td>';
+                });
+                html += '</tr>';
             });
         }
+        html += '</tbody><tfoot><tr><td colspan="99">Total: '+rows.length+' data</td></tr></tfoot></table>'
+             +'<script>window.onload=function(){window.print();window.onafterprint=function(){window.close();}}<\/script>'
+             +'</body></html>';
 
-        if (this.options.pagination) this._renderPagination();
-    }
-
-    _renderPagination() {
-        const total = this.filtered.length;
-        const pages = Math.ceil(total / this.options.perPage);
-        const start = Math.min((this.currentPage - 1) * this.options.perPage + 1, total);
-        const end   = Math.min(this.currentPage * this.options.perPage, total);
-
-        let pagesHtml = '';
-        // Prev
-        pagesHtml += `<button class="dt-page-btn" ${this.currentPage===1?'disabled':''} onclick="this.closest('.dt-wrapper')._dt.goPage(${this.currentPage-1})">
-            <i class="fas fa-chevron-left" style="font-size:11px"></i></button>`;
-
-        // Page numbers
-        for (let i = 1; i <= pages; i++) {
-            if (pages > 7 && i > 2 && i < pages - 1 && Math.abs(i - this.currentPage) > 1) {
-                if (i === 3 || i === pages - 2) pagesHtml += `<span style="padding:0 4px;color:#94a3b8">...</span>`;
-                continue;
-            }
-            pagesHtml += `<button class="dt-page-btn ${i===this.currentPage?'active':''}"
-                onclick="this.closest('.dt-wrapper')._dt.goPage(${i})">${i}</button>`;
-        }
-
-        // Next
-        pagesHtml += `<button class="dt-page-btn" ${this.currentPage===pages?'disabled':''} onclick="this.closest('.dt-wrapper')._dt.goPage(${this.currentPage+1})">
-            <i class="fas fa-chevron-right" style="font-size:11px"></i></button>`;
-
-        this.paginationEl.className = 'dt-pagination';
-        this.paginationEl.innerHTML = `
-            <div class="dt-info">
-                Menampilkan ${total === 0 ? 0 : start}–${end} dari ${total} data
-            </div>
-            <div class="dt-pages">${pagesHtml}</div>
-        `;
-
-        // Attach instance ke wrapper
-        this.table.closest('.dt-wrapper')._dt = this;
-    }
-
-    printTable() {
-        // Ambil headers (skip kolom Aksi/# yang tidak perlu)
-        const headers = [...this.table.querySelectorAll('thead th')].map(th => th.textContent.trim());
-
-        // Ambil SEMUA data yang sudah difilter (bukan hanya halaman aktif)
-        const rows = this.filtered.map(row => {
-            return [...row.querySelectorAll('td')].map(td => {
-                // Ambil text saja, skip tombol/badge HTML
-                const badge = td.querySelector('.badge');
-                if (badge) return badge.textContent.trim();
-                return td.textContent.trim();
-            });
-        });
-
-        // Judul halaman
-        const pageTitle = document.title || 'Data';
-
-        // Bangun HTML print
-        const html = `<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <title>${pageTitle}</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; font-size: 12px; color: #111; padding: 20px; }
-        h2 { font-size: 15px; margin-bottom: 4px; }
-        .meta { font-size: 11px; color: #555; margin-bottom: 16px; }
-        table { width: 100%; border-collapse: collapse; }
-        thead { background: #1a3c6e; color: white; }
-        thead th { padding: 8px 10px; text-align: left; font-size: 11px; font-weight: 600; }
-        tbody tr:nth-child(even) { background: #f5f7fa; }
-        tbody td { padding: 7px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
-        tfoot td { padding: 8px 10px; font-size: 11px; color: #555; border-top: 2px solid #1a3c6e; }
-        @media print { body { padding: 0; } }
-    </style>
-</head>
-<body>
-    <h2>${pageTitle}</h2>
-    <div class="meta">Total data: ${rows.length} &nbsp;|&nbsp; Dicetak: ${new Date().toLocaleString('id-ID')}</div>
-    <table>
-        <thead>
-            <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
-        </thead>
-        <tbody>
-            ${rows.length === 0
-                ? `<tr><td colspan="${headers.length}" style="text-align:center;padding:20px;color:#888">Tidak ada data</td></tr>`
-                : rows.map((row, i) => `<tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>`).join('')
-            }
-        </tbody>
-        <tfoot>
-            <tr><td colspan="${headers.length}">Total: ${rows.length} data</td></tr>
-        </tfoot>
-    </table>
-    <script>window.onload = function() { window.print(); window.onafterprint = function() { window.close(); }; }<\/script>
-</body>
-</html>`;
-
-        const win = window.open('', '_blank', 'width=900,height=650');
+        var win = window.open('', '_blank', 'width=900,height=650');
         win.document.write(html);
         win.document.close();
-    }
-
-    goPage(page) {
-        const pages = Math.ceil(this.filtered.length / this.options.perPage);
-        if (page < 1 || page > pages) return;
-        this.currentPage = page;
-        this._render();
-    }
-
-    reload() {
-        this.filtered = [...this.data];
-        this.currentPage = 1;
-        this._render();
-    }
+    }).fail(function() {
+        SIP.close();
+        SIP.error('Gagal memuat data untuk print.');
+    });
 }
 
 // ===================== TABS =====================
@@ -535,32 +398,35 @@ function validateForm(formId) {
 
 // ===================== INIT =====================
 document.addEventListener('DOMContentLoaded', function() {
-    // Init semua DataTable otomatis
-    document.querySelectorAll('[data-datatable]').forEach(table => {
-        new DataTable(table.id);
-    });
+    // Init DataTables.js server-side
+    initServerDT();
 
-    // Init tabs otomatis
+    // Init tabs
     initTabs();
 
-    // Flash messages dari window variable
+    // Flash messages
     if (window._flashSuccess) SIP.success(window._flashSuccess);
     if (window._flashError)   SIP.error(window._flashError);
 
-    // AJAX Delete otomatis untuk .btn-delete
+    // AJAX Delete — reload DataTable jika ada, fallback fadeOut
     $(document).on('click', '.btn-delete', function(e) {
         e.preventDefault();
-        const url = $(this).data('url');
-        const row = $(this).closest('tr');
+        var url   = $(this).data('url');
+        var $row  = $(this).closest('tr');
+        var dtId  = $row.closest('table').attr('id');
 
         SIP.confirmDelete(null, function() {
             $.ajax({
-                url: url,
+                url:  url,
                 type: 'GET',
                 success: function(res) {
                     if (res.status === 'success') {
-                        row.fadeOut(300, function() { $(this).remove(); });
                         SIP.success(res.message || 'Data berhasil dihapus!');
+                        if (dtId && DT_INSTANCES[dtId]) {
+                            DT_INSTANCES[dtId].ajax.reload(null, false);
+                        } else {
+                            $row.fadeOut(300, function() { $(this).remove(); });
+                        }
                     } else {
                         SIP.error(res.message || 'Gagal menghapus data.');
                     }
