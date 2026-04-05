@@ -39,6 +39,7 @@ class AppSettingController extends BaseController
 
         logActivity('setting.update', 'settings', 'Pengaturan aplikasi diperbarui');
 
+
         return redirect()->to('/admin/settings')->with('success', 'Pengaturan berhasil disimpan.');
     }
 
