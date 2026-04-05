@@ -16,9 +16,10 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/11.10.1/sweetalert2.min.css">
   <!-- Admin CSS -->
   <link rel="stylesheet" href="/assets/_main/css/admin.css">
-  <link rel="stylesheet" href="/assets/_main/css/admin-extra.css">
-  <!-- DataTables CSS -->
+  <!-- DataTables CSS — load sebelum admin-extra agar override kita menang -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css">
+  <!-- Admin Extra (override DataTables default) -->
+  <link rel="stylesheet" href="/assets/_main/css/admin-extra.css">
 
   <!-- CSS Tambahan Per Halaman -->
   <?= $this->renderSection('styles') ?>
