@@ -90,7 +90,6 @@ function initServerDT() {
         DT_INSTANCES[id] = $tbl.DataTable({
             processing:  true,
             serverSide:  true,
-            scrollX:     true,
             ajax: {
                 url:  url,
                 type: 'POST',

@@ -598,8 +598,17 @@ button.dt-button {
 .btn-dt-print { border-color: #bfdbfe !important; color: #1d4ed8 !important; }
 .btn-dt-print:hover, .btn-dt-print.active { background: #eff6ff !important; }
 
-/* ─── Table ─── */
-table.dataTable { border-collapse: collapse !important; }
+/* ─── Table + scroll horizontal tanpa scrollX DataTables ─── */
+/* DataTables scrollX menyebabkan header/body tidak sinkron saat server-side AJAX.
+   Solusi: overflow-x pada wrapper saja, tanpa scrollX option. */
+.dataTables_wrapper { min-width: 0; }
+div.dataTables_wrapper div.dataTables_scroll,
+.card-body > .dataTables_wrapper > table,
+.card-body > .dataTables_wrapper {
+    /* tidak diperlukan overflow di sini, cukup di card-body */
+}
+.card-body { overflow-x: auto; }
+table.dataTable { border-collapse: collapse !important; min-width: 480px; }
 table.dataTable thead th {
     background: #f8fafc;
     color: #475569;
