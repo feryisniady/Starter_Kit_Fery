@@ -90,13 +90,13 @@
         <table id="dt-actlogs" data-url="/admin/activity-logs/data" class="w-100">
             <thead>
                 <tr>
-                    <th class="dt-nosort dt-nosearch" width="50">#</th>
-                    <th>Waktu</th>
-                    <th>User</th>
-                    <th>Aksi</th>
-                    <th>Deskripsi</th>
-                    <th class="dt-nosort dt-nosearch" width="60">Detail</th>
-                    <th class="dt-nosort">IP Address</th>
+                    <th class="dt-nosort dt-nosearch" data-dt="no" width="50">#</th>
+                    <th data-dt="waktu">Waktu</th>
+                    <th data-dt="user">User</th>
+                    <th data-dt="action">Aksi</th>
+                    <th data-dt="description">Deskripsi</th>
+                    <th class="dt-nosort dt-nosearch" data-dt="detail" width="60">Detail</th>
+                    <th class="dt-nosort" data-dt="ip">IP Address</th>
                 </tr>
             </thead>
             <tbody></tbody>

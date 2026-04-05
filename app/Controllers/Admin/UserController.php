@@ -83,7 +83,14 @@ class UserController extends BaseController
                 ['show'=>hasPermission('user.delete'), 'type'=>'danger', 'icon'=>'fa-trash', 'title'=>'Hapus', 'href'=>'/admin/users/delete/'.$row['id'], 'ajax'=>true],
             ]);
 
-            $data[] = [$start+$i+1, esc($row['name']), esc($row['email']), $roleBadges, $statusBadge, $actions];
+            $data[] = [
+                'no'     => $start + $i + 1,
+                'nama'   => esc($row['name']),
+                'email'  => esc($row['email']),
+                'role'   => $roleBadges,
+                'status' => $statusBadge,
+                'aksi'   => $actions,
+            ];
         }
 
         return $this->dtResponse($draw, $total, $filtered, $data);

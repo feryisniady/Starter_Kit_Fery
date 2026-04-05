@@ -18,14 +18,14 @@
         <table id="dt-services" data-url="/admin/login-services/data" class="w-100">
             <thead>
                 <tr>
-                    <th class="dt-nosort dt-nosearch" width="50">#</th>
-                    <th class="dt-nosort dt-nosearch" width="50">Icon</th>
-                    <th>Nama Layanan</th>
-                    <th class="dt-nosort">Deskripsi</th>
-                    <th class="dt-nosort">URL</th>
-                    <th class="dt-nosort">Login?</th>
-                    <th>Status</th>
-                    <th class="dt-nosort dt-nosearch" width="120">Aksi</th>
+                    <th class="dt-nosort dt-nosearch" data-dt="no" width="50">#</th>
+                    <th class="dt-nosort dt-nosearch" data-dt="icon" width="50">Icon</th>
+                    <th data-dt="nama">Nama Layanan</th>
+                    <th class="dt-nosort" data-dt="deskripsi">Deskripsi</th>
+                    <th class="dt-nosort" data-dt="url">URL</th>
+                    <th class="dt-nosort" data-dt="login">Login?</th>
+                    <th data-dt="status">Status</th>
+                    <th class="dt-nosort dt-nosearch" data-dt="aksi" width="120">Aksi</th>
                 </tr>
             </thead>
             <tbody></tbody>

@@ -66,7 +66,7 @@ trait DatatableTrait
      */
     protected function dtActions(array $buttons): string
     {
-        $html = '<div style="display:flex;gap:4px;flex-wrap:wrap">';
+        $html = '<div style="display:flex;gap:4px;flex-wrap:nowrap;align-items:center">';
         foreach ($buttons as $btn) {
             if (!($btn['show'] ?? true)) continue;
             $type    = $btn['type']    ?? 'secondary';

@@ -20,14 +20,14 @@
         <table id="dt-menus" data-url="/admin/menus/data" class="w-100">
             <thead>
                 <tr>
-                    <th class="dt-nosort dt-nosearch" width="50">#</th>
-                    <th class="dt-nosort dt-nosearch" width="50">Icon</th>
-                    <th>Label</th>
-                    <th>URL</th>
-                    <th class="dt-nosort">Permission</th>
-                    <th>Urutan</th>
-                    <th>Status</th>
-                    <th class="dt-nosort dt-nosearch" width="100">Aksi</th>
+                    <th class="dt-nosort dt-nosearch" data-dt="no" width="50">#</th>
+                    <th class="dt-nosort dt-nosearch" data-dt="icon" width="50">Icon</th>
+                    <th data-dt="label">Label</th>
+                    <th data-dt="url">URL</th>
+                    <th class="dt-nosort" data-dt="perm">Permission</th>
+                    <th data-dt="urutan">Urutan</th>
+                    <th data-dt="status">Status</th>
+                    <th class="dt-nosort dt-nosearch" data-dt="aksi" width="100">Aksi</th>
                 </tr>
             </thead>
             <tbody></tbody>

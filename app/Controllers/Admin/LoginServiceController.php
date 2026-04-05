@@ -62,7 +62,16 @@ class LoginServiceController extends BaseController
                 ['show'=>true, 'type'=>'secondary', 'icon'=>'fa-pen',   'title'=>'Edit',  'href'=>'#', 'extra'=>$editExtra],
                 ['show'=>true, 'type'=>'danger',    'icon'=>'fa-trash', 'title'=>'Hapus', 'href'=>'/admin/login-services/delete/'.$row['id'], 'ajax'=>true],
             ]);
-            $data[] = [$start+$i+1, $icon, esc($row['name']), esc($row['description']), '<span style="font-size:12px;color:#94a3b8">'.esc($row['url']).'</span>', $login, $status, $actions];
+            $data[] = [
+                'no'       => $start + $i + 1,
+                'icon'     => $icon,
+                'nama'     => esc($row['name']),
+                'deskripsi'=> esc($row['description']),
+                'url'      => '<span style="font-size:12px;color:#94a3b8">'.esc($row['url']).'</span>',
+                'login'    => $login,
+                'status'   => $status,
+                'aksi'     => $actions,
+            ];
         }
 
         return $this->dtResponse($draw, $total, $filtered, $data);

@@ -56,7 +56,16 @@ class MenuController extends BaseController
                 ['show'=>hasPermission('menu.edit'),   'type'=>'info',   'icon'=>'fa-pen',   'title'=>'Edit',  'href'=>'/admin/menus/edit/'.$row['id']],
                 ['show'=>hasPermission('menu.delete'), 'type'=>'danger', 'icon'=>'fa-trash', 'title'=>'Hapus', 'href'=>'/admin/menus/delete/'.$row['id'], 'ajax'=>true],
             ]);
-            $data[] = [$start+$i+1, $icon, esc($row['label']), '<code>'.esc($row['url']).'</code>', $permission, $row['sort_order'], $status, $actions];
+            $data[] = [
+                'no'     => $start + $i + 1,
+                'icon'   => $icon,
+                'label'  => esc($row['label']),
+                'url'    => '<code>'.esc($row['url']).'</code>',
+                'perm'   => $permission,
+                'urutan' => (int)$row['sort_order'],
+                'status' => $status,
+                'aksi'   => $actions,
+            ];
         }
 
         return $this->dtResponse($draw, $total, $filtered, $data);

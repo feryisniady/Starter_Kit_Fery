@@ -20,10 +20,10 @@
         <table id="dt-roles" data-url="/admin/roles/data" class="w-100">
             <thead>
                 <tr>
-                    <th class="dt-nosort dt-nosearch" width="50">#</th>
-                    <th>Nama Role</th>
-                    <th>Total Permission</th>
-                    <th class="dt-nosort dt-nosearch" width="100">Aksi</th>
+                    <th class="dt-nosort dt-nosearch" data-dt="no" width="50">#</th>
+                    <th data-dt="nama_role">Nama Role</th>
+                    <th data-dt="total_perms">Total Permission</th>
+                    <th class="dt-nosort dt-nosearch" data-dt="aksi" width="100">Aksi</th>
                 </tr>
             </thead>
             <tbody></tbody>

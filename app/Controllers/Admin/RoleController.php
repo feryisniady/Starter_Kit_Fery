@@ -59,10 +59,10 @@ class RoleController extends BaseController
                 ['show'=>hasPermission('role.delete'), 'type'=>'danger', 'icon'=>'fa-trash', 'title'=>'Hapus', 'href'=>'/admin/roles/delete/'.$row['id'], 'ajax'=>true],
             ]);
             $data[] = [
-                $start+$i+1,
-                '<span class="badge badge-primary">'.esc($row['name']).'</span>',
-                $row['total_permissions'].' permission',
-                $actions,
+                'no'          => $start + $i + 1,
+                'nama_role'   => '<span class="badge badge-primary">'.esc($row['name']).'</span>',
+                'total_perms' => $row['total_permissions'].' permission',
+                'aksi'        => $actions,
             ];
         }
 

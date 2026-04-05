@@ -20,12 +20,12 @@
         <table id="dt-users" data-url="/admin/users/data" class="w-100">
             <thead>
                 <tr>
-                    <th class="dt-nosort dt-nosearch" width="50">#</th>
-                    <th>Nama</th>
-                    <th>Email</th>
-                    <th class="dt-nosort">Role</th>
-                    <th>Status</th>
-                    <th class="dt-nosort dt-nosearch" width="100">Aksi</th>
+                    <th class="dt-nosort dt-nosearch" data-dt="no" width="50">#</th>
+                    <th data-dt="nama">Nama</th>
+                    <th data-dt="email">Email</th>
+                    <th class="dt-nosort" data-dt="role">Role</th>
+                    <th data-dt="status">Status</th>
+                    <th class="dt-nosort dt-nosearch" data-dt="aksi" width="100">Aksi</th>
                 </tr>
             </thead>
             <tbody></tbody>

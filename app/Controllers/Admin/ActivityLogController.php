@@ -92,7 +92,15 @@ class ActivityLogController extends BaseController
             } else {
                 $meta = '<span class="text-muted" style="font-size:12px">—</span>';
             }
-            $data[] = [$start+$i+1, $waktu, $user, $action, esc($row['description']), $meta, '<span style="font-family:monospace;font-size:12px">'.esc($row['ip_address']).'</span>'];
+            $data[] = [
+                'no'          => $start + $i + 1,
+                'waktu'       => $waktu,
+                'user'        => $user,
+                'action'      => $action,
+                'description' => esc($row['description']),
+                'detail'      => $meta,
+                'ip'          => '<span style="font-family:monospace;font-size:12px">'.esc($row['ip_address']).'</span>',
+            ];
         }
 
         return $this->dtResponse($draw, $total, $filtered, $data);

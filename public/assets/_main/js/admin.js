@@ -81,10 +81,13 @@ function initServerDT() {
         var url  = this.getAttribute('data-url');
         var cols = [];
         $tbl.find('thead th').each(function() {
-            cols.push({
+            var col = {
                 orderable:  !this.classList.contains('dt-nosort'),
                 searchable: !this.classList.contains('dt-nosearch'),
-            });
+            };
+            var dtKey = this.getAttribute('data-dt');
+            if (dtKey) col.data = dtKey;
+            cols.push(col);
         });
 
         DT_INSTANCES[id] = $tbl.DataTable({
@@ -145,11 +148,9 @@ function dtPrint(tableId) {
     var url    = $('table#'+tableId).attr('data-url');
     var search = dt.search();
     var order  = dt.order();
-    var headers = [];
+    var colKeys = [];
     $('table#'+tableId+' thead th').each(function() {
-        if (!this.classList.contains('dt-nosearch')) {
-            headers.push(this.textContent.trim());
-        }
+        colKeys.push(this.getAttribute('data-dt') || null);
     });
 
     SIP.loading('Menyiapkan data cetak...');
@@ -193,8 +194,10 @@ function dtPrint(tableId) {
         } else {
             rows.forEach(function(row) {
                 html += '<tr>';
-                row.forEach(function(cell) {
-                    // Strip HTML tags untuk print
+                var cells = Array.isArray(row)
+                    ? row
+                    : colKeys.map(function(k) { return k ? (row[k] != null ? row[k] : '') : ''; });
+                cells.forEach(function(cell) {
                     var tmp = document.createElement('div');
                     tmp.innerHTML = cell;
                     html += '<td>'+(tmp.textContent||tmp.innerText||'')+'</td>';
@@ -248,8 +251,15 @@ function dtExportExcel(tableId) {
 
         var csv = '\uFEFF'; // BOM agar Excel baca UTF-8 dengan benar
         csv += headers.join(',') + '\n';
+        var colKeys = [];
+        $('table#' + tableId + ' thead th').each(function() {
+            colKeys.push(this.getAttribute('data-dt') || null);
+        });
         rows.forEach(function(row) {
-            var cols = row.map(function(cell) {
+            var cells = Array.isArray(row)
+                ? row
+                : colKeys.map(function(k) { return k ? (row[k] != null ? row[k] : '') : ''; });
+            var cols = cells.map(function(cell) {
                 var tmp = document.createElement('div');
                 tmp.innerHTML = cell;
                 var text = (tmp.textContent || tmp.innerText || '').trim();
