@@ -127,7 +127,7 @@ class DataTable {
                     <button class="btn-export excel" onclick="SIP.exportExcel()" data-tooltip="Export Excel">
                         <i class="fas fa-file-excel"></i> Excel
                     </button>
-                    <button class="btn-export pdf" onclick="window.print()" data-tooltip="Print">
+                    <button class="btn-export pdf" onclick="this.closest('.dt-wrapper')._dt.printTable()" data-tooltip="Print">
                         <i class="fas fa-print"></i> Print
                     </button>
                 </div>
@@ -261,6 +261,69 @@ class DataTable {
 
         // Attach instance ke wrapper
         this.table.closest('.dt-wrapper')._dt = this;
+    }
+
+    printTable() {
+        // Ambil headers (skip kolom Aksi/# yang tidak perlu)
+        const headers = [...this.table.querySelectorAll('thead th')].map(th => th.textContent.trim());
+
+        // Ambil SEMUA data yang sudah difilter (bukan hanya halaman aktif)
+        const rows = this.filtered.map(row => {
+            return [...row.querySelectorAll('td')].map(td => {
+                // Ambil text saja, skip tombol/badge HTML
+                const badge = td.querySelector('.badge');
+                if (badge) return badge.textContent.trim();
+                return td.textContent.trim();
+            });
+        });
+
+        // Judul halaman
+        const pageTitle = document.title || 'Data';
+
+        // Bangun HTML print
+        const html = `<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>${pageTitle}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; font-size: 12px; color: #111; padding: 20px; }
+        h2 { font-size: 15px; margin-bottom: 4px; }
+        .meta { font-size: 11px; color: #555; margin-bottom: 16px; }
+        table { width: 100%; border-collapse: collapse; }
+        thead { background: #1a3c6e; color: white; }
+        thead th { padding: 8px 10px; text-align: left; font-size: 11px; font-weight: 600; }
+        tbody tr:nth-child(even) { background: #f5f7fa; }
+        tbody td { padding: 7px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+        tfoot td { padding: 8px 10px; font-size: 11px; color: #555; border-top: 2px solid #1a3c6e; }
+        @media print { body { padding: 0; } }
+    </style>
+</head>
+<body>
+    <h2>${pageTitle}</h2>
+    <div class="meta">Total data: ${rows.length} &nbsp;|&nbsp; Dicetak: ${new Date().toLocaleString('id-ID')}</div>
+    <table>
+        <thead>
+            <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
+        </thead>
+        <tbody>
+            ${rows.length === 0
+                ? `<tr><td colspan="${headers.length}" style="text-align:center;padding:20px;color:#888">Tidak ada data</td></tr>`
+                : rows.map((row, i) => `<tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>`).join('')
+            }
+        </tbody>
+        <tfoot>
+            <tr><td colspan="${headers.length}">Total: ${rows.length} data</td></tr>
+        </tfoot>
+    </table>
+    <script>window.onload = function() { window.print(); window.onafterprint = function() { window.close(); }; }<\/script>
+</body>
+</html>`;
+
+        const win = window.open('', '_blank', 'width=900,height=650');
+        win.document.write(html);
+        win.document.close();
     }
 
     goPage(page) {
