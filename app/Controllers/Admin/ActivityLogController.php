@@ -88,7 +88,7 @@ class ActivityLogController extends BaseController
             $action  = '<span class="badge badge-'.$badgeColor.'">'.esc($row['action']).'</span>';
             $meta    = '';
             if (!empty($row['meta'])) {
-                $meta = '<button class="btn btn-sm btn-secondary btn-detail" data-meta=\''.esc($row['meta'], ENT_QUOTES).'\' title="Lihat detail"><i class="fas fa-eye"></i></button>';
+                $meta = '<button class="btn btn-sm btn-secondary btn-detail" data-meta="'.htmlspecialchars($row['meta'], ENT_QUOTES, 'UTF-8').'" title="Lihat detail"><i class="fas fa-eye"></i></button>';
             } else {
                 $meta = '<span class="text-muted" style="font-size:12px">—</span>';
             }

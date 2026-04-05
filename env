@@ -1,0 +1,28 @@
+#--------------------------------------------------------------------
+# ENVIRONMENT
+#--------------------------------------------------------------------
+# Ganti 'development' jadi 'production' di server live
+CI_ENVIRONMENT = development
+
+#--------------------------------------------------------------------
+# APP
+#--------------------------------------------------------------------
+# PENTING: Sesuaikan dengan URL akses kamu
+# Laragon HTTPS  : https://rbac-starter.test/
+# Laragon HTTP   : http://rbac-starter.test/
+# Built-in server: http://localhost:8080/
+app.baseURL = 'https://rbac-starter.test/'
+
+# Timezone
+app.appTimezone = 'Asia/Jakarta'
+
+#--------------------------------------------------------------------
+# DATABASE
+#--------------------------------------------------------------------
+# database.default.hostname = localhost
+# database.default.database = rbac_starter
+# database.default.username = root
+# database.default.password =
+# database.default.DBDriver = MySQLi
+# database.default.DBPrefix =
+# database.default.port = 3306
