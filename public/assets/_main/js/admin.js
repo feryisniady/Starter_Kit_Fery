@@ -145,14 +145,17 @@ function dtPrint(tableId) {
 
     SIP.loading('Menyiapkan data cetak...');
 
-    $.post(url, {
+    var csrfName = $('meta[name="csrf-token-name"]').attr('content') || 'csrf_token';
+    var csrfHash = $('meta[name="csrf-token"]').attr('content') || '';
+    var postData = {
         draw: 1, start: 0, length: -1,
         'search[value]': search,
         'order[0][column]': order[0] ? order[0][0] : 0,
         'order[0][dir]':    order[0] ? order[0][1] : 'asc',
-        $('meta[name="csrf-token-name"]').attr('content') || 'csrf_token':
-            $('meta[name="csrf-token"]').attr('content'),
-    }, function(res) {
+    };
+    postData[csrfName] = csrfHash;
+
+    $.post(url, postData, function(res) {
         SIP.close();
         var rows  = res.data || [];
         var title = document.title;
