@@ -28,6 +28,7 @@ class Filters extends BaseFilters
         'csrf'          => CSRF::class,
         'toolbar'       => DebugToolbar::class,
         'honeypot'      => Honeypot::class,
+        //custom security
         'auth'          => \App\Filters\AuthFilter::class,   // tambahkan ini
         'guest'         => \App\Filters\GuestFilter::class,  // tambahkan ini
         'permission'    => \App\Filters\PermissionFilter::class,
