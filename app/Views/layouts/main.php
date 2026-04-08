@@ -52,10 +52,10 @@
       $menus      = getMenus();
       $currentUrl = '/' . service('request')->getUri()->getPath();
 
-  // Build tree
+      // Build tree
       $menuTree = buildMenuTree($menus);
 
-  // Group by section (ONLY ROOT LEVEL)
+      // Group by section (ONLY ROOT LEVEL)
       $menuGroups = [];
       foreach ($menuTree as $menu) {
         $section = $menu['section'] ?? 'main';

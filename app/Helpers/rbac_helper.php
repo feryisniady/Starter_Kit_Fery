@@ -3,17 +3,25 @@
 if (!function_exists('hasPermission')) {
     function hasPermission(string $permission): bool
     {
+        // PRIORITAS: ambil dari session
+        $permissions = session()->get('permissions');
+
+        if (is_array($permissions)) {
+            return in_array($permission, $permissions);
+        }
+
+        // FALLBACK (legacy support)
         $userId = session()->get('user_id');
         if (!$userId) return false;
 
         $db = \Config\Database::connect();
 
         $result = $db->table('role_permissions rp')
-        ->join('permissions p', 'p.id = rp.permission_id')
-        ->join('user_roles ur', 'ur.role_id = rp.role_id')
-        ->where('ur.user_id', $userId)
-        ->where('p.name', $permission)
-        ->countAllResults();
+            ->join('permissions p', 'p.id = rp.permission_id')
+            ->join('user_roles ur', 'ur.role_id = rp.role_id')
+            ->where('ur.user_id', $userId)
+            ->where('p.name', $permission)
+            ->countAllResults();
 
         return $result > 0;
     }
@@ -22,54 +30,95 @@ if (!function_exists('hasPermission')) {
 if (!function_exists('hasRole')) {
     function hasRole(string $role): bool
     {
+        // PRIORITAS: session
+        $roles = session()->get('roles');
+
+        if (is_array($roles)) {
+            return in_array($role, $roles);
+        }
+
+        // FALLBACK
         $userId = session()->get('user_id');
         if (!$userId) return false;
 
         $db = \Config\Database::connect();
 
         $result = $db->table('user_roles ur')
-        ->join('roles r', 'r.id = ur.role_id')
-        ->where('ur.user_id', $userId)
-        ->where('r.name', $role)
-        ->countAllResults();
+            ->join('roles r', 'r.id = ur.role_id')
+            ->where('ur.user_id', $userId)
+            ->where('r.name', $role)
+            ->countAllResults();
 
         return $result > 0;
     }
 }
 
-
-/*if (!function_exists('getMenus')) {
-    function getMenus(): array
+if (!function_exists('getUserRoleLabel')) {
+    function getUserRoleLabel(): string
     {
-        $menuModel = new \App\Models\MenuModel();
-        $allMenus  = $menuModel->getActiveMenus();
-        $menus     = [];
+        $roles = session()->get('roles') ?? [];
 
-        foreach ($allMenus as $menu) {
-            if ($menu['permission'] === null || hasPermission($menu['permission'])) {
-                $menus[] = $menu;
+        $map = [
+            'superadmin' => 'Super Admin',
+            'admin'      => 'Administrator',
+            'inspektur'  => 'Inspektur',
+            'irban'      => 'Irban',
+            'auditor'    => 'Auditor',
+        ];
+
+        foreach ($map as $key => $label) {
+            if (in_array($key, $roles)) {
+                return $label;
             }
         }
 
-        return $menus;
+        return 'User';
     }
-}*/
+}
+
+
+if (!function_exists('getUserAvatar')) {
+    function getUserAvatar(): string
+    {
+        $avatar = session()->get('user_avatar');
+
+        if ($avatar) {
+            return base_url($avatar);
+        }
+
+        $name = session()->get('user_name') ?? 'A';
+        return strtoupper(substr($name, 0, 1));
+    }
+}
+
 
 if (!function_exists('getMenus')) {
     function getMenus(): array
     {
         $menuModel = new \App\Models\MenuModel();
         $allMenus  = $menuModel->getActiveMenus();
-        $result    = [];
 
+        $result = [];
+
+        // Pre-group children by parent_id (O(n))
+        $childrenMap = [];
         foreach ($allMenus as $menu) {
-            // Cek permission menu ini
+            $parentId = $menu['parent_id'] ?? 0;
+            $childrenMap[$parentId][] = $menu;
+        }
+
+        // Loop utama (O(n))
+        foreach ($allMenus as $menu) {
+            $menuId   = $menu['id'];
+            $parentId = $menu['parent_id'] ?? 0;
+
+            // Cek akses menu utama
             $canAccess = ($menu['permission'] === null || hasPermission($menu['permission']));
 
-            // Cek apakah punya children yang bisa diakses
+            // Cek child (kalau ada)
             $hasAccessibleChild = false;
-            foreach ($allMenus as $child) {
-                if ($child['parent_id'] == $menu['id']) {
+            if (isset($childrenMap[$menuId])) {
+                foreach ($childrenMap[$menuId] as $child) {
                     if ($child['permission'] === null || hasPermission($child['permission'])) {
                         $hasAccessibleChild = true;
                         break;
@@ -78,8 +127,8 @@ if (!function_exists('getMenus')) {
             }
 
             // Tampilkan jika:
-            // 1. Menu ini bisa diakses langsung, ATAU
-            // 2. Menu ini adalah parent yang punya child accessible
+            // - bisa akses langsung
+            // - atau parent punya child yang bisa diakses
             if ($canAccess || $hasAccessibleChild) {
                 $result[] = $menu;
             }

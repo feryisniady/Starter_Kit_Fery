@@ -48,38 +48,67 @@ class UserModel extends Model
     public function getUsersWithRoles()
     {
         return $this->db->table('users u')
-            ->select('u.id, u.name, u.email, u.status, GROUP_CONCAT(r.name) as roles')
-            ->join('user_roles ur', 'ur.user_id = u.id', 'left')
-            ->join('roles r', 'r.id = ur.role_id', 'left')
-            ->groupBy('u.id')
-            ->get()
-            ->getResultArray();
+        ->select('u.id, u.name, u.email, u.status, GROUP_CONCAT(r.name SEPARATOR ', ') as roles')
+        ->join('user_roles ur', 'ur.user_id = u.id', 'left')
+        ->join('roles r', 'r.id = ur.role_id', 'left')
+        ->groupBy('u.id')
+        ->get()
+        ->getResultArray();
     }
 
     // Ambil role milik user
     public function getUserRoles(int $userId)
     {
         return $this->db->table('user_roles ur')
-            ->select('r.id, r.name')
-            ->join('roles r', 'r.id = ur.role_id')
-            ->where('ur.user_id', $userId)
-            ->get()
-            ->getResultArray();
+        ->select('r.id, r.name')
+        ->join('roles r', 'r.id = ur.role_id')
+        ->where('ur.user_id', $userId)
+        ->get()
+        ->getResultArray();
     }
 
     // Assign roles ke user
     public function syncRoles(int $userId, array $roleIds)
     {
-        // Hapus role lama
-        $this->db->table('user_roles')->where('user_id', $userId)->delete();
+        $builder = $this->db->table('user_roles');
 
-        // Insert role baru
-        if (!empty($roleIds)) {
-            $data = [];
-            foreach ($roleIds as $roleId) {
-                $data[] = ['user_id' => $userId, 'role_id' => $roleId];
-            }
-            $this->db->table('user_roles')->insertBatch($data);
+        // Ambil role lama
+        $existing = $builder->where('user_id', $userId)->get()->getResultArray();
+        $existingIds = array_column($existing, 'role_id');
+
+        // Cari yang perlu ditambah
+        $toInsert = array_diff($roleIds, $existingIds);
+
+        // Cari yang perlu dihapus
+        $toDelete = array_diff($existingIds, $roleIds);
+
+        if (!empty($toDelete)) {
+            $builder->where('user_id', $userId)
+            ->whereIn('role_id', $toDelete)
+            ->delete();
         }
+
+        if (!empty($toInsert)) {
+            $data = array_map(fn($r) => [
+                'user_id' => $userId,
+                'role_id' => $r
+            ], $toInsert);
+
+            $builder->insertBatch($data);
+        }
+    }
+
+    //setPermissions
+    public function getUserPermissions(int $userId): array
+    {
+        return $this->db->table('user_roles ur')
+        ->select('p.name')
+        ->join('roles r', 'r.id = ur.role_id')
+        ->join('role_permissions rp', 'rp.role_id = r.id')
+        ->join('permissions p', 'p.id = rp.permission_id')
+        ->where('ur.user_id', $userId)
+        ->groupBy('p.name')
+        ->get()
+        ->getResultArray();
     }
 }
