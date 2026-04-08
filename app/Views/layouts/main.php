@@ -52,13 +52,12 @@
       $menus      = getMenus();
       $currentUrl = '/' . service('request')->getUri()->getPath();
 
-    // Pisahkan parent dan children
-      $parents  = array_filter($menus, fn($m) => empty($m['parent_id']));
-      $children = array_filter($menus, fn($m) => !empty($m['parent_id']));
+  // Build tree
+      $menuTree = buildMenuTree($menus);
 
-    // Group parent berdasarkan section
+  // Group by section (ONLY ROOT LEVEL)
       $menuGroups = [];
-      foreach ($parents as $menu) {
+      foreach ($menuTree as $menu) {
         $section = $menu['section'] ?? 'main';
         $menuGroups[$section][] = $menu;
       }
@@ -68,74 +67,9 @@
 
         <div class="nav-section-title"><?= esc($section) ?></div>
 
-        <?php foreach($items as $menu): ?>
-          <?php
-        // Ambil children dari semua menu (bukan hanya per section)
-          $menuChildren = array_filter($children, fn($c) => $c['parent_id'] == $menu['id']);
+        <?= renderMenuTree($items, $currentUrl) ?>
 
-        // Cek active — aktif jika URL sama atau salah satu child aktif
-          $isActive = $currentUrl === $menu['url'];
-          foreach ($menuChildren as $child) {
-            if ($currentUrl === $child['url'] || str_starts_with($currentUrl, $child['url'] . '/')) {
-              $isActive = true;
-              break;
-            }
-          }
-          ?>
-
-          <?php if(!empty($menuChildren)): ?>
-            <!-- Parent dengan submenu -->
-            <div class="nav-item">
-              <?php if($menu['url'] === '#' || empty($menu['url'])): ?>
-                <!-- Parent HANYA container — seluruh area toggle submenu -->
-                <div class="nav-link <?= $isActive ? 'open' : '' ?>"
-                  onclick="toggleSubmenu(this)">
-                  <div class="nav-icon"><i class="<?= esc($menu['icon']) ?>"></i></div>
-                  <span class="nav-label"><?= esc($menu['label']) ?></span>
-                  <i class="fas fa-chevron-right nav-arrow"></i>
-                </div>
-
-              <?php else: ?>
-                <!-- Parent PUNYA URL — link + tombol toggle terpisah -->
-                <div class="nav-link <?= $isActive ? 'open' : '' ?>">
-                  <a href="<?= esc($menu['url']) ?>"
-                    style="display:flex;align-items:center;gap:12px;
-                    flex:1;color:inherit;text-decoration:none">
-                    <div class="nav-icon"><i class="<?= esc($menu['icon']) ?>"></i></div>
-                    <span class="nav-label"><?= esc($menu['label']) ?></span>
-                  </a>
-                  <i class="fas fa-chevron-right nav-arrow"
-                  onclick="toggleSubmenu(this.closest('.nav-link'))"
-                  style="padding:6px;cursor:pointer"></i>
-                </div>
-              <?php endif; ?>
-
-              <div class="submenu <?= $isActive ? 'open' : '' ?>">
-                <?php foreach($menuChildren as $child): ?>
-                  <?php $childActive = $currentUrl === $child['url']
-                  || str_starts_with($currentUrl, $child['url'] . '/'); ?>
-                  <a href="<?= esc($child['url']) ?>"
-                    class="submenu-link <?= $childActive ? 'active' : '' ?>">
-                    <?= esc($child['label']) ?>
-                  </a>
-                <?php endforeach; ?>
-              </div>
-            </div>
-
-          <?php else: ?>
-            <!-- Menu tanpa submenu -->
-            <div class="nav-item">
-              <a href="<?= esc($menu['url']) ?>"
-                class="nav-link <?= $isActive ? 'active' : '' ?>">
-                <div class="nav-icon"><i class="<?= esc($menu['icon']) ?>"></i></div>
-                <span class="nav-label"><?= esc($menu['label']) ?></span>
-              </a>
-            </div>
-          <?php endif; ?>
-
-        <?php endforeach; ?>
       <?php endforeach; ?>
-
     </nav>
 
     <!-- Footer Sidebar -->

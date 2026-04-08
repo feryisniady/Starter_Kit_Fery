@@ -90,5 +90,5 @@ class Autoload extends AutoloadConfig
      *
      * @var list<string>
      */
-    public $helpers = ['rbac'];
+    public $helpers = ['rbac', 'menu', 'app'];
 }
