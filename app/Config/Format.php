@@ -64,6 +64,15 @@ class Format extends BaseConfig
     ];
 
     /**
+     * --------------------------------------------------------------------------
+     * JSON Encode Depth
+     * --------------------------------------------------------------------------
+     *
+     * Sets the depth for json_encode(). This is used by JSONFormatter.
+     */
+    public int $jsonEncodeDepth = 512;
+
+    /**
      * A Factory method to return the appropriate formatter for the given mime type.
      *
      * @return FormatterInterface
