@@ -22,6 +22,13 @@
             <div class="form-group">
                 <label class="form-label">Nama Role <span class="req">*</span></label>
                 <input type="text" name="name" class="form-control" value="<?= old('name') ?>" placeholder="contoh: manager">
+                <small class="text-muted">Nama slug unik, huruf kecil tanpa spasi.</small>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Label Tampilan</label>
+                <input type="text" name="label" class="form-control" value="<?= old('label') ?>" placeholder="contoh: Manager Keuangan">
+                <small class="text-muted">Label yang ditampilkan di sidebar. Jika kosong, nama role digunakan.</small>
             </div>
 
             <div class="form-group">

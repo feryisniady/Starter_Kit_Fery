@@ -76,8 +76,10 @@ class Auth extends BaseController
         $permissions    = array_column($permissionsRaw, 'name');
 
         // role
-        $rolesRaw = $userModel->getUserRoles($user['id']);
-        $roles    = array_column($rolesRaw, 'name');
+        $rolesRaw       = $userModel->getUserRoles($user['id']);
+        $roles          = array_column($rolesRaw, 'name');
+        $firstRole      = $rolesRaw[0] ?? [];
+        $userRoleLabel  = !empty($firstRole['label']) ? $firstRole['label'] : ucfirst($firstRole['name'] ?? 'User');
 
         session()->regenerate(true);
         session()->set([
@@ -87,6 +89,7 @@ class Auth extends BaseController
             'user_permissions' => $permissions,
             'roles'            => $roles,
             'user_avatar'      => $user['avatar'] ?? null,
+            'user_role_label'  => $userRoleLabel,
         ]);
 
 

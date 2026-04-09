@@ -60,7 +60,7 @@ class UserModel extends Model
     public function getUserRoles(int $userId)
     {
         return $this->db->table('user_roles ur')
-        ->select('r.id, r.name')
+        ->select('r.id, r.name, r.label')
         ->join('roles r', 'r.id = ur.role_id')
         ->where('ur.user_id', $userId)
         ->get()

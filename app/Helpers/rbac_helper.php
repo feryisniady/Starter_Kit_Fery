@@ -56,23 +56,13 @@ if (!function_exists('hasRole')) {
 if (!function_exists('getUserRoleLabel')) {
     function getUserRoleLabel(): string
     {
+        // Prioritas: ambil dari session (diset saat login, dinamis dari DB)
+        $label = session()->get('user_role_label');
+        if ($label) return $label;
+
+        // Fallback: ambil dari nama role pertama
         $roles = session()->get('roles') ?? [];
-
-        $map = [
-            'superadmin' => 'Super Admin',
-            'admin'      => 'Administrator',
-            'inspektur'  => 'Inspektur',
-            'irban'      => 'Irban',
-            'auditor'    => 'Auditor',
-        ];
-
-        foreach ($map as $key => $label) {
-            if (in_array($key, $roles)) {
-                return $label;
-            }
-        }
-
-        return 'User';
+        return !empty($roles) ? ucfirst($roles[0]) : 'User';
     }
 }
 

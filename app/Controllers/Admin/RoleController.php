@@ -84,6 +84,7 @@ class RoleController extends BaseController
     {
         $rules = [
             'name'        => 'required|min_length[3]|is_unique[roles.name]',
+            'label'       => 'permit_empty|max_length[100]',
             'permissions' => 'required',
         ];
 
@@ -99,15 +100,14 @@ class RoleController extends BaseController
         ];
 
         if (!$this->validate($rules, $messages)) {
-            // Gabungkan semua pesan error menjadi list dengan baris baru (<br>)
             $errorString = implode('<br>', $this->validator->getErrors());
-            
             return redirect()->back()->withInput()
-                ->with('error', $errorString); // Kita gunakan key 'error' agar ditangkap layout
+                ->with('error', $errorString);
         }
 
         $roleId = $this->roleModel->insert([
-            'name' => strtolower($this->request->getPost('name')),
+            'name'  => strtolower($this->request->getPost('name')),
+            'label' => $this->request->getPost('label') ?: null,
         ]);
 
         $permissionIds = $this->request->getPost('permissions') ?? [];
@@ -143,6 +143,7 @@ class RoleController extends BaseController
         $oldRole = $this->roleModel->find($id);
         $rules = [
             'name'        => "required|min_length[3]|is_unique[roles.name,id,{$id}]",
+            'label'       => 'permit_empty|max_length[100]',
             'permissions' => 'required',
         ];
 
@@ -158,15 +159,14 @@ class RoleController extends BaseController
         ];
 
         if (!$this->validate($rules, $messages)) {
-            // Gabungkan semua pesan error menjadi list dengan baris baru (<br>)
             $errorString = implode('<br>', $this->validator->getErrors());
-            
             return redirect()->back()->withInput()
-                ->with('error', $errorString); // Kita gunakan key 'error' agar ditangkap layout
+                ->with('error', $errorString);
         }
 
         $this->roleModel->update($id, [
-            'name' => strtolower($this->request->getPost('name')),
+            'name'  => strtolower($this->request->getPost('name')),
+            'label' => $this->request->getPost('label') ?: null,
         ]);
 
         $permissionIds = $this->request->getPost('permissions') ?? [];

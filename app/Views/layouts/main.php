@@ -86,14 +86,7 @@
         </div>
         <div class="user-info">
           <div class="name"><?= esc(session()->get('user_name')) ?></div>
-          <div class="role">
-            <?php if(hasRole('superadmin')): ?>Super Admin
-            <?php elseif(hasRole('admin')): ?>Administrator
-            <?php elseif(hasRole('inspektur')): ?>Inspektur
-            <?php elseif(hasRole('irban')): ?>Irban
-            <?php elseif(hasRole('auditor')): ?>Auditor
-          <?php else: ?>User<?php endif; ?>
-        </div>
+          <div class="role"><?= esc(getUserRoleLabel()) ?></div>
       </div>
       <a href="/logout" class="user-logout" title="Logout">
         <i class="fas fa-right-from-bracket"></i>
@@ -164,11 +157,7 @@
         </a>
         <div class="topbar-user-info">
           <div class="name"><?= esc(session()->get('user_name')) ?></div>
-          <div class="role">
-            <?php if(hasRole('superadmin')): ?>Super Admin
-            <?php elseif(hasRole('admin')): ?>Administrator
-          <?php else: ?>User<?php endif; ?>
-        </div>
+          <div class="role"><?= esc(getUserRoleLabel()) ?></div>
       </div>
     </div>
   </div>
