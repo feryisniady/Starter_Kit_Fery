@@ -105,11 +105,16 @@ class MenuController extends BaseController
         // Kalau child, URL wajib diisi
         $url = $this->request->getPost('url');
         if (empty($parentId) && empty($url)) {
-        // Parent tanpa URL → jadikan container '#'
             $url = '#';
         } elseif (!empty($parentId) && empty($url)) {
             return redirect()->back()->withInput()
-            ->with('error', 'URL wajib diisi untuk sub menu!');
+                ->with('error', 'URL wajib diisi untuk sub menu!');
+        }
+
+        // Blokir URL berbahaya
+        if (!empty($url) && $url !== '#' && preg_match('/^(javascript|data|vbscript):/i', trim($url))) {
+            return redirect()->back()->withInput()
+                ->with('error', 'Format URL tidak diizinkan.');
         }
 
         $this->menuModel->insert([
@@ -139,6 +144,7 @@ class MenuController extends BaseController
             }
         }
 
+        clear_menu_cache();
         logActivity('menu.create', 'menu', "Tambah menu baru: {$this->request->getPost('label')}", null, null, [
             'after' => ['label' => $this->request->getPost('label'), 'url' => $url, 'icon' => $this->request->getPost('icon')],
         ]);
@@ -169,7 +175,12 @@ class MenuController extends BaseController
             $url = '#';
         } elseif (!empty($parentId) && empty($url)) {
             return redirect()->back()->withInput()
-            ->with('error', 'URL wajib diisi untuk sub menu!');
+                ->with('error', 'URL wajib diisi untuk sub menu!');
+        }
+
+        if (!empty($url) && $url !== '#' && preg_match('/^(javascript|data|vbscript):/i', trim($url))) {
+            return redirect()->back()->withInput()
+                ->with('error', 'Format URL tidak diizinkan.');
         }
 
         $rules = ['label' => 'required|min_length[2]|max_length[100]'];
@@ -190,6 +201,7 @@ class MenuController extends BaseController
             'section'    => $this->request->getPost('section') ?: 'main',
         ]);
 
+        clear_menu_cache();
         logActivity('menu.update', 'menu', "Update menu ID:{$id} — {$this->request->getPost('label')}", null, null, [
             'before' => $oldMenu ? ['label' => $oldMenu['label'], 'url' => $oldMenu['url'], 'icon' => $oldMenu['icon']] : [],
             'after'  => ['label' => $this->request->getPost('label'), 'url' => $url, 'icon' => $this->request->getPost('icon')],
@@ -207,6 +219,7 @@ class MenuController extends BaseController
 
         $menu = $this->menuModel->find($id);
         $this->menuModel->delete($id);
+        clear_menu_cache();
 
         logActivity('menu.delete', 'menu', "Hapus menu ID:{$id}" . ($menu ? " — {$menu['label']}" : ''), null, null, [
             'before' => $menu ? ['label' => $menu['label'], 'url' => $menu['url']] : [],

@@ -85,6 +85,17 @@ if (!function_exists('getUserAvatar')) {
 if (!function_exists('getMenus')) {
     function getMenus(): array
     {
+        // Cache per-user berdasarkan user_id + permissions hash
+        $userId      = session()->get('user_id');
+        $permissions = session()->get('user_permissions') ?? [];
+        $cacheKey    = 'menus_u' . $userId . '_' . md5(implode(',', $permissions));
+
+        $cache  = \Config\Services::cache();
+        $cached = $cache->get($cacheKey);
+        if ($cached !== null) {
+            return $cached;
+        }
+
         $menuModel = new \App\Models\MenuModel();
         $allMenus  = $menuModel->getActiveMenus();
 
@@ -102,10 +113,8 @@ if (!function_exists('getMenus')) {
             $menuId   = $menu['id'];
             $parentId = $menu['parent_id'] ?? 0;
 
-            // Cek akses menu utama
             $canAccess = ($menu['permission'] === null || hasPermission($menu['permission']));
 
-            // Cek child (kalau ada)
             $hasAccessibleChild = false;
             if (isset($childrenMap[$menuId])) {
                 foreach ($childrenMap[$menuId] as $child) {
@@ -116,13 +125,12 @@ if (!function_exists('getMenus')) {
                 }
             }
 
-            // Tampilkan jika:
-            // - bisa akses langsung
-            // - atau parent punya child yang bisa diakses
             if ($canAccess || $hasAccessibleChild) {
                 $result[] = $menu;
             }
         }
+
+        $cache->save($cacheKey, $result, 3600);
 
         return $result;
     }
@@ -210,6 +218,13 @@ if (!function_exists('clear_setting_cache')) {
     function clear_setting_cache(): void
     {
         \Config\Services::cache()->delete('app_settings_map');
+    }
+}
+
+if (!function_exists('clear_menu_cache')) {
+    function clear_menu_cache(): void
+    {
+        \Config\Services::cache()->deleteMatching('menus_u*');
     }
 }
 

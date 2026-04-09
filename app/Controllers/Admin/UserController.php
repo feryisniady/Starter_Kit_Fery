@@ -112,7 +112,7 @@ class UserController extends BaseController
         $rules = [
             'name'     => 'required|min_length[3]|max_length[100]',
             'email'    => 'required|valid_email|is_unique[users.email]',
-            'password' => 'required|min_length[6]',
+            'password' => 'required|min_length[8]',
             'roles'    => 'required',
         ];
 
@@ -128,7 +128,7 @@ class UserController extends BaseController
             ],
             'password' => [
                 'required'   => 'Password wajib diisi.',
-                'min_length' => 'Password minimal 6 karakter.',
+                'min_length' => 'Password minimal 8 karakter.',
             ],
             'roles'    => [
                 'required' => 'Pilih minimal 1 role.',
@@ -221,8 +221,8 @@ class UserController extends BaseController
 
         $password = $this->request->getPost('password');
         if (!empty($password)) {
-            if (strlen($password) < 6) {
-                return redirect()->back()->withInput()->with('error', 'Password minimal 6 karakter.');
+            if (strlen($password) < 8) {
+                return redirect()->back()->withInput()->with('error', 'Password minimal 8 karakter.');
             }
             $dataUpdate['password'] = password_hash($password, PASSWORD_DEFAULT);
         }

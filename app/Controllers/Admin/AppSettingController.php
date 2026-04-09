@@ -87,9 +87,13 @@ class AppSettingController extends BaseController
                 continue;
             }
 
-            // Validasi mime & ukuran (maks 2MB)
+            // Validasi mime & extension & ukuran (maks 2MB)
             $allowedMime = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/x-icon', 'image/vnd.microsoft.icon'];
+            $allowedExt  = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'ico'];
             if (!in_array($file->getMimeType(), $allowedMime)) {
+                continue;
+            }
+            if (!in_array(strtolower($file->guessExtension()), $allowedExt)) {
                 continue;
             }
             if ($file->getSize() > 2 * 1024 * 1024) {

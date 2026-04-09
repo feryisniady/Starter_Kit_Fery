@@ -50,9 +50,13 @@ class ProfileController extends BaseController
         // Handle avatar upload
         $avatar = $this->request->getFile('avatar');
         if ($avatar && $avatar->isValid() && !$avatar->hasMoved()) {
-            $allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-            if (!in_array($avatar->getMimeType(), $allowed)) {
+            $allowedMime = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+            $allowedExt  = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+            if (!in_array($avatar->getMimeType(), $allowedMime)) {
                 return redirect()->back()->with('error', 'Format gambar tidak didukung (gunakan JPG, PNG, WEBP).');
+            }
+            if (!in_array(strtolower($avatar->guessExtension()), $allowedExt)) {
+                return redirect()->back()->with('error', 'Ekstensi file tidak diizinkan.');
             }
             if ($avatar->getSize() > 2 * 1024 * 1024) {
                 return redirect()->back()->with('error', 'Ukuran foto maksimal 2MB.');
@@ -97,8 +101,8 @@ class ProfileController extends BaseController
             return redirect()->back()->with('error_pw', 'Password lama tidak sesuai.');
         }
 
-        if (strlen($newPassword) < 6) {
-            return redirect()->back()->with('error_pw', 'Password baru minimal 6 karakter.');
+        if (strlen($newPassword) < 8) {
+            return redirect()->back()->with('error_pw', 'Password baru minimal 8 karakter.');
         }
 
         if ($newPassword !== $confirm) {

@@ -112,6 +112,7 @@ class RoleController extends BaseController
 
         $permissionIds = $this->request->getPost('permissions') ?? [];
         $this->roleModel->syncPermissions($roleId, $permissionIds);
+        clear_menu_cache();
 
         logActivity('role.create', 'role', "Tambah role baru: {$this->request->getPost('name')}", null, null, [
             'after' => ['name' => $this->request->getPost('name')],
@@ -171,6 +172,7 @@ class RoleController extends BaseController
 
         $permissionIds = $this->request->getPost('permissions') ?? [];
         $this->roleModel->syncPermissions($id, $permissionIds);
+        clear_menu_cache();
 
         logActivity('role.update', 'role', "Update role ID:{$id} — {$this->request->getPost('name')}", null, null, [
             'before' => ['name' => $oldRole['name'] ?? ''],
