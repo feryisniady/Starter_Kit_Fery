@@ -74,7 +74,10 @@ class Auth extends BaseController
 
     public function register()
     {
-        return view('auth/register');
+        $serviceModel = new LoginServiceModel();
+        return view('auth/register', [
+            'services' => $serviceModel->getActive(),
+        ]);
     }
 
     public function registerProcess()

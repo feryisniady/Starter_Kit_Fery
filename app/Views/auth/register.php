@@ -97,6 +97,30 @@
         .alert-success i { margin-top: 1px; }
         .form-footer { display:flex; justify-content:space-between; align-items:center; margin-top:18px; font-size:13px; }
         .toggle-pw { background:none;border:none;cursor:pointer;color:#9ca3af;padding:0 8px; }
+        /* Services grid — identik dengan login */
+        .services-label {
+            font-size: 11px; font-weight: 700; letter-spacing: 2px;
+            text-transform: uppercase; color: rgba(255,255,255,.45); margin-bottom: 14px;
+        }
+        .services-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; width:100%; }
+        .service-card {
+            display:flex; align-items:center; gap:10px;
+            background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12);
+            border-radius:12px; padding:12px 14px;
+            text-decoration:none; color:inherit;
+            transition:background .2s,border-color .2s; position:relative;
+        }
+        .service-card:hover { background:rgba(255,255,255,.13); border-color:rgba(255,255,255,.25); }
+        .service-icon {
+            width:36px; height:36px; background:rgba(99,102,241,.3);
+            border-radius:9px; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+        }
+        .service-icon i { color:#a5b4fc; font-size:15px; }
+        .service-body { flex:1; min-width:0; }
+        .service-name { font-size:12px; font-weight:600; color:rgba(255,255,255,.9); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .service-desc { font-size:11px; color:rgba(255,255,255,.5); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .service-badge { font-size:10px; padding:2px 7px; border-radius:99px; background:rgba(251,191,36,.2); color:#fde68a; flex-shrink:0; align-self:flex-start; }
+        .service-badge-pub { background:rgba(34,197,94,.15); color:#86efac; }
     </style>
 </head>
 <body>
@@ -195,33 +219,35 @@
     </form>
 </div>
 
-<!-- RIGHT PANEL -->
+<!-- RIGHT PANEL — identik dengan login -->
 <div class="right-panel">
     <div class="circle circle-1"></div>
     <div class="circle circle-2"></div>
+
     <div class="right-content">
-        <h2><?= esc(app_setting('app_name')) ?></h2>
-        <p><?= esc(app_setting('app_tagline')) ?></p>
-        <div style="margin-top:32px;display:flex;flex-direction:column;gap:14px">
-            <div style="display:flex;align-items:center;gap:12px;color:rgba(255,255,255,.8);font-size:14px">
-                <div style="width:36px;height:36px;background:rgba(255,255,255,.1);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                    <i class="fas fa-shield-halved" style="color:#a5b4fc"></i>
-                </div>
-                Akses berbasis peran (RBAC)
+        <h2><?= esc(app_setting('login_tagline') ?: app_setting('app_name')) ?></h2>
+        <p><?= esc(app_setting('login_desc') ?: app_setting('app_tagline')) ?></p>
+
+        <?php if(!empty($services)): ?>
+            <p class="services-label">Daftar Layanan</p>
+            <div class="services-grid">
+                <?php foreach($services as $svc): ?>
+                    <a href="<?= esc($svc['url'] ?: '#') ?>" class="service-card"
+                       <?= ($svc['url'] && str_starts_with($svc['url'], 'http')) ? 'target="_blank"' : '' ?>>
+                        <div class="service-icon"><i class="<?= esc($svc['icon']) ?>"></i></div>
+                        <div class="service-body">
+                            <div class="service-name"><?= esc($svc['name']) ?></div>
+                            <?php if($svc['description']): ?>
+                                <div class="service-desc"><?= esc($svc['description']) ?></div>
+                            <?php endif; ?>
+                        </div>
+                        <span class="service-badge <?= $svc['require_login'] ? '' : 'service-badge-pub' ?>">
+                            <?= $svc['require_login'] ? 'Login' : 'Publik' ?>
+                        </span>
+                    </a>
+                <?php endforeach; ?>
             </div>
-            <div style="display:flex;align-items:center;gap:12px;color:rgba(255,255,255,.8);font-size:14px">
-                <div style="width:36px;height:36px;background:rgba(255,255,255,.1);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                    <i class="fas fa-lock" style="color:#a5b4fc"></i>
-                </div>
-                Password terenkripsi aman
-            </div>
-            <div style="display:flex;align-items:center;gap:12px;color:rgba(255,255,255,.8);font-size:14px">
-                <div style="width:36px;height:36px;background:rgba(255,255,255,.1);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                    <i class="fas fa-bell" style="color:#a5b4fc"></i>
-                </div>
-                Notifikasi real-time
-            </div>
-        </div>
+        <?php endif; ?>
     </div>
 </div>
 
