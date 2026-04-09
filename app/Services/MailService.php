@@ -2,58 +2,73 @@
 
 namespace App\Services;
 
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\SMTP;
+use PHPMailer\PHPMailer\Exception as PHPMailerException;
+
 class MailService
 {
     private string $lastError = '';
 
     /**
-     * Kirim email menggunakan konfigurasi dari app_settings (DB).
+     * Kirim email menggunakan PHPMailer + konfigurasi dari app_settings (DB).
      */
     public function send(string $to, string $subject, string $body): bool
     {
         try {
-            $config = [
-                'protocol'    => app_setting('email_driver')     ?: 'smtp',
-                'SMTPHost'    => app_setting('email_host')        ?: '',
-                'SMTPPort'    => (int)(app_setting('email_port')  ?: 587),
-                'SMTPCrypto'  => app_setting('email_encryption')  ?: 'tls',
-                'SMTPUser'    => app_setting('email_username')    ?: '',
-                'SMTPPass'    => app_setting('email_password')    ?: '',
-                'mailType'    => 'html',
-                'charset'     => 'utf-8',
-                'newline'     => "\r\n",
-                'SMTPTimeout' => 10,
-                // Bypass SSL certificate verification — diperlukan di banyak hosting/lokal
-                // karena PHP tidak selalu punya CA bundle lengkap untuk verifikasi Gmail
-                'SMTPOptions' => [
-                    'ssl' => [
-                        'verify_peer'       => false,
-                        'verify_peer_name'  => false,
-                        'allow_self_signed' => true,
-                    ],
+            $mail = new PHPMailer(true);
+
+            // Server settings
+            $mail->isSMTP();
+            $mail->Host       = app_setting('email_host')       ?: 'smtp.gmail.com';
+            $mail->SMTPAuth   = true;
+            $mail->Username   = app_setting('email_username')   ?: '';
+            $mail->Password   = app_setting('email_password')   ?: '';
+            $mail->Port       = (int)(app_setting('email_port') ?: 587);
+
+            // Enkripsi
+            $encryption = app_setting('email_encryption') ?: 'tls';
+            if ($encryption === 'ssl') {
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+            } elseif ($encryption === 'tls') {
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            } else {
+                $mail->SMTPSecure = '';
+                $mail->SMTPAutoTLS = false;
+            }
+
+            // Bypass SSL verify — diperlukan di banyak server lokal & hosting
+            $mail->SMTPOptions = [
+                'ssl' => [
+                    'verify_peer'       => false,
+                    'verify_peer_name'  => false,
+                    'allow_self_signed' => true,
                 ],
             ];
 
-            $email = \Config\Services::email(null, false);
-            $email->initialize($config);
+            // Timeout
+            $mail->Timeout = 10;
 
-            $email->setFrom(
-                app_setting('email_from_address') ?: app_setting('email_username') ?: 'noreply@example.com',
-                app_setting('email_from_name')    ?: app_setting('app_name') ?: 'Aplikasi'
-            );
-            $email->setTo($to);
-            $email->setSubject($subject);
-            $email->setMessage($body);
+            // Pengirim
+            $fromAddress = app_setting('email_from_address') ?: app_setting('email_username') ?: 'noreply@example.com';
+            $fromName    = app_setting('email_from_name')    ?: app_setting('app_name') ?: 'Aplikasi';
+            $mail->setFrom($fromAddress, $fromName);
+            $mail->addAddress($to);
 
-            $result = $email->send(false);
+            // Konten
+            $mail->isHTML(true);
+            $mail->CharSet  = 'UTF-8';
+            $mail->Subject  = $subject;
+            $mail->Body     = $body;
+            $mail->AltBody  = strip_tags($body);
 
-            if (!$result) {
-                $debug = strip_tags($email->printDebugger(['headers']));
-                $this->lastError = trim(preg_replace('/\s{2,}/', ' ', $debug));
-                log_message('error', '[MailService] Send failed: ' . $this->lastError);
-            }
+            $mail->send();
+            return true;
 
-            return $result;
+        } catch (PHPMailerException $e) {
+            $this->lastError = $e->getMessage();
+            log_message('error', '[MailService] PHPMailer error: ' . $e->getMessage());
+            return false;
         } catch (\Throwable $e) {
             $this->lastError = $e->getMessage();
             log_message('error', '[MailService] ' . $e->getMessage());
