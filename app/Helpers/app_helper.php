@@ -59,3 +59,27 @@ if (!function_exists('notifyAdmins')) {
         notifyAllAdmins($title, $message, $url, $type);
     }
 }
+
+/**
+ * ======================================================
+ * SEND MAIL (via DB settings)
+ * ======================================================
+ */
+if (!function_exists('send_mail')) {
+    function send_mail(string $to, string $subject, string $body): bool
+    {
+        return (new \App\Services\MailService())->send($to, $subject, $body);
+    }
+}
+
+/**
+ * ======================================================
+ * SEND WHATSAPP (via DB settings)
+ * ======================================================
+ */
+if (!function_exists('send_wa')) {
+    function send_wa(string $phone, string $message): bool
+    {
+        return (new \App\Services\WaService())->send($phone, $message);
+    }
+}

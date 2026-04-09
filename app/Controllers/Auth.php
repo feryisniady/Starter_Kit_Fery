@@ -275,31 +275,15 @@ class Auth extends BaseController
 
     private function sendResetEmail(string $to, string $name, string $resetUrl): bool
     {
-        try {
-            $appName = app_setting('app_name') ?: 'Aplikasi';
-            $email   = \Config\Services::email();
+        $appName = app_setting('app_name') ?: 'Aplikasi';
+        $body    = '<p>Halo <strong>' . esc($name) . '</strong>,</p>'
+            . '<p>Anda menerima email ini karena ada permintaan reset password untuk akun Anda.</p>'
+            . '<p><a href="' . $resetUrl . '" style="display:inline-block;padding:10px 20px;background:#2563eb;color:#fff;border-radius:8px;text-decoration:none">Reset Password</a></p>'
+            . '<p>Link ini berlaku selama <strong>' . self::RESET_EXPIRE_MINUTES . ' menit</strong>.</p>'
+            . '<p>Jika Anda tidak merasa melakukan permintaan ini, abaikan email ini.</p>'
+            . '<hr><small>' . esc($appName) . '</small>';
 
-            $email->setFrom(
-                env('email.fromEmail', 'noreply@example.com'),
-                env('email.fromName', $appName)
-            );
-            $email->setTo($to);
-            $email->setSubject('Reset Password — ' . $appName);
-            $email->setMessage(
-                '<p>Halo <strong>' . esc($name) . '</strong>,</p>'
-                . '<p>Anda menerima email ini karena ada permintaan reset password untuk akun Anda.</p>'
-                . '<p><a href="' . $resetUrl . '" style="display:inline-block;padding:10px 20px;background:#2563eb;color:#fff;border-radius:8px;text-decoration:none">Reset Password</a></p>'
-                . '<p>Link ini berlaku selama <strong>' . self::RESET_EXPIRE_MINUTES . ' menit</strong>.</p>'
-                . '<p>Jika Anda tidak merasa melakukan permintaan ini, abaikan email ini.</p>'
-                . '<hr><small>' . esc($appName) . '</small>'
-            );
-            $email->setMailType('html');
-
-            return $email->send(false);
-        } catch (\Throwable $e) {
-            log_message('error', 'Reset email failed: ' . $e->getMessage());
-            return false;
-        }
+        return send_mail($to, 'Reset Password — ' . $appName, $body);
     }
 
     private function handleFailedLogin($attemptKey, $lockoutKey, $email)

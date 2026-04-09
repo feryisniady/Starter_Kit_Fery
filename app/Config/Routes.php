@@ -73,9 +73,11 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	$routes->post('activity-logs/data',  'Admin\ActivityLogController::getData', ['filter' => 'permission:activitylog.view']);
 	$routes->get('activity-logs/export', 'Admin\ActivityLogController::export',  ['filter' => 'permission:activitylog.view']);
 	// App Settings
-	$routes->get('settings',                           'Admin\AppSettingController::index',       ['filter' => 'permission:setting.manage']);
-	$routes->post('settings/update',                   'Admin\AppSettingController::update',      ['filter' => 'permission:setting.manage']);
+	$routes->get('settings',                           'Admin\AppSettingController::index',        ['filter' => 'permission:setting.manage']);
+	$routes->post('settings/update',                   'Admin\AppSettingController::update',       ['filter' => 'permission:setting.manage']);
 	$routes->get('settings/delete-image/(:segment)',   'Admin\AppSettingController::deleteImage/$1',['filter' => 'permission:setting.manage']);
+	$routes->post('settings/test-email',               'Admin\AppSettingController::testEmail',    ['filter' => 'permission:setting.manage']);
+	$routes->post('settings/test-wa',                  'Admin\AppSettingController::testWa',       ['filter' => 'permission:setting.manage']);
 	// Login Services
 	$routes->get('login-services',              'Admin\LoginServiceController::index',     ['filter' => 'permission:setting.manage']);
 	$routes->post('login-services/data',        'Admin\LoginServiceController::getData',   ['filter' => 'permission:setting.manage']);

@@ -49,6 +49,8 @@ $tabs = [
     'appearance' => ['label' => 'Tampilan',       'icon' => 'fa-palette'],
     'login'      => ['label' => 'Halaman Login',  'icon' => 'fa-right-to-bracket'],
     'footer'     => ['label' => 'Footer',         'icon' => 'fa-rectangle-list'],
+    'email'      => ['label' => 'Email',          'icon' => 'fa-envelope'],
+    'whatsapp'   => ['label' => 'WhatsApp',       'icon' => 'fa-brands fa-whatsapp'],
 ];
 $activeTab = $_GET['tab'] ?? 'general';
 ?>
@@ -180,9 +182,199 @@ $activeTab = $_GET['tab'] ?? 'general';
                 </p>
             </div>
         </div>
+        <?php elseif ($activeTab === 'email'): ?>
+        <!-- ================================================================ -->
+        <!-- TAB: EMAIL -->
+        <!-- ================================================================ -->
+        <div class="form-section" style="max-width:700px">
+            <h3 class="form-section-title"><i class="fas fa-server"></i> Konfigurasi SMTP</h3>
+            <p style="color:#64748b;font-size:13px;margin-bottom:20px">
+                Konfigurasi ini digunakan untuk semua fitur pengiriman email (lupa password, notifikasi, dll).
+                Password tidak akan berubah jika dikosongkan.
+            </p>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <!-- Driver -->
+                <div class="form-group">
+                    <label>Driver</label>
+                    <select name="settings[email_driver]" class="form-control">
+                        <?php foreach(['smtp','sendmail','mail'] as $d): ?>
+                        <option value="<?= $d ?>" <?= ($flat['email_driver']['value'] ?? 'smtp') === $d ? 'selected' : '' ?>><?= strtoupper($d) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <small class="form-hint">Gunakan SMTP untuk production</small>
+                </div>
+                <!-- Encryption -->
+                <div class="form-group">
+                    <label>Enkripsi</label>
+                    <select name="settings[email_encryption]" class="form-control">
+                        <?php foreach(['tls'=>'TLS (port 587)','ssl'=>'SSL (port 465)','none'=>'None'] as $v => $l): ?>
+                        <option value="<?= $v ?>" <?= ($flat['email_encryption']['value'] ?? 'tls') === $v ? 'selected' : '' ?>><?= $l ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <!-- Host -->
+                <div class="form-group">
+                    <label>SMTP Host</label>
+                    <input type="text" name="settings[email_host]" class="form-control"
+                        value="<?= esc($flat['email_host']['value'] ?? '') ?>"
+                        placeholder="smtp.gmail.com">
+                </div>
+                <!-- Port -->
+                <div class="form-group">
+                    <label>SMTP Port</label>
+                    <input type="text" name="settings[email_port]" class="form-control"
+                        value="<?= esc($flat['email_port']['value'] ?? '587') ?>"
+                        placeholder="587">
+                </div>
+                <!-- Username -->
+                <div class="form-group">
+                    <label>Username / Email</label>
+                    <input type="text" name="settings[email_username]" class="form-control"
+                        value="<?= esc($flat['email_username']['value'] ?? '') ?>"
+                        placeholder="user@gmail.com" autocomplete="off">
+                </div>
+                <!-- Password -->
+                <div class="form-group">
+                    <label>Password / App Key</label>
+                    <div style="position:relative;display:flex;align-items:center">
+                        <input type="password" name="settings[email_password]" id="email_pw" class="form-control"
+                            placeholder="<?= !empty($flat['email_password']['value'] ?? '') ? '●●●●●●●● (tersimpan)' : 'Masukkan password' ?>"
+                            autocomplete="new-password" style="padding-right:40px">
+                        <button type="button" onclick="toggleFieldPw('email_pw','email_pw_icon')"
+                            style="position:absolute;right:10px;background:none;border:none;cursor:pointer;color:#94a3b8">
+                            <i class="fas fa-eye" id="email_pw_icon"></i>
+                        </button>
+                    </div>
+                    <small class="form-hint">Kosongkan jika tidak ingin mengubah password</small>
+                </div>
+            </div>
+
+            <h3 class="form-section-title" style="margin-top:24px"><i class="fas fa-user"></i> Identitas Pengirim</h3>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div class="form-group">
+                    <label>Alamat Pengirim</label>
+                    <input type="text" name="settings[email_from_address]" class="form-control"
+                        value="<?= esc($flat['email_from_address']['value'] ?? '') ?>"
+                        placeholder="noreply@domain.com">
+                    <small class="form-hint">Alamat yang tampil di inbox penerima</small>
+                </div>
+                <div class="form-group">
+                    <label>Nama Pengirim</label>
+                    <input type="text" name="settings[email_from_name]" class="form-control"
+                        value="<?= esc($flat['email_from_name']['value'] ?? '') ?>"
+                        placeholder="<?= esc(app_setting('app_name')) ?>">
+                </div>
+            </div>
+
+            <!-- Test Email -->
+            <div style="background:#f8fafc;border:1px dashed #cbd5e1;border-radius:12px;padding:20px;margin-top:8px">
+                <h4 style="font-size:13px;font-weight:600;color:#374151;margin:0 0 10px"><i class="fas fa-flask" style="color:#6366f1"></i> Uji Coba Kirim Email</h4>
+                <div style="display:flex;gap:10px;align-items:center">
+                    <input type="text" id="test_email_to" class="form-control" style="max-width:280px"
+                        placeholder="Email tujuan test" value="<?= esc(session()->get('user_name')) ?>">
+                    <button type="button" class="btn btn-primary" onclick="testEmail()" id="btn_test_email">
+                        <i class="fas fa-paper-plane"></i> Kirim Test
+                    </button>
+                </div>
+                <div id="test_email_result" style="margin-top:10px;font-size:13px"></div>
+            </div>
+        </div>
+
+        <?php elseif ($activeTab === 'whatsapp'): ?>
+        <!-- ================================================================ -->
+        <!-- TAB: WHATSAPP -->
+        <!-- ================================================================ -->
+        <div class="form-section" style="max-width:700px">
+            <h3 class="form-section-title"><i class="fa-brands fa-whatsapp" style="color:#25d366"></i> Konfigurasi WhatsApp Gateway</h3>
+            <p style="color:#64748b;font-size:13px;margin-bottom:20px">
+                Mendukung <strong>Fonnte</strong> dan gateway custom lainnya.
+                Token tidak akan berubah jika dikosongkan.
+            </p>
+
+            <!-- Aktifkan WA -->
+            <div class="form-group">
+                <label style="display:flex;align-items:center;gap:12px;cursor:pointer">
+                    <input type="hidden" name="settings[wa_active]" value="0">
+                    <input type="checkbox" name="settings[wa_active]" value="1" id="wa_active"
+                        <?= ($flat['wa_active']['value'] ?? '0') === '1' ? 'checked' : '' ?>
+                        style="width:18px;height:18px;cursor:pointer">
+                    <span style="font-size:14px;font-weight:500;color:#374151">Aktifkan pengiriman via WhatsApp</span>
+                </label>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px">
+                <!-- Provider -->
+                <div class="form-group">
+                    <label>Provider</label>
+                    <select name="settings[wa_provider]" class="form-control">
+                        <option value="fonnte" <?= ($flat['wa_provider']['value'] ?? 'fonnte') === 'fonnte' ? 'selected' : '' ?>>Fonnte</option>
+                        <option value="custom" <?= ($flat['wa_provider']['value'] ?? '') === 'custom' ? 'selected' : '' ?>>Custom Gateway</option>
+                    </select>
+                    <small class="form-hint"><a href="https://fonnte.com" target="_blank">fonnte.com</a> — populer & murah</small>
+                </div>
+                <!-- Sender -->
+                <div class="form-group">
+                    <label>Nomor Pengirim</label>
+                    <input type="text" name="settings[wa_sender]" class="form-control"
+                        value="<?= esc($flat['wa_sender']['value'] ?? '') ?>"
+                        placeholder="6281234567890">
+                    <small class="form-hint">Format tanpa + (misal: 6281234567890)</small>
+                </div>
+                <!-- API URL -->
+                <div class="form-group" style="grid-column:span 2">
+                    <label>API URL</label>
+                    <input type="text" name="settings[wa_api_url]" class="form-control"
+                        value="<?= esc($flat['wa_api_url']['value'] ?? 'https://api.fonnte.com/send') ?>"
+                        placeholder="https://api.fonnte.com/send">
+                </div>
+                <!-- Token -->
+                <div class="form-group" style="grid-column:span 2">
+                    <label>Token / API Key</label>
+                    <div style="position:relative;display:flex;align-items:center">
+                        <input type="password" name="settings[wa_token]" id="wa_token" class="form-control"
+                            placeholder="<?= !empty($flat['wa_token']['value'] ?? '') ? '●●●●●●●● (tersimpan)' : 'Masukkan token dari provider' ?>"
+                            autocomplete="new-password" style="padding-right:40px">
+                        <button type="button" onclick="toggleFieldPw('wa_token','wa_token_icon')"
+                            style="position:absolute;right:10px;background:none;border:none;cursor:pointer;color:#94a3b8">
+                            <i class="fas fa-eye" id="wa_token_icon"></i>
+                        </button>
+                    </div>
+                    <small class="form-hint">Kosongkan jika tidak ingin mengubah token</small>
+                </div>
+            </div>
+
+            <!-- Panduan singkat -->
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px;margin-top:8px">
+                <p style="font-size:12px;font-weight:600;color:#15803d;margin:0 0 8px"><i class="fas fa-circle-info"></i> Cara Mendapatkan Token Fonnte</p>
+                <ol style="font-size:12px;color:#166534;margin:0;padding-left:16px;line-height:1.8">
+                    <li>Daftar di <strong>fonnte.com</strong></li>
+                    <li>Hubungkan nomor WhatsApp di dashboard</li>
+                    <li>Salin <strong>Token</strong> dari menu Device</li>
+                    <li>Paste token di field di atas</li>
+                </ol>
+            </div>
+
+            <!-- Test WA -->
+            <div style="background:#f8fafc;border:1px dashed #cbd5e1;border-radius:12px;padding:20px;margin-top:16px">
+                <h4 style="font-size:13px;font-weight:600;color:#374151;margin:0 0 10px"><i class="fas fa-flask" style="color:#25d366"></i> Uji Coba Kirim WhatsApp</h4>
+                <div style="display:flex;gap:10px;align-items:center">
+                    <input type="text" id="test_wa_phone" class="form-control" style="max-width:280px"
+                        placeholder="Nomor tujuan (6281xxx)">
+                    <button type="button" class="btn btn-primary" onclick="testWa()" id="btn_test_wa"
+                        style="background:#25d366;border-color:#25d366">
+                        <i class="fa-brands fa-whatsapp"></i> Kirim Test
+                    </button>
+                </div>
+                <div id="test_wa_result" style="margin-top:10px;font-size:13px"></div>
+            </div>
+        </div>
+
         <?php endif; ?>
 
         </div><!-- card-body -->
+
+        <input type="hidden" name="_tab" value="<?= esc($activeTab) ?>">
 
         <!-- Footer form -->
         <div style="display:flex;justify-content:flex-end;gap:10px;padding:16px 24px;border-top:1px solid #f1f5f9">
@@ -283,6 +475,45 @@ $activeTab = $_GET['tab'] ?? 'general';
 
 <?= $this->section('scripts') ?>
 <script>
+function toggleFieldPw(inputId, iconId) {
+    var el   = document.getElementById(inputId);
+    var icon = document.getElementById(iconId);
+    el.type  = el.type === 'password' ? 'text' : 'password';
+    icon.className = el.type === 'password' ? 'fas fa-eye' : 'fas fa-eye-slash';
+}
+
+function testEmail() {
+    var to  = document.getElementById('test_email_to').value.trim();
+    var btn = document.getElementById('btn_test_email');
+    var res = document.getElementById('test_email_result');
+    if (!to) { res.innerHTML = '<span style="color:#dc2626">Masukkan alamat email tujuan.</span>'; return; }
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
+    $.post('/admin/settings/test-email', { to: to, <?= csrf_token() ?>: '<?= csrf_hash() ?>' }, function(r) {
+        res.innerHTML = '<span style="color:' + (r.success ? '#16a34a' : '#dc2626') + '">'
+            + '<i class="fas fa-' + (r.success ? 'circle-check' : 'circle-xmark') + '"></i> ' + r.message + '</span>';
+    }).always(function() {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Kirim Test';
+    });
+}
+
+function testWa() {
+    var phone = document.getElementById('test_wa_phone').value.trim();
+    var btn   = document.getElementById('btn_test_wa');
+    var res   = document.getElementById('test_wa_result');
+    if (!phone) { res.innerHTML = '<span style="color:#dc2626">Masukkan nomor WhatsApp tujuan.</span>'; return; }
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
+    $.post('/admin/settings/test-wa', { phone: phone, <?= csrf_token() ?>: '<?= csrf_hash() ?>' }, function(r) {
+        res.innerHTML = '<span style="color:' + (r.success ? '#16a34a' : '#dc2626') + '">'
+            + '<i class="fas fa-' + (r.success ? 'circle-check' : 'circle-xmark') + '"></i> ' + r.message + '</span>';
+    }).always(function() {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-brands fa-whatsapp"></i> Kirim Test';
+    });
+}
+
 $(document).on('click', '.btn-delete-image', function(e) {
     e.preventDefault();
     var url = $(this).data('url');
