@@ -9,8 +9,14 @@ $routes->get('/', 'Auth::login');
 
 // Guest only (belum login)
 $routes->group('', ['filter' => 'guest'], function($routes) {
-	$routes->get('/login', 'Auth::login');
-	$routes->post('/login', 'Auth::loginProcess');
+	$routes->get('/login',             'Auth::login');
+	$routes->post('/login',            'Auth::loginProcess');
+	$routes->get('/register',          'Auth::register');
+	$routes->post('/register',         'Auth::registerProcess');
+	$routes->get('/forgot-password',   'Auth::forgotPassword');
+	$routes->post('/forgot-password',  'Auth::forgotPasswordProcess');
+	$routes->get('/reset-password/(:hash)',  'Auth::resetPassword/$1');
+	$routes->post('/reset-password',   'Auth::resetPasswordProcess');
 });
 
 // Auth only (harus sudah login)

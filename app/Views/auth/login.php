@@ -284,10 +284,10 @@
         </button>
 
         <div class="form-footer">
-            <span style="color:#6b7280;font-size:13px">
-                Butuh bantuan? Hubungi Admin
-            </span>
-            <a href="#">Lupa password?</a>
+            <a href="/register" style="color:#6b7280;font-size:13px;text-decoration:none">
+                Belum punya akun? <span style="color:#2563eb;font-weight:600">Daftar</span>
+            </a>
+            <a href="/forgot-password">Lupa password?</a>
         </div>
     </form>
 </div>

@@ -4,11 +4,13 @@ namespace App\Controllers;
 
 use App\Models\UserModel;
 use App\Models\LoginServiceModel;
+use App\Models\PasswordResetModel;
 
 class Auth extends BaseController
 {
     private const MAX_ATTEMPTS    = 5;
     private const LOCKOUT_MINUTES = 10;
+    private const RESET_EXPIRE_MINUTES = 60;
 
     protected UserModel $userModel;
 
@@ -17,7 +19,10 @@ class Auth extends BaseController
         $this->userModel = new UserModel();
     }
 
-    // Form login
+    // =========================================================
+    // LOGIN
+    // =========================================================
+
     public function login()
     {
         $serviceModel = new LoginServiceModel();
@@ -27,7 +32,6 @@ class Auth extends BaseController
         ]);
     }
 
-    // Proses login
     public function loginProcess()
     {
         $ip         = $this->request->getIPAddress();
@@ -37,49 +41,222 @@ class Auth extends BaseController
         $email    = strtolower(trim($this->request->getPost('email')));
         $password = $this->request->getPost('password');
 
-        // =========================
-        // 1. CEK LOCKOUT
-        // =========================
         if ($this->isLockedOut($lockoutKey, $ip, $email)) {
             return redirect()->to('/login')->withInput()
                 ->with('lockout_until', cache()->get($lockoutKey))
                 ->with('error', $this->lockoutMessage($lockoutKey));
         }
 
-        // =========================
-        // 2. VALIDASI USER
-        // =========================
         $user = $this->userModel->where('email', $email)->first();
 
         if (!$user || !password_verify($password, $user['password'])) {
             return $this->handleFailedLogin($attemptKey, $lockoutKey, $email);
         }
 
-        // =========================
-        // 3. CEK STATUS
-        // =========================
         if (($user['status'] ?? 'active') !== 'active') {
             return redirect()->to('/login')->withInput()
                 ->with('error', 'Akun Anda tidak aktif. Hubungi administrator.');
         }
 
-        // =========================
-        // 4. LOGIN SUCCESS
-        // =========================
         cache()->delete($attemptKey);
         cache()->delete($lockoutKey);
 
-        $userModel = new \App\Models\UserModel();
+        $this->setUserSession($user);
 
-        // permission
-        $permissionsRaw = $userModel->getUserPermissions($user['id']);
+        logActivity('login', 'auth', "Login berhasil", $user['id'], $user['name']);
+
+        return redirect()->to('/dashboard');
+    }
+
+    // =========================================================
+    // REGISTER
+    // =========================================================
+
+    public function register()
+    {
+        return view('auth/register');
+    }
+
+    public function registerProcess()
+    {
+        $rules = [
+            'name'             => 'required|min_length[3]|max_length[100]',
+            'email'            => 'required|valid_email|is_unique[users.email]',
+            'password'         => 'required|min_length[8]',
+            'confirm_password' => 'required|matches[password]',
+        ];
+
+        $messages = [
+            'name'             => ['required' => 'Nama wajib diisi.', 'min_length' => 'Nama minimal 3 karakter.'],
+            'email'            => ['required' => 'Email wajib diisi.', 'valid_email' => 'Format email tidak valid.', 'is_unique' => 'Email sudah terdaftar.'],
+            'password'         => ['required' => 'Password wajib diisi.', 'min_length' => 'Password minimal 8 karakter.'],
+            'confirm_password' => ['required' => 'Konfirmasi password wajib diisi.', 'matches' => 'Konfirmasi password tidak cocok.'],
+        ];
+
+        if (!$this->validate($rules, $messages)) {
+            return redirect()->back()->withInput()
+                ->with('error', implode('<br>', $this->validator->getErrors()));
+        }
+
+        $password = $this->request->getPost('password');
+
+        // Validasi kekuatan password server-side
+        if (!preg_match('/[A-Z]/', $password)) {
+            return redirect()->back()->withInput()->with('error', 'Password harus mengandung minimal 1 huruf besar.');
+        }
+        if (!preg_match('/[a-z]/', $password)) {
+            return redirect()->back()->withInput()->with('error', 'Password harus mengandung minimal 1 huruf kecil.');
+        }
+        if (!preg_match('/[0-9]/', $password)) {
+            return redirect()->back()->withInput()->with('error', 'Password harus mengandung minimal 1 angka.');
+        }
+
+        $userId = $this->userModel->insert([
+            'name'     => $this->request->getPost('name'),
+            'email'    => strtolower(trim($this->request->getPost('email'))),
+            'password' => password_hash($password, PASSWORD_DEFAULT),
+            'status'   => 'active',
+        ]);
+
+        // Auto-assign role default 'user'
+        $db      = \Config\Database::connect();
+        $role    = $db->table('roles')->where('name', 'user')->get()->getRowArray();
+        if ($role) {
+            $db->table('user_roles')->insert(['user_id' => $userId, 'role_id' => $role['id']]);
+        }
+
+        logActivity('register', 'auth', "Registrasi akun baru: " . $this->request->getPost('email'), $userId, $this->request->getPost('name'));
+
+        return redirect()->to('/login')->with('success', 'Akun berhasil dibuat. Silakan login.');
+    }
+
+    // =========================================================
+    // LUPA PASSWORD
+    // =========================================================
+
+    public function forgotPassword()
+    {
+        return view('auth/forgot_password');
+    }
+
+    public function forgotPasswordProcess()
+    {
+        $email = strtolower(trim($this->request->getPost('email')));
+
+        if (!$this->validate(['email' => 'required|valid_email'])) {
+            return redirect()->back()->withInput()->with('error', 'Format email tidak valid.');
+        }
+
+        $user = $this->userModel->where('email', $email)->first();
+
+        // Selalu tampilkan pesan sukses (cegah user enumeration)
+        if (!$user) {
+            return redirect()->to('/forgot-password')
+                ->with('success', 'Jika email terdaftar, link reset akan dikirim ke ' . esc($email));
+        }
+
+        $resetModel = new PasswordResetModel();
+        $token      = $resetModel->createToken($email);
+        $resetUrl   = base_url('/reset-password/' . $token);
+
+        // Kirim email
+        $sent = $this->sendResetEmail($email, $user['name'], $resetUrl);
+
+        logActivity('forgot_password', 'auth', "Request reset password: {$email}", $user['id'], $user['name']);
+
+        $msg = 'Link reset password telah dikirim ke ' . esc($email) . '. Berlaku ' . self::RESET_EXPIRE_MINUTES . ' menit.';
+
+        // Di mode development, tampilkan link langsung jika email gagal
+        if (!$sent && ENVIRONMENT !== 'production') {
+            $msg .= '<br><br><strong>Dev mode:</strong> <a href="' . $resetUrl . '">' . $resetUrl . '</a>';
+        }
+
+        return redirect()->to('/forgot-password')->with('success', $msg);
+    }
+
+    public function resetPassword(string $token)
+    {
+        $resetModel = new PasswordResetModel();
+        $reset      = $resetModel->findByToken($token);
+
+        if (!$reset || $resetModel->isExpired($reset['created_at'], self::RESET_EXPIRE_MINUTES)) {
+            return redirect()->to('/forgot-password')
+                ->with('error', 'Link reset tidak valid atau sudah kadaluarsa. Silakan request ulang.');
+        }
+
+        return view('auth/reset_password', ['token' => $token]);
+    }
+
+    public function resetPasswordProcess()
+    {
+        $token   = $this->request->getPost('token');
+        $password = $this->request->getPost('password');
+        $confirm  = $this->request->getPost('confirm_password');
+
+        $resetModel = new PasswordResetModel();
+        $reset      = $resetModel->findByToken($token);
+
+        if (!$reset || $resetModel->isExpired($reset['created_at'], self::RESET_EXPIRE_MINUTES)) {
+            return redirect()->to('/forgot-password')
+                ->with('error', 'Link reset tidak valid atau sudah kadaluarsa.');
+        }
+
+        if (strlen($password) < 8) {
+            return redirect()->back()->withInput()->with('error', 'Password minimal 8 karakter.');
+        }
+        if (!preg_match('/[A-Z]/', $password)) {
+            return redirect()->back()->withInput()->with('error', 'Password harus mengandung minimal 1 huruf besar.');
+        }
+        if (!preg_match('/[a-z]/', $password)) {
+            return redirect()->back()->withInput()->with('error', 'Password harus mengandung minimal 1 huruf kecil.');
+        }
+        if (!preg_match('/[0-9]/', $password)) {
+            return redirect()->back()->withInput()->with('error', 'Password harus mengandung minimal 1 angka.');
+        }
+        if ($password !== $confirm) {
+            return redirect()->back()->withInput()->with('error', 'Konfirmasi password tidak cocok.');
+        }
+
+        $user = $this->userModel->where('email', $reset['email'])->first();
+        if (!$user) {
+            return redirect()->to('/login')->with('error', 'Akun tidak ditemukan.');
+        }
+
+        $this->userModel->update($user['id'], [
+            'password' => password_hash($password, PASSWORD_DEFAULT),
+        ]);
+
+        $resetModel->deleteByEmail($reset['email']);
+
+        logActivity('reset_password', 'auth', "Password berhasil direset", $user['id'], $user['name']);
+
+        return redirect()->to('/login')->with('success', 'Password berhasil diubah. Silakan login.');
+    }
+
+    // =========================================================
+    // LOGOUT
+    // =========================================================
+
+    public function logout()
+    {
+        logActivity('logout', 'auth', 'Logout');
+        session()->destroy();
+        return redirect()->to('/login');
+    }
+
+    // =========================================================
+    // PRIVATE HELPERS
+    // =========================================================
+
+    private function setUserSession(array $user): void
+    {
+        $permissionsRaw = $this->userModel->getUserPermissions($user['id']);
         $permissions    = array_column($permissionsRaw, 'name');
 
-        // role
-        $rolesRaw       = $userModel->getUserRoles($user['id']);
-        $roles          = array_column($rolesRaw, 'name');
-        $firstRole      = $rolesRaw[0] ?? [];
-        $userRoleLabel  = !empty($firstRole['label']) ? $firstRole['label'] : ucfirst($firstRole['name'] ?? 'User');
+        $rolesRaw      = $this->userModel->getUserRoles($user['id']);
+        $roles         = array_column($rolesRaw, 'name');
+        $firstRole     = $rolesRaw[0] ?? [];
+        $userRoleLabel = !empty($firstRole['label']) ? $firstRole['label'] : ucfirst($firstRole['name'] ?? 'User');
 
         session()->regenerate(true);
         session()->set([
@@ -91,16 +268,37 @@ class Auth extends BaseController
             'user_avatar'      => $user['avatar'] ?? null,
             'user_role_label'  => $userRoleLabel,
         ]);
-
-
-        logActivity('login', 'auth', "Login berhasil", $user['id'], $user['name']);
-
-        return redirect()->to('/dashboard');
     }
 
-    // =========================
-    // HANDLE LOGIN GAGAL
-    // =========================
+    private function sendResetEmail(string $to, string $name, string $resetUrl): bool
+    {
+        try {
+            $appName = app_setting('app_name') ?: 'Aplikasi';
+            $email   = \Config\Services::email();
+
+            $email->setFrom(
+                env('email.fromEmail', 'noreply@example.com'),
+                env('email.fromName', $appName)
+            );
+            $email->setTo($to);
+            $email->setSubject('Reset Password — ' . $appName);
+            $email->setMessage(
+                '<p>Halo <strong>' . esc($name) . '</strong>,</p>'
+                . '<p>Anda menerima email ini karena ada permintaan reset password untuk akun Anda.</p>'
+                . '<p><a href="' . $resetUrl . '" style="display:inline-block;padding:10px 20px;background:#2563eb;color:#fff;border-radius:8px;text-decoration:none">Reset Password</a></p>'
+                . '<p>Link ini berlaku selama <strong>' . self::RESET_EXPIRE_MINUTES . ' menit</strong>.</p>'
+                . '<p>Jika Anda tidak merasa melakukan permintaan ini, abaikan email ini.</p>'
+                . '<hr><small>' . esc($appName) . '</small>'
+            );
+            $email->setMailType('html');
+
+            return $email->send(false);
+        } catch (\Throwable $e) {
+            log_message('error', 'Reset email failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+
     private function handleFailedLogin($attemptKey, $lockoutKey, $email)
     {
         $attempts    = (int) cache()->get($attemptKey) + 1;
@@ -108,58 +306,39 @@ class Auth extends BaseController
 
         if ($attempts >= self::MAX_ATTEMPTS) {
             $lockoutUntil = time() + $lockoutSecs;
-
             cache()->save($lockoutKey, $lockoutUntil, $lockoutSecs);
             cache()->delete($attemptKey);
 
             logActivity('login_lockout', 'auth',
-                "Akun diblokir sementara setelah {$attempts}x percobaan gagal (email: {$email})",
-                null,
-                $email
-            );
+                "Akun diblokir setelah {$attempts}x gagal (email: {$email})", null, $email);
 
             return redirect()->to('/login')->withInput()
                 ->with('lockout_until', $lockoutUntil)
-                ->with('error', 'Akun diblokir sementara karena terlalu banyak percobaan login. Coba lagi dalam ' . self::LOCKOUT_MINUTES . ' menit.');
+                ->with('error', 'Akun diblokir sementara. Coba lagi dalam ' . self::LOCKOUT_MINUTES . ' menit.');
         }
 
         cache()->save($attemptKey, $attempts, $lockoutSecs);
         $sisa = self::MAX_ATTEMPTS - $attempts;
 
         logActivity('login_failed', 'auth',
-            "Login gagal percobaan ke-{$attempts} (email: {$email})",
-            null,
-            $email
-        );
+            "Login gagal percobaan ke-{$attempts} (email: {$email})", null, $email);
 
         return redirect()->to('/login')->withInput()
             ->with('attempts', $attempts)
             ->with('error', "Email atau password salah! Sisa percobaan: {$sisa}x");
     }
 
-    // =========================
-    // CEK LOCKOUT
-    // =========================
     private function isLockedOut($lockoutKey, $ip, $email): bool
     {
         $lockoutUntil = cache()->get($lockoutKey);
-
-        if (!$lockoutUntil) {
-            return false;
-        }
+        if (!$lockoutUntil) return false;
 
         $remaining = $lockoutUntil - time();
-
         if ($remaining > 0) {
-            logActivity('login_blocked', 'auth',
-                "Login diblokir (lockout aktif) untuk IP {$ip}",
-                null,
-                $email
-            );
+            logActivity('login_blocked', 'auth', "Login diblokir untuk IP {$ip}", null, $email);
             return true;
         }
 
-        // expired → reset
         cache()->delete($lockoutKey);
         return false;
     }
@@ -167,19 +346,7 @@ class Auth extends BaseController
     private function lockoutMessage($lockoutKey): string
     {
         $lockoutUntil = cache()->get($lockoutKey);
-        $remaining = $lockoutUntil - time();
-        $minutes = ceil($remaining / 60);
-
+        $minutes = ceil(($lockoutUntil - time()) / 60);
         return "Terlalu banyak percobaan login. Coba lagi dalam {$minutes} menit.";
-    }
-
-    // Logout
-    public function logout()
-    {
-        logActivity('logout', 'auth', 'Logout');
-
-        session()->destroy();
-
-        return redirect()->to('/login');
     }
 }
