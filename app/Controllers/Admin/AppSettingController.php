@@ -29,27 +29,27 @@ class AppSettingController extends BaseController
         $post     = $this->request->getPost();
         $settings = $post['settings'] ?? [];
 
-        // Jangan overwrite field password kalau dikosongkan
-        $passwordKeys = array_column(
-            \Config\Database::connect()->table('app_settings')
-                ->select('key')->where('type', 'password')->get()->getResultArray(),
-            'key'
-        );
-        foreach ($passwordKeys as $key) {
-            if (isset($settings[$key]) && $settings[$key] === '') {
+        // Ambil semua tipe sekaligus dari DB (1 query)
+        $dbRows  = \Config\Database::connect()->table('app_settings')
+            ->select('key, type')->get()->getResultArray();
+        $typeMap = array_column($dbRows, 'type', 'key');
+
+        foreach ($settings as $key => $value) {
+            $type = $typeMap[$key] ?? 'text';
+
+            // Password/token: jangan overwrite kalau dikosongkan
+            if ($type === 'password' && $value === '') {
                 unset($settings[$key]);
+                continue;
+            }
+
+            // Boolean: normalkan ke '1' / '0'
+            if ($type === 'boolean') {
+                $settings[$key] = $value ? '1' : '0';
             }
         }
-
-        // Handle boolean fields — checkbox tidak terkirim kalau tidak dicentang
-        $booleanKeys = array_column(
-            \Config\Database::connect()->table('app_settings')
-                ->select('key')->where('type', 'boolean')->get()->getResultArray(),
-            'key'
-        );
-        foreach ($booleanKeys as $key) {
-            $settings[$key] = isset($settings[$key]) ? '1' : '0';
-        }
+        // Catatan: boolean yang TIDAK ada di form (tab berbeda) sengaja tidak disentuh
+        // agar checkbox di tab lain tidak ikut ter-reset
 
         $this->settingModel->setMany($settings);
         $this->handleUploads();
