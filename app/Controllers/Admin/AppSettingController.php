@@ -118,12 +118,20 @@ class AppSettingController extends BaseController
 
         logActivity('setting.test_email', 'settings', 'Test email ke ' . $to);
 
-        return $this->response->setJSON([
-            'success' => $sent,
-            'message' => $sent
-                ? 'Email berhasil dikirim ke ' . esc($to) . '. Periksa inbox Anda.'
-                : 'Gagal mengirim email. Periksa konfigurasi SMTP dan coba lagi.',
-        ]);
+        if ($sent) {
+            $message = 'Email berhasil dikirim ke ' . esc($to) . '. Periksa inbox Anda.';
+        } else {
+            $detail  = $mail->getLastError();
+            $message = 'Gagal mengirim email.';
+            if ($detail) {
+                // Ambil baris yang mengandung error SMTP saja supaya tidak terlalu panjang
+                $lines = array_filter(explode("\n", $detail), fn($l) => trim($l) !== '');
+                $short = implode(' | ', array_slice($lines, -5));
+                $message .= ' Detail: ' . htmlspecialchars(mb_substr($short, 0, 300));
+            }
+        }
+
+        return $this->response->setJSON(['success' => $sent, 'message' => $message]);
     }
 
     // =========================================================

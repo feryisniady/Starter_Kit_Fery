@@ -4,6 +4,8 @@ namespace App\Services;
 
 class MailService
 {
+    private string $lastError = '';
+
     /**
      * Kirim email menggunakan konfigurasi dari app_settings (DB).
      */
@@ -33,11 +35,28 @@ class MailService
             $email->setSubject($subject);
             $email->setMessage($body);
 
-            return $email->send(false);
+            $result = $email->send(false);
+
+            if (!$result) {
+                $debug = strip_tags($email->printDebugger(['headers']));
+                $this->lastError = trim(preg_replace('/\s{2,}/', ' ', $debug));
+                log_message('error', '[MailService] Send failed: ' . $this->lastError);
+            }
+
+            return $result;
         } catch (\Throwable $e) {
+            $this->lastError = $e->getMessage();
             log_message('error', '[MailService] ' . $e->getMessage());
             return false;
         }
+    }
+
+    /**
+     * Ambil pesan error terakhir.
+     */
+    public function getLastError(): string
+    {
+        return $this->lastError;
     }
 
     /**
