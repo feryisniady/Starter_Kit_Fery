@@ -240,7 +240,7 @@ $activeTab = $_GET['tab'] ?? 'general';
                     <div style="position:relative;display:flex;align-items:center">
                         <input type="password" name="settings[email_password]" id="email_pw" class="form-control"
                             placeholder="<?= !empty($flat['email_password']['value'] ?? '') ? '●●●●●●●● (tersimpan)' : 'Masukkan password' ?>"
-                            autocomplete="new-password" style="padding-right:40px">
+                            autocomplete="off" style="padding-right:40px">
                         <button type="button" onclick="toggleFieldPw('email_pw','email_pw_icon')"
                             style="position:absolute;right:10px;background:none;border:none;cursor:pointer;color:#94a3b8">
                             <i class="fas fa-eye" id="email_pw_icon"></i>
@@ -334,7 +334,7 @@ $activeTab = $_GET['tab'] ?? 'general';
                     <div style="position:relative;display:flex;align-items:center">
                         <input type="password" name="settings[wa_token]" id="wa_token" class="form-control"
                             placeholder="<?= !empty($flat['wa_token']['value'] ?? '') ? '●●●●●●●● (tersimpan)' : 'Masukkan token dari provider' ?>"
-                            autocomplete="new-password" style="padding-right:40px">
+                            autocomplete="off" style="padding-right:40px">
                         <button type="button" onclick="toggleFieldPw('wa_token','wa_token_icon')"
                             style="position:absolute;right:10px;background:none;border:none;cursor:pointer;color:#94a3b8">
                             <i class="fas fa-eye" id="wa_token_icon"></i>
