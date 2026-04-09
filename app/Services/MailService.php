@@ -13,15 +13,23 @@ class MailService
     {
         try {
             $config = [
-                'protocol'   => app_setting('email_driver')     ?: 'smtp',
-                'SMTPHost'   => app_setting('email_host')        ?: '',
-                'SMTPPort'   => (int)(app_setting('email_port')  ?: 587),
-                'SMTPCrypto' => app_setting('email_encryption')  ?: 'tls',
-                'SMTPUser'   => app_setting('email_username')    ?: '',
-                'SMTPPass'   => app_setting('email_password')    ?: '',
-                'mailType'   => 'html',
-                'charset'    => 'utf-8',
-                'newline'    => "\r\n",
+                'protocol'    => app_setting('email_driver')     ?: 'smtp',
+                'SMTPHost'    => app_setting('email_host')        ?: '',
+                'SMTPPort'    => (int)(app_setting('email_port')  ?: 587),
+                'SMTPCrypto'  => app_setting('email_encryption')  ?: 'tls',
+                'SMTPUser'    => app_setting('email_username')    ?: '',
+                'SMTPPass'    => app_setting('email_password')    ?: '',
+                'mailType'    => 'html',
+                'charset'     => 'utf-8',
+                'newline'     => "\r\n",
+                'SMTPTimeout' => 10,
+                'SMTPOptions' => [
+                    'ssl' => [
+                        'verify_peer'       => false,
+                        'verify_peer_name'  => false,
+                        'allow_self_signed' => true,
+                    ],
+                ],
             ];
 
             $email = \Config\Services::email(null, false);
