@@ -7,7 +7,7 @@
     "require": {
         "php": "^8.1",
         "skuadron45/ci4adminrbac": "^1.0",
-        "codeigniter4/codeigniter4": "^4.5",
+        "codeigniter4/framework": "^4.5",
         "phpmailer/phpmailer": "^6.9"
     },
     "require-dev": {
