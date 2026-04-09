@@ -76,12 +76,7 @@
     <div class="sidebar-footer">
       <div class="sidebar-user">
         <div class="user-avatar">
-          <?php
-          $dbAvatar = \Config\Database::connect()
-          ->table('users')->select('avatar')
-          ->where('id', session()->get('user_id'))->get()->getRowArray();
-          $avatarPath = $dbAvatar['avatar'] ?? null;
-          ?>
+          <?php $avatarPath = session()->get('user_avatar'); ?>
           <?php if($avatarPath): ?>
             <img src="<?= base_url(esc($avatarPath)) ?>" alt="avatar"
             style="width:100%;height:100%;object-fit:cover;border-radius:50%">

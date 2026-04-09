@@ -4,7 +4,7 @@ if (!function_exists('hasPermission')) {
     function hasPermission(string $permission): bool
     {
         // PRIORITAS: ambil dari session
-        $permissions = session()->get('permissions');
+        $permissions = session()->get('user_permissions');
 
         if (is_array($permissions)) {
             return in_array($permission, $permissions);

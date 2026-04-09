@@ -69,8 +69,6 @@ class Auth extends BaseController
         cache()->delete($attemptKey);
         cache()->delete($lockoutKey);
 
-
-
         $userModel = new \App\Models\UserModel();
 
         // permission
@@ -81,12 +79,14 @@ class Auth extends BaseController
         $rolesRaw = $userModel->getUserRoles($user['id']);
         $roles    = array_column($rolesRaw, 'name');
 
+        session()->regenerateID(true);
         session()->set([
-            'user_id'     => $user['id'],
-            'user_name'   => $user['name'],
-            'logged_in'   => true,
+            'user_id'          => $user['id'],
+            'user_name'        => $user['name'],
+            'logged_in'        => true,
             'user_permissions' => $permissions,
-            'roles'       => $roles
+            'roles'            => $roles,
+            'user_avatar'      => $user['avatar'] ?? null,
         ]);
 
 

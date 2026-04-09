@@ -75,6 +75,9 @@ class ProfileController extends BaseController
 
         // Update session
         session()->set('user_name', $data['name']);
+        if (isset($data['avatar'])) {
+            session()->set('user_avatar', $data['avatar']);
+        }
 
         logActivity('profile.update', 'profile', 'Profil diperbarui');
 
@@ -121,6 +124,7 @@ class ProfileController extends BaseController
         }
 
         $this->userModel->update($userId, ['avatar' => null]);
+        session()->set('user_avatar', null);
         logActivity('profile.delete_avatar', 'profile', 'Foto profil dihapus');
 
         return redirect()->to('/profile')->with('success', 'Foto profil dihapus.');
