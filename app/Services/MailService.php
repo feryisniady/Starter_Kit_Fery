@@ -23,13 +23,15 @@ class MailService
                 'charset'     => 'utf-8',
                 'newline'     => "\r\n",
                 'SMTPTimeout' => 10,
-                'SMTPOptions' => [
+                // Di development: bypass SSL verify (TLS handshake sering gagal dari localhost)
+                // Di production: biarkan PHP verifikasi sertifikat secara normal
+                'SMTPOptions' => ENVIRONMENT !== 'production' ? [
                     'ssl' => [
                         'verify_peer'       => false,
                         'verify_peer_name'  => false,
                         'allow_self_signed' => true,
                     ],
-                ],
+                ] : [],
             ];
 
             $email = \Config\Services::email(null, false);
