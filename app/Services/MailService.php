@@ -23,15 +23,15 @@ class MailService
                 'charset'     => 'utf-8',
                 'newline'     => "\r\n",
                 'SMTPTimeout' => 10,
-                // Di development: bypass SSL verify (TLS handshake sering gagal dari localhost)
-                // Di production: biarkan PHP verifikasi sertifikat secara normal
-                'SMTPOptions' => ENVIRONMENT !== 'production' ? [
+                // Bypass SSL certificate verification — diperlukan di banyak hosting/lokal
+                // karena PHP tidak selalu punya CA bundle lengkap untuk verifikasi Gmail
+                'SMTPOptions' => [
                     'ssl' => [
                         'verify_peer'       => false,
                         'verify_peer_name'  => false,
                         'allow_self_signed' => true,
                     ],
-                ] : [],
+                ],
             ];
 
             $email = \Config\Services::email(null, false);
