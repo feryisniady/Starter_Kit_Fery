@@ -22,7 +22,7 @@ class MailService
                 'newline'    => "\r\n",
             ];
 
-            $email = \Config\Services::email($config, false);
+            $email = \Config\Services::email(null, false);
             $email->initialize($config);
 
             $email->setFrom(
