@@ -79,7 +79,7 @@ class Auth extends BaseController
         $rolesRaw = $userModel->getUserRoles($user['id']);
         $roles    = array_column($rolesRaw, 'name');
 
-        session()->regenerateID(true);
+        session()->regenerate(true);
         session()->set([
             'user_id'          => $user['id'],
             'user_name'        => $user['name'],
