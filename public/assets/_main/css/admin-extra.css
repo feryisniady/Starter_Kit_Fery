@@ -15,13 +15,15 @@
     justify-content: center;
     padding: 20px;
 }
-.modal-overlay.show {
-    display: flex;
+.modal-overlay.show,
+.modal-overlay[style*="display: block"],
+.modal-overlay[style*="display:block"] {
+    display: flex !important;
     animation: fadeIn .2s ease;
 }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-.modal {
+.modal, .modal-box {
     background: white;
     border-radius: 14px;
     width: 100%;
@@ -85,6 +87,16 @@
     gap: 10px;
     flex-shrink: 0;
     background: #fafafa;
+}
+
+/* form-actions: tombol submit di bagian bawah form / modal */
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #f1f5f9;
 }
 
 /* ===================== DATATABLE ===================== */
