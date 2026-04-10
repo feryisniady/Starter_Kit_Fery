@@ -91,46 +91,17 @@
     <!-- Daftar hari libur -->
     <div class="card">
         <div class="card-header"><h3 class="card-title"><i class="fas fa-calendar-xmark"></i> Daftar Hari Libur <?= $tahun ?></h3></div>
-        <div class="card-body" style="padding:0">
-            <table class="table-admin w-100" id="tbl-libur">
+        <div class="card-body">
+            <table id="dt-libur" class="w-100">
                 <thead>
                     <tr>
                         <th width="40">#</th>
                         <th width="120">Tanggal</th>
-                        <th width="60">Hari</th>
+                        <th width="80">Hari</th>
                         <th>Keterangan</th>
                         <th width="60">Aksi</th>
                     </tr>
                 </thead>
-                <tbody>
-                <?php
-                $hariNama = ['Mon'=>'Senin','Tue'=>'Selasa','Wed'=>'Rabu','Thu'=>'Kamis','Fri'=>'Jumat','Sat'=>'Sabtu','Sun'=>'Minggu'];
-                foreach($libur as $i => $l):
-                    $namaHari = $hariNama[date('D', strtotime($l['tanggal']))] ?? '';
-                    $isWeekend = in_array(date('N', strtotime($l['tanggal'])), [6, 7]);
-                ?>
-                <tr>
-                    <td><?= $i+1 ?></td>
-                    <td><?= date('d/m/Y', strtotime($l['tanggal'])) ?></td>
-                    <td>
-                        <span style="font-size:12px;color:<?= $isWeekend ? '#94a3b8' : '#ef4444' ?>">
-                            <?= $namaHari ?>
-                        </span>
-                    </td>
-                    <td><?= esc($l['keterangan']) ?></td>
-                    <td>
-                        <button class="btn btn-xs btn-danger btn-del-libur" data-id="<?= $l['id'] ?>">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </td>
-                </tr>
-                <?php endforeach; ?>
-                <?php if(empty($libur)): ?>
-                <tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:24px">
-                    Belum ada data hari libur untuk tahun <?= $tahun ?>
-                </td></tr>
-                <?php endif; ?>
-                </tbody>
             </table>
         </div>
     </div>
@@ -139,9 +110,37 @@
 <?= $this->endSection() ?>
 <?= $this->section('scripts') ?>
 <script>
-const csrfToken = '<?= csrf_hash() ?>';
-const csrfName  = '<?= csrf_token() ?>';
+const csrfToken  = '<?= csrf_hash() ?>';
+const csrfName   = '<?= csrf_token() ?>';
 const tahunAktif = <?= $tahun ?>;
+
+$(function() {
+    const dtLibur = $('#dt-libur').DataTable({
+        processing: true, serverSide: true,
+        ajax: {
+            url: '/admin/pkpt/hari-libur/data',
+            type: 'POST',
+            data: d => { d[csrfName] = csrfToken; d.tahun = tahunAktif; }
+        },
+        columns: [
+            { data: null, render: (d,t,r,m) => m.row + m.settings._iDisplayStart + 1, orderable: false },
+            { data: 'tanggal' },
+            { data: 'hari', orderable: false },
+            { data: 'keterangan' },
+            { data: 'aksi', orderable: false },
+        ],
+        order: [[1, 'asc']],
+        pageLength: 25,
+    });
+
+    $(document).on('click', '.btn-del-libur', function() {
+        if (!confirm('Hapus hari libur ini?')) return;
+        const id = $(this).data('id');
+        $.post('/admin/pkpt/hari-libur/delete/' + id, { [csrfName]: csrfToken }, res => {
+            if (res.success) dtLibur.ajax.reload(null, false);
+        });
+    });
+});
 
 // Hari libur nasional default (bisa diedit/dikembangkan)
 const liburDefault = [
@@ -193,15 +192,6 @@ $('#btn-import-all').on('click', function() {
         } else {
             btn.prop('disabled', false).text('Import Semua');
         }
-    });
-});
-
-$(document).on('click', '.btn-del-libur', function() {
-    if (!confirm('Hapus hari libur ini?')) return;
-    const id  = $(this).data('id');
-    const row = $(this).closest('tr');
-    $.post('/admin/pkpt/hari-libur/delete/' + id, { [csrfName]: csrfToken }, res => {
-        if (res.success) row.fadeOut(200, function() { $(this).remove(); });
     });
 });
 

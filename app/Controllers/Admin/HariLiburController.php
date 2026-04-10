@@ -5,9 +5,11 @@ namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Models\HariLiburModel;
 use App\Models\PkptSettingModel;
+use App\Traits\DatatableTrait;
 
 class HariLiburController extends BaseController
 {
+    use DatatableTrait;
     protected HariLiburModel    $model;
     protected PkptSettingModel  $settingModel;
 
@@ -15,6 +17,45 @@ class HariLiburController extends BaseController
     {
         $this->model        = new HariLiburModel();
         $this->settingModel = new PkptSettingModel();
+    }
+
+    public function getData()
+    {
+        if (!$this->request->isAJAX()) return $this->response->setStatusCode(403);
+
+        ['draw' => $draw, 'start' => $start, 'length' => $length, 'search' => $search] = $this->dtRequest();
+
+        $tahun = (int)($this->request->getPost('tahun') ?? date('Y'));
+        $db    = \Config\Database::connect();
+
+        $total = $db->table('hari_libur')->where('tahun', $tahun)->countAllResults();
+
+        $q = $db->table('hari_libur')
+            ->where('tahun', $tahun)
+            ->orderBy('tanggal', 'ASC');
+
+        if ($search) {
+            $q->like('keterangan', $search);
+        }
+        $filtered = $search ? $q->countAllResults(false) : $total;
+        $rows     = $q->limit($length, $start)->get()->getResultArray();
+
+        $hariNama = ['1'=>'Senin','2'=>'Selasa','3'=>'Rabu','4'=>'Kamis','5'=>'Jumat','6'=>'Sabtu','7'=>'Minggu'];
+
+        $data = array_map(function($r) use ($hariNama) {
+            $dayNum    = date('N', strtotime($r['tanggal']));
+            $isWeekend = in_array($dayNum, [6, 7]);
+            $hariColor = $isWeekend ? '#94a3b8' : '#ef4444';
+            $hariLabel = $hariNama[$dayNum] ?? '';
+            return [
+                'tanggal'    => date('d/m/Y', strtotime($r['tanggal'])),
+                'hari'       => "<span style='font-size:12px;color:{$hariColor}'>{$hariLabel}</span>",
+                'keterangan' => esc($r['keterangan']),
+                'aksi'       => '<button class="btn btn-sm btn-danger btn-del-libur" data-id="'.$r['id'].'"><i class="fas fa-trash"></i></button>',
+            ];
+        }, $rows);
+
+        return $this->dtResponse($draw, $total, $filtered, $data);
     }
 
     public function index()
@@ -26,7 +67,6 @@ class HariLiburController extends BaseController
             'title'     => 'Hari Libur & Hari Kerja',
             'tahun'     => $tahun,
             'settings'  => $settings,
-            'libur'     => $this->model->getByTahun($tahun),
             'ringkasan' => $this->model->getRingkasanTahun($tahun),
         ]);
     }

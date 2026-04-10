@@ -130,6 +130,7 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	$routes->post('pkpt/hari-libur/store-batch',  'Admin\HariLiburController::storeBatch');
 	$routes->post('pkpt/hari-libur/delete/(:num)','Admin\HariLiburController::delete/$1');
 	$routes->get('pkpt/hari-libur/hitung-hp',     'Admin\HariLiburController::hitungHp');
+	$routes->post('pkpt/hari-libur/data',         'Admin\HariLiburController::getData');
 
 	$routes->get('pkpt',                            'Admin\PkptController::index');
 	$routes->post('pkpt/data',                      'Admin\PkptController::getData');

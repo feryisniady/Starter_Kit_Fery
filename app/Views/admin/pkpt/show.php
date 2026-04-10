@@ -21,26 +21,45 @@
 <div class="alert-error-inline mb-3"><i class="fas fa-circle-exclamation"></i> <?= esc(session()->getFlashdata('error')) ?></div>
 <?php endif; ?>
 
-<!-- Info PKPT -->
-<div class="card mb-3">
-    <div class="card-body" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
-        <div>
-            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">Irban</div>
-            <div style="font-size:15px;font-weight:600"><?= esc($pkpt['irban_nama']) ?></div>
-        </div>
-        <div>
-            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">Tahun</div>
-            <div style="font-size:15px;font-weight:600"><?= $pkpt['tahun'] ?></div>
-        </div>
-        <div>
-            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">Total Kegiatan</div>
-            <div style="font-size:15px;font-weight:600"><?= count($kegiatan) ?></div>
-        </div>
-        <div>
-            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">Total Anggaran</div>
-            <div style="font-size:15px;font-weight:600">
-                Rp <?= number_format(array_sum(array_column($kegiatan, 'total_anggaran')), 0, ',', '.') ?>
+<!-- Info PKPT + HP Summary -->
+<?php
+$totalHpTerpakai  = array_sum(array_column($kegiatan, 'total_hp'));
+$hpEfektifShow    = $setting ? (int)$setting['total_hp_tahunan'] : 0;
+$hpSisaShow       = max(0, $hpEfektifShow - $totalHpTerpakai);
+$hpPctShow        = $hpEfektifShow > 0 ? min(100, round(($totalHpTerpakai / $hpEfektifShow) * 100)) : 0;
+$hpBarColorShow   = $hpPctShow >= 90 ? '#ef4444' : ($hpPctShow >= 70 ? '#f59e0b' : '#22c55e');
+?>
+<div class="card mb-3" style="border-left:4px solid #6366f1">
+    <div class="card-body" style="padding:14px 20px">
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:14px">
+            <div>
+                <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">Irban</div>
+                <div style="font-size:14px;font-weight:600"><?= esc($pkpt['irban_nama']) ?></div>
             </div>
+            <div>
+                <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">Total Kegiatan</div>
+                <div style="font-size:20px;font-weight:700;color:#6366f1"><?= count($kegiatan) ?></div>
+            </div>
+            <div>
+                <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">HP Efektif</div>
+                <div style="font-size:20px;font-weight:700;color:#64748b"><?= $hpEfektifShow ?></div>
+                <div style="font-size:11px;color:#94a3b8">hari/tahun</div>
+            </div>
+            <div>
+                <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">HP Terpakai</div>
+                <div style="font-size:20px;font-weight:700;color:#f59e0b"><?= $totalHpTerpakai ?></div>
+                <div style="font-size:11px;color:#94a3b8"><?= $hpPctShow ?>% utilisasi</div>
+            </div>
+            <div>
+                <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">Sisa HP</div>
+                <div style="font-size:20px;font-weight:700;color:<?= $hpSisaShow <= 0 ? '#ef4444' : '#22c55e' ?>"><?= $hpSisaShow ?></div>
+                <div style="font-size:11px;color:#94a3b8">
+                    Rp <?= number_format(array_sum(array_column($kegiatan, 'total_anggaran')), 0, ',', '.') ?>
+                </div>
+            </div>
+        </div>
+        <div style="height:8px;background:#f1f5f9;border-radius:4px;overflow:hidden">
+            <div style="height:100%;width:<?= $hpPctShow ?>%;background:<?= $hpBarColorShow ?>;border-radius:4px"></div>
         </div>
     </div>
 </div>

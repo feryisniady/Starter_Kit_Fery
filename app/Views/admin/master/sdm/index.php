@@ -75,6 +75,18 @@
                 <label>Jabatan Fungsional</label>
                 <input type="text" name="jabatan_fungsional" id="f-jabatan-fn" class="form-control" placeholder="Auditor Muda / ...">
             </div>
+            <div class="form-group">
+                <label>Link ke Akun User <small style="color:#94a3b8;font-weight:normal">(opsional — untuk akses sistem)</small></label>
+                <select name="user_id" id="f-user" class="form-control">
+                    <option value="">— Tidak dihubungkan —</option>
+                    <?php foreach($users as $u): ?>
+                    <option value="<?= $u['id'] ?>"><?= esc($u['name'] ?: $u['username']) ?> (<?= esc($u['username']) ?>)</option>
+                    <?php endforeach; ?>
+                </select>
+                <small id="user-linked-info" style="color:#6366f1;display:none">
+                    <i class="fas fa-link"></i> <span id="user-linked-text"></span>
+                </small>
+            </div>
             <div class="form-group" id="wrap-aktif" style="display:none">
                 <label>Status</label>
                 <select name="aktif" id="f-aktif" class="form-control">
@@ -122,6 +134,21 @@ $(function() {
             $('#f-jabatan-fn').val(res.jabatan_fungsional);
             $('#f-irban').val(res.irban_id);
             $('#f-aktif').val(res.aktif);
+            // Tampilkan user yg sudah ter-link (mungkin tidak ada di dropdown karena sdh dipakai)
+            if (res.user_id) {
+                // coba set dropdown; kalau tidak ada opsinya, tampilkan info saja
+                $('#f-user').val(res.user_id);
+                if (!$('#f-user').val()) {
+                    // user sudah di-link tapi tidak ada di dropdown (sdh dipake sdm lain — anomali)
+                    $('#user-linked-info').show();
+                    $('#user-linked-text').text('User ID ' + res.user_id + ' saat ini terhubung');
+                } else {
+                    $('#user-linked-info').hide();
+                }
+            } else {
+                $('#f-user').val('');
+                $('#user-linked-info').hide();
+            }
             $('#wrap-aktif').show();
             $('#modal-title').text('Edit SDM');
             $('#modal-sdm').show();
@@ -151,6 +178,8 @@ $(function() {
 function openModal() {
     $('#form-sdm')[0].reset();
     $('#sdm-id').val('');
+    $('#f-user').val('');
+    $('#user-linked-info').hide();
     $('#wrap-aktif').hide();
     $('#modal-title').text('Tambah SDM');
     $('#modal-sdm').show();
