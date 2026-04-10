@@ -11,9 +11,11 @@ use App\Models\PkptModel;
 use App\Models\PkptSettingModel;
 use App\Models\SdmModel;
 use App\Models\IrbanModel;
+use App\Traits\DatatableTrait;
 
 class SptController extends BaseController
 {
+    use DatatableTrait;
     protected SptModel          $sptModel;
     protected SptTimModel       $timModel;
     protected SptApprovalModel  $approvalModel;
@@ -41,35 +43,80 @@ class SptController extends BaseController
 
     public function index()
     {
+        return view('admin/spt/index', [
+            'title'       => 'Surat Perintah Tugas (SPT)',
+            'statusLabel' => SptModel::$statusLabel,
+            'tahunAktif'  => $this->settingModel->getTahunAktif(),
+            'settings'    => $this->settingModel->orderBy('tahun', 'DESC')->findAll(),
+        ]);
+    }
+
+    public function getData()
+    {
+        if (!$this->request->isAJAX()) return $this->response->setStatusCode(403);
+
+        ['draw' => $draw, 'start' => $start, 'length' => $length, 'search' => $search] = $this->dtRequest();
+
         $userId  = session()->get('user_id');
         $isAdmin = $this->isAdmin();
-        $tahun   = (int)($this->request->getGet('tahun') ?? $this->settingModel->getTahunAktif());
-        $status  = $this->request->getGet('status') ?? '';
+        $tahun   = (int)($this->request->getPost('tahun') ?: $this->settingModel->getTahunAktif());
+        $status  = $this->request->getPost('status') ?? '';
+        $irbanId = $isAdmin ? null : $this->getUserIrbanId($userId);
 
-        $q = $this->sptModel->db->table('spt s')
-            ->select('s.*, pk.kode_kegiatan, pk.area_pengawasan, pk.jenis_pengawasan,
-                      p.tahun, i.nama as irban_nama')
+        $db = \Config\Database::connect();
+
+        // Total tanpa search (basis filter tahun + irban)
+        $totalQ = $db->table('spt s')
+            ->join('pkpt_kegiatan pk', 'pk.id = s.pkpt_kegiatan_id')
+            ->join('pkpt p', 'p.id = pk.pkpt_id')
+            ->where('p.tahun', $tahun);
+        if ($irbanId) $totalQ->where('p.irban_id', $irbanId);
+        if ($status)  $totalQ->where('s.status', $status);
+        $total = $totalQ->countAllResults();
+
+        // Query data
+        $q = $db->table('spt s')
+            ->select('s.id, s.nomor_naskah, s.tanggal_mulai, s.tujuan, s.status, pk.kode_kegiatan, i.nama as irban_nama')
             ->join('pkpt_kegiatan pk', 'pk.id = s.pkpt_kegiatan_id')
             ->join('pkpt p', 'p.id = pk.pkpt_id')
             ->join('irban i', 'i.id = p.irban_id')
             ->where('p.tahun', $tahun);
-
-        if (!$isAdmin) {
-            $irbanId = $this->getUserIrbanId($userId);
-            if ($irbanId) $q->where('p.irban_id', $irbanId);
+        if ($irbanId) $q->where('p.irban_id', $irbanId);
+        if ($status)  $q->where('s.status', $status);
+        if ($search) {
+            $q->groupStart()
+                ->like('s.nomor_naskah', $search)
+                ->orLike('pk.kode_kegiatan', $search)
+                ->orLike('s.tujuan', $search)
+                ->orLike('i.nama', $search)
+                ->groupEnd();
         }
 
-        if ($status) $q->where('s.status', $status);
+        $filtered = $search ? $q->countAllResults(false) : $total;
+        $rows     = $q->orderBy('s.created_at', 'DESC')->limit($length, $start)->get()->getResultArray();
 
-        return view('admin/spt/index', [
-            'title'       => 'Surat Perintah Tugas (SPT)',
-            'sptList'     => $q->orderBy('s.created_at', 'DESC')->get()->getResultArray(),
-            'tahun'       => $tahun,
-            'status'      => $status,
-            'statusLabel' => SptModel::$statusLabel,
-            'statusColor' => SptModel::$statusColor,
-            'settings'    => $this->settingModel->orderBy('tahun', 'DESC')->findAll(),
-        ]);
+        $sl = SptModel::$statusLabel;
+        $sc = SptModel::$statusColor;
+
+        $data = array_map(function ($r) use ($sl, $sc) {
+            $badge   = '<span class="badge badge-' . ($sc[$r['status']] ?? 'secondary') . '">'
+                     . esc($sl[$r['status']] ?? $r['status']) . '</span>';
+            $actions = '<a href="/admin/spt/' . $r['id'] . '" class="btn btn-xs btn-primary">Detail</a>';
+            if ($r['status'] === 'terbit') {
+                $actions .= ' <a href="/admin/spt/' . $r['id'] . '/word" class="btn btn-xs btn-success"><i class="fas fa-file-word"></i></a>';
+            }
+            return [
+                'nomor_naskah'  => esc($r['nomor_naskah'] ?: '—'),
+                'kode_kegiatan' => '<span class="badge badge-primary">' . esc($r['kode_kegiatan']) . '</span>',
+                'irban_nama'    => esc($r['irban_nama']),
+                'tujuan'        => '<span style="display:block;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' . esc($r['tujuan']) . '">' . esc($r['tujuan']) . '</span>',
+                'tanggal_mulai' => $r['tanggal_mulai'] ? date('d/m/Y', strtotime($r['tanggal_mulai'])) : '—',
+                'status'        => $badge,
+                'aksi'          => $actions,
+            ];
+        }, $rows);
+
+        return $this->dtResponse($draw, $total, $filtered, $data);
     }
 
     // ===================================================
