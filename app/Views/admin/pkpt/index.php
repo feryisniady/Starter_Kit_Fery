@@ -80,31 +80,33 @@
 </div>
 
 <!-- Modal Buat PKPT -->
-<div id="modal-buat" class="modal-overlay" style="display:none">
+<div id="modal-buat" class="modal-overlay">
     <div class="modal-box" style="max-width:380px">
         <div class="modal-header">
             <h3>Buat PKPT</h3>
-            <button class="modal-close" onclick="$('#modal-buat').hide()"><i class="fas fa-times"></i></button>
+            <button class="modal-close" onclick="Modal.close('modal-buat')"><i class="fas fa-times"></i></button>
         </div>
         <form action="/admin/pkpt/buat" method="POST">
             <?= csrf_field() ?>
             <input type="hidden" name="tahun" id="modal-tahun" value="<?= $tahun ?>">
-            <div class="form-group">
-                <label>Tahun</label>
-                <input type="text" class="form-control" id="modal-tahun-display" value="<?= $tahun ?>" readonly style="background:#f8fafc">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Tahun</label>
+                    <input type="text" class="form-control" id="modal-tahun-display" value="<?= $tahun ?>" readonly style="background:#f8fafc">
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                    <label>Irban <span class="text-danger">*</span></label>
+                    <select name="irban_id" class="form-control" required>
+                        <option value="">— Pilih Irban —</option>
+                        <?php foreach($irbanList as $ir): ?>
+                        <option value="<?= $ir['id'] ?>"><?= esc($ir['kode']) ?> — <?= esc($ir['nama']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
             </div>
-            <div class="form-group">
-                <label>Irban <span class="text-danger">*</span></label>
-                <select name="irban_id" class="form-control" required>
-                    <option value="">— Pilih Irban —</option>
-                    <?php foreach($irbanList as $ir): ?>
-                    <option value="<?= $ir['id'] ?>"><?= esc($ir['kode']) ?> — <?= esc($ir['nama']) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="form-actions">
-                <button type="button" class="btn btn-secondary" onclick="$('#modal-buat').hide()">Batal</button>
-                <button type="submit" class="btn btn-primary">Buat PKPT</button>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="Modal.close('modal-buat')">Batal</button>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Buat PKPT</button>
             </div>
         </form>
     </div>
@@ -147,11 +149,7 @@ $(function() {
     });
 
     $('#btn-buat-pkpt').on('click', function() {
-        $('#modal-buat').show();
-    });
-
-    $(document).on('click', '.modal-overlay', function(e) {
-        if ($(e.target).hasClass('modal-overlay')) $(this).hide();
+        Modal.open('modal-buat');
     });
 });
 </script>
