@@ -144,4 +144,30 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	$routes->post('spt/(:num)/approve',         'Admin\SptController::approve/$1');
 	$routes->post('spt/(:num)/reject',          'Admin\SptController::reject/$1');
 	$routes->get('spt/(:num)/word',             'Admin\SptController::downloadWord/$1');
+
+	// =====================================================================
+	// PKA (Program Kerja Audit) — per SPT
+	// =====================================================================
+	$routes->get('spt/(:num)/pka',              'Admin\PkaController::index/$1');
+	$routes->post('spt/(:num)/pka/store',       'Admin\PkaController::store/$1');
+	$routes->post('spt/pka/update/(:num)',      'Admin\PkaController::update/$1');
+	$routes->post('spt/pka/delete/(:num)',      'Admin\PkaController::delete/$1');
+	$routes->post('spt/pka/selesai/(:num)',     'Admin\PkaController::selesai/$1');
+
+	// =====================================================================
+	// TEMUAN — per SPT
+	// =====================================================================
+	$routes->get('spt/(:num)/temuan',           'Admin\TemuanController::index/$1');
+	$routes->get('spt/(:num)/temuan/create',    'Admin\TemuanController::create/$1');
+	$routes->post('spt/(:num)/temuan/store',    'Admin\TemuanController::store/$1');
+	$routes->get('spt/temuan/(:num)',           'Admin\TemuanController::show/$1');
+	$routes->get('spt/temuan/(:num)/edit',      'Admin\TemuanController::edit/$1');
+	$routes->post('spt/temuan/(:num)/update',   'Admin\TemuanController::update/$1');
+	$routes->post('spt/temuan/(:num)/delete',   'Admin\TemuanController::delete/$1');
+
+	// =====================================================================
+	// MASTER KODE TEMUAN
+	// =====================================================================
+	$routes->get('master/kode-temuan',          'Admin\KodetemuanController::index');
+	$routes->post('master/kode-temuan/data',    'Admin\KodetemuanController::getData');
 });
