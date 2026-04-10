@@ -12,9 +12,15 @@
             <option value="<?= $s['tahun'] ?>" <?= $s['tahun'] == $tahun ? 'selected' : '' ?>><?= $s['tahun'] ?></option>
             <?php endforeach; ?>
         </select>
+        <?php if($myPkpt): ?>
+        <a href="/admin/pkpt/<?= $myPkpt['id'] ?>/kegiatan/create" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Tambah Kegiatan
+        </a>
+        <?php else: ?>
         <button class="btn btn-primary" id="btn-buat-pkpt">
             <i class="fas fa-plus"></i> Buat PKPT
         </button>
+        <?php endif; ?>
     </div>
 </div>
 
