@@ -44,8 +44,10 @@ class MasterEntitasController extends BaseController
             'aktif'  => $r['aktif']
                 ? '<span class="badge badge-success">Aktif</span>'
                 : '<span class="badge badge-secondary">Nonaktif</span>',
-            'aksi'   => '<button class="btn btn-xs btn-warning btn-edit" data-id="' . $r['id'] . '">Edit</button>
-                         <button class="btn btn-xs btn-danger btn-delete" data-id="' . $r['id'] . '">Hapus</button>',
+            'aksi'   => '<div style="display:flex;gap:4px;align-items:center">
+                <button class="btn btn-sm btn-warning btn-edit" data-id="'.$r['id'].'" title="Edit"><i class="fas fa-pen"></i></button>
+                <button class="btn btn-sm btn-danger btn-delete" data-url="/admin/master/entitas/delete/'.$r['id'].'" title="Hapus"><i class="fas fa-trash"></i></button>
+                </div>',
         ], $rows);
 
         return $this->response->setJSON([

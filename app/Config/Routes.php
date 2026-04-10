@@ -90,6 +90,7 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	// =====================================================================
 	// Master Irban
 	$routes->get('master/irban',                 'Admin\MasterIrbanController::index');
+	$routes->post('master/irban/data',           'Admin\MasterIrbanController::getData');
 	$routes->get('master/irban/create',          'Admin\MasterIrbanController::create');
 	$routes->post('master/irban/store',          'Admin\MasterIrbanController::store');
 	$routes->get('master/irban/edit/(:num)',     'Admin\MasterIrbanController::edit/$1');
@@ -131,6 +132,7 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	$routes->get('pkpt/hari-libur/hitung-hp',     'Admin\HariLiburController::hitungHp');
 
 	$routes->get('pkpt',                            'Admin\PkptController::index');
+	$routes->post('pkpt/data',                      'Admin\PkptController::getData');
 	$routes->post('pkpt/buat',                      'Admin\PkptController::createOrGetPkpt');
 	$routes->get('pkpt/(:num)',                     'Admin\PkptController::show/$1');
 	$routes->post('pkpt/(:num)/status',             'Admin\PkptController::updateStatus/$1');
