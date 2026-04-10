@@ -26,19 +26,33 @@
             <thead>
                 <tr>
                     <th width="50">#</th>
-                    <th>Kode</th>
+                    <th width="80">Kode</th>
                     <th>Nama Irban</th>
-                    <th>Kepala</th>
+                    <th>Kepala Irban</th>
+                    <th width="80" style="text-align:center">PKPT</th>
                     <th width="120">Aksi</th>
                 </tr>
             </thead>
             <tbody>
-                <?php foreach($data as $i => $row): ?>
+                <?php
+                $tahunAktif = (new \App\Models\PkptSettingModel())->getTahunAktif();
+                foreach($data as $i => $row):
+                    $pkptRow = (new \App\Models\PkptModel())->getByIrbanTahun($row['id'], $tahunAktif);
+                ?>
                 <tr>
                     <td><?= $i+1 ?></td>
                     <td><span class="badge badge-primary"><?= esc($row['kode']) ?></span></td>
                     <td><?= esc($row['nama']) ?></td>
-                    <td><?= esc($row['kepala_nama'] ?? '-') ?></td>
+                    <td><?= esc($row['kepala_nama'] ?? '—') ?></td>
+                    <td style="text-align:center">
+                        <?php if($pkptRow): ?>
+                            <a href="/admin/pkpt/<?= $pkptRow['id'] ?>" class="btn btn-xs btn-primary" title="PKPT <?= $tahunAktif ?>">
+                                <i class="fas fa-list-check"></i> <?= $tahunAktif ?>
+                            </a>
+                        <?php else: ?>
+                            <span style="font-size:11px;color:#94a3b8">—</span>
+                        <?php endif; ?>
+                    </td>
                     <td>
                         <a href="/admin/master/irban/edit/<?= $row['id'] ?>" class="btn btn-xs btn-warning">Edit</a>
                         <button class="btn btn-xs btn-danger btn-del" data-id="<?= $row['id'] ?>">Hapus</button>
