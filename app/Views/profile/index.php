@@ -142,28 +142,37 @@
                             </button>
                         </div>
                     </div>
-                    <div class="form-row-2">
-                        <div class="form-group">
-                            <label>Password Baru <span style="color:red">*</span></label>
-                            <div class="input-pw-wrap">
-                                <input type="password" name="new_password" id="new_pw"
-                                       class="form-control" required placeholder="Min. 6 karakter">
-                                <button type="button" onclick="togglePw('new_pw','new_pw_icon')">
-                                    <i class="fas fa-eye" id="new_pw_icon"></i>
-                                </button>
-                            </div>
+                    <div class="form-group">
+                        <label>Password Baru <span style="color:red">*</span></label>
+                        <div class="input-pw-wrap">
+                            <input type="password" name="new_password" id="new_pw"
+                                   class="form-control" required placeholder="Buat password baru">
+                            <button type="button" onclick="togglePw('new_pw','new_pw_icon')">
+                                <i class="fas fa-eye" id="new_pw_icon"></i>
+                            </button>
                         </div>
-                        <div class="form-group">
-                            <label>Konfirmasi Password <span style="color:red">*</span></label>
-                            <div class="input-pw-wrap">
-                                <input type="password" name="confirm_password" id="conf_pw"
-                                       class="form-control" required placeholder="Ulangi password baru">
-                                <button type="button" onclick="togglePw('conf_pw','conf_pw_icon')">
-                                    <i class="fas fa-eye" id="conf_pw_icon"></i>
-                                </button>
-                            </div>
-                            <div id="confirm-msg" style="font-size:12px;margin-top:5px"></div>
+                        <!-- Strength bar -->
+                        <div class="pw-strength-bar"><div class="pw-strength-fill" id="pw-bar"></div></div>
+                        <div class="pw-strength-label" id="pw-label"></div>
+                        <!-- Rules checklist -->
+                        <div class="pw-rules">
+                            <div class="pw-rule" id="rule-len"><i class="fas fa-check"></i> Min. 8 karakter</div>
+                            <div class="pw-rule" id="rule-upper"><i class="fas fa-check"></i> Huruf besar (A-Z)</div>
+                            <div class="pw-rule" id="rule-lower"><i class="fas fa-check"></i> Huruf kecil (a-z)</div>
+                            <div class="pw-rule" id="rule-num"><i class="fas fa-check"></i> Angka (0-9)</div>
+                            <div class="pw-rule" id="rule-special"><i class="fas fa-check"></i> Karakter khusus (!@#)</div>
                         </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Konfirmasi Password <span style="color:red">*</span></label>
+                        <div class="input-pw-wrap">
+                            <input type="password" name="confirm_password" id="conf_pw"
+                                   class="form-control" required placeholder="Ulangi password baru">
+                            <button type="button" onclick="togglePw('conf_pw','conf_pw_icon')">
+                                <i class="fas fa-eye" id="conf_pw_icon"></i>
+                            </button>
+                        </div>
+                        <div id="confirm-msg" style="font-size:12px;margin-top:5px"></div>
                     </div>
                     <div class="form-actions">
                         <button type="submit" class="btn btn-warning" id="btn-ganti-pw">
@@ -178,6 +187,46 @@
 </div>
 
 <style>
+/* Password strength & rules */
+.pw-rules {
+    margin-top: 10px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+.pw-rule {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    color: #9ca3af;
+    transition: color .2s;
+}
+.pw-rule i {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    border: 1.5px solid #d1d5db;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8px;
+    transition: all .2s;
+    flex-shrink: 0;
+}
+.pw-rule.ok { color: #16a34a; }
+.pw-rule.ok i { background: #16a34a; border-color: #16a34a; color: #fff; }
+.pw-strength-bar {
+    margin-top: 10px; height: 5px;
+    background: #f3f4f6; border-radius: 99px; overflow: hidden;
+}
+.pw-strength-fill {
+    height: 100%; border-radius: 99px; width: 0; transition: width .3s, background .3s;
+}
+.pw-strength-label { font-size: 11px; margin-top: 5px; font-weight: 600; }
+.strength-0 { width:0; background:#e5e7eb; }
+.strength-1 { width:25%; background:#ef4444; }
+.strength-2 { width:50%; background:#f59e0b; }
+.strength-3 { width:75%; background:#3b82f6; }
+.strength-4 { width:100%; background:#16a34a; }
+
 .profile-layout {
     display: grid;
     grid-template-columns: 260px 1fr;
@@ -324,23 +373,50 @@
 function togglePw(inputId, iconId) {
     var input = document.getElementById(inputId);
     var icon  = document.getElementById(iconId);
-    if (input.type === 'password') {
-        input.type = 'text';
-        icon.className = 'fas fa-eye-slash';
-    } else {
-        input.type = 'password';
-        icon.className = 'fas fa-eye';
-    }
+    input.type = input.type === 'password' ? 'text' : 'password';
+    icon.className = input.type === 'password' ? 'fas fa-eye' : 'fas fa-eye-slash';
 }
 
-document.getElementById('new_pw').addEventListener('input', checkConfirm);
+var strengthLabels = ['', 'Lemah', 'Cukup', 'Kuat', 'Sangat Kuat'];
+var strengthColors = ['', '#ef4444', '#f59e0b', '#3b82f6', '#16a34a'];
+
+document.getElementById('new_pw').addEventListener('input', function () {
+    var val    = this.value;
+    var hasLen = val.length >= 8;
+    var hasUp  = /[A-Z]/.test(val);
+    var hasLow = /[a-z]/.test(val);
+    var hasNum = /[0-9]/.test(val);
+    var hasSpc = /[^A-Za-z0-9]/.test(val);
+
+    setRule('rule-len',     hasLen);
+    setRule('rule-upper',   hasUp);
+    setRule('rule-lower',   hasLow);
+    setRule('rule-num',     hasNum);
+    setRule('rule-special', hasSpc);
+
+    var score    = [hasLen, hasUp, hasLow, hasNum, hasSpc].filter(Boolean).length;
+    var strength = val.length === 0 ? 0 : score <= 2 ? 1 : score === 3 ? 2 : score === 4 ? 3 : 4;
+
+    var bar   = document.getElementById('pw-bar');
+    var label = document.getElementById('pw-label');
+    bar.className     = 'pw-strength-fill strength-' + strength;
+    label.textContent = strength > 0 ? 'Kekuatan: ' + strengthLabels[strength] : '';
+    label.style.color = strengthColors[strength];
+
+    checkConfirm();
+});
+
 document.getElementById('conf_pw').addEventListener('input', checkConfirm);
 
+function setRule(id, ok) {
+    document.getElementById(id).classList.toggle('ok', ok);
+}
+
 function checkConfirm() {
-    var pw   = document.getElementById('new_pw').value;
-    var pw2  = document.getElementById('conf_pw').value;
-    var msg  = document.getElementById('confirm-msg');
-    var btn  = document.getElementById('btn-ganti-pw');
+    var pw  = document.getElementById('new_pw').value;
+    var pw2 = document.getElementById('conf_pw').value;
+    var msg = document.getElementById('confirm-msg');
+    var btn = document.getElementById('btn-ganti-pw');
     if (!pw2) { msg.textContent = ''; btn.disabled = false; return; }
     if (pw === pw2) {
         msg.textContent = '✓ Password cocok';
