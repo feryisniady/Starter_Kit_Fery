@@ -90,6 +90,7 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	// =====================================================================
 	// Master Irban
 	$routes->get('master/irban',                 'Admin\MasterIrbanController::index');
+	$routes->post('master/irban/data',           'Admin\MasterIrbanController::getData');
 	$routes->get('master/irban/create',          'Admin\MasterIrbanController::create');
 	$routes->post('master/irban/store',          'Admin\MasterIrbanController::store');
 	$routes->get('master/irban/edit/(:num)',     'Admin\MasterIrbanController::edit/$1');
@@ -116,13 +117,25 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	// =====================================================================
 	// PKPT
 	// =====================================================================
-	$routes->get('pkpt/setting',                'Admin\PkptSettingController::index');
-	$routes->post('pkpt/setting/store',         'Admin\PkptSettingController::store');
-	$routes->post('pkpt/setting/delete/(:num)', 'Admin\PkptSettingController::delete/$1');
+	// Header PKPT (dokumen SK per tahun)
+	$routes->get('pkpt/setting',                  'Admin\PkptSettingController::index');
+	$routes->post('pkpt/setting/store',           'Admin\PkptSettingController::store');
+	$routes->post('pkpt/setting/approve/(:num)',  'Admin\PkptSettingController::approve/$1');
+	$routes->post('pkpt/setting/revok/(:num)',    'Admin\PkptSettingController::revok/$1');
+	$routes->post('pkpt/setting/delete/(:num)',   'Admin\PkptSettingController::delete/$1');
+
+	// Hari Libur
+	$routes->get('pkpt/hari-libur',               'Admin\HariLiburController::index');
+	$routes->post('pkpt/hari-libur/store',        'Admin\HariLiburController::store');
+	$routes->post('pkpt/hari-libur/store-batch',  'Admin\HariLiburController::storeBatch');
+	$routes->post('pkpt/hari-libur/delete/(:num)','Admin\HariLiburController::delete/$1');
+	$routes->get('pkpt/hari-libur/hitung-hp',     'Admin\HariLiburController::hitungHp');
 
 	$routes->get('pkpt',                            'Admin\PkptController::index');
+	$routes->post('pkpt/data',                      'Admin\PkptController::getData');
 	$routes->post('pkpt/buat',                      'Admin\PkptController::createOrGetPkpt');
 	$routes->get('pkpt/(:num)',                     'Admin\PkptController::show/$1');
+	$routes->post('pkpt/(:num)/status',             'Admin\PkptController::updateStatus/$1');
 	$routes->get('pkpt/(:num)/kegiatan/create',    'Admin\PkptController::createKegiatan/$1');
 	$routes->post('pkpt/(:num)/kegiatan/store',    'Admin\PkptController::storeKegiatan/$1');
 	$routes->get('pkpt/kegiatan/edit/(:num)',       'Admin\PkptController::editKegiatan/$1');
@@ -170,4 +183,19 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	// =====================================================================
 	$routes->get('master/kode-temuan',          'Admin\KodetemuanController::index');
 	$routes->post('master/kode-temuan/data',    'Admin\KodetemuanController::getData');
+
+	// =====================================================================
+	// KM — Kendali Mutu (per SPT)
+	// =====================================================================
+	$routes->get('spt/(:num)/km',                         'Admin\KmController::index/$1');
+	$routes->get('spt/(:num)/km/1',                       'Admin\KmController::km1/$1');
+	$routes->post('spt/(:num)/km/1/save',                 'Admin\KmController::saveKm1/$1');
+	$routes->get('spt/(:num)/km/4',                       'Admin\KmController::km4/$1');
+	$routes->post('spt/(:num)/km/4/save',                 'Admin\KmController::saveKm4/$1');
+	$routes->get('spt/(:num)/km/6',                       'Admin\KmController::km6/$1');
+	$routes->post('spt/(:num)/km/6/save',                 'Admin\KmController::saveKm6/$1');
+	$routes->get('spt/(:num)/km/anggaran-waktu',          'Admin\KmController::anggaranWaktu/$1');
+	$routes->post('spt/(:num)/km/anggaran-waktu/save',    'Admin\KmController::saveAnggaranWaktu/$1');
+	$routes->get('spt/(:num)/km/independensi',            'Admin\KmController::independensi/$1');
+	$routes->post('spt/(:num)/km/independensi/save',      'Admin\KmController::saveIndepensi/$1');
 });
