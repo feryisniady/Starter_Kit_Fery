@@ -44,6 +44,14 @@
     to   { transform: translateY(0);    opacity: 1; }
 }
 
+/* Form di dalam modal-box/modal menjadi flex column agar modal-body & modal-footer bekerja */
+.modal > form, .modal-box > form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
 .modal-header {
     display: flex;
     align-items: center;

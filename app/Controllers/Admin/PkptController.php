@@ -132,6 +132,16 @@ class PkptController extends BaseController
             $irbanId = $this->getUserIrbanId(session()->get('user_id')) ?? 0;
         }
 
+        if (!$irbanId) {
+            return redirect()->to('/admin/pkpt?tahun=' . $tahun)
+                ->with('error', 'Silakan pilih Irban terlebih dahulu.');
+        }
+
+        if (!$tahun) {
+            return redirect()->to('/admin/pkpt')
+                ->with('error', 'Tahun PKPT tidak valid.');
+        }
+
         $existing = $this->pkptModel->getByIrbanTahun($irbanId, $tahun);
         if ($existing) {
             return redirect()->to('/admin/pkpt/' . $existing['id']);
@@ -143,6 +153,11 @@ class PkptController extends BaseController
             'status'     => 'draft',
             'created_by' => session()->get('user_id'),
         ]);
+
+        if (!$id) {
+            return redirect()->to('/admin/pkpt?tahun=' . $tahun)
+                ->with('error', 'Gagal membuat PKPT. Periksa data Irban dan Tahun.');
+        }
 
         logActivity('pkpt.create', 'pkpt', "Buat PKPT irban_id={$irbanId} tahun={$tahun}");
         return redirect()->to('/admin/pkpt/' . $id);

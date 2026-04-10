@@ -86,27 +86,34 @@
             <h3>Buat PKPT</h3>
             <button class="modal-close" onclick="Modal.close('modal-buat')"><i class="fas fa-times"></i></button>
         </div>
-        <form action="/admin/pkpt/buat" method="POST">
+        <form action="/admin/pkpt/buat" method="POST" style="padding:22px">
             <?= csrf_field() ?>
             <input type="hidden" name="tahun" id="modal-tahun" value="<?= $tahun ?>">
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>Tahun</label>
-                    <input type="text" class="form-control" id="modal-tahun-display" value="<?= $tahun ?>" readonly style="background:#f8fafc">
-                </div>
-                <div class="form-group" style="margin-bottom:0">
-                    <label>Irban <span class="text-danger">*</span></label>
-                    <select name="irban_id" class="form-control" required>
-                        <option value="">— Pilih Irban —</option>
-                        <?php foreach($irbanList as $ir): ?>
-                        <option value="<?= $ir['id'] ?>"><?= esc($ir['kode']) ?> — <?= esc($ir['nama']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
+            <div class="form-group">
+                <label style="font-size:12px;font-weight:600;color:#34395e">Tahun</label>
+                <input type="text" class="form-control" value="<?= $tahun ?>" readonly style="background:#f8fafc;color:#64748b">
             </div>
-            <div class="modal-footer">
+            <?php if(empty($irbanList)): ?>
+            <div style="padding:14px;background:#fef9ec;border:1px solid #f59e0b;border-radius:8px;font-size:13px;color:#92400e;margin-bottom:16px">
+                <i class="fas fa-triangle-exclamation"></i>
+                Belum ada data Irban. <a href="/admin/master/irban/create" style="font-weight:600">Tambah Irban</a> terlebih dahulu.
+            </div>
+            <?php else: ?>
+            <div class="form-group">
+                <label style="font-size:12px;font-weight:600;color:#34395e">Irban <span class="text-danger">*</span></label>
+                <select name="irban_id" class="form-control" required>
+                    <option value="">— Pilih Irban —</option>
+                    <?php foreach($irbanList as $ir): ?>
+                    <option value="<?= $ir['id'] ?>"><?= esc($ir['kode']) ?> — <?= esc($ir['nama']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <?php endif; ?>
+            <div class="form-actions" style="margin-top:8px;padding-top:16px;border-top:1px solid #f1f5f9">
                 <button type="button" class="btn btn-secondary" onclick="Modal.close('modal-buat')">Batal</button>
+                <?php if(!empty($irbanList)): ?>
                 <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Buat PKPT</button>
+                <?php endif; ?>
             </div>
         </form>
     </div>
