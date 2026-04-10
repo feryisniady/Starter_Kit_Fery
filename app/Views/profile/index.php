@@ -162,10 +162,11 @@
                                     <i class="fas fa-eye" id="conf_pw_icon"></i>
                                 </button>
                             </div>
+                            <div id="confirm-msg" style="font-size:12px;margin-top:5px"></div>
                         </div>
                     </div>
                     <div class="form-actions">
-                        <button type="submit" class="btn btn-warning">
+                        <button type="submit" class="btn btn-warning" id="btn-ganti-pw">
                             <i class="fas fa-key"></i> Ganti Password
                         </button>
                     </div>
@@ -329,6 +330,26 @@ function togglePw(inputId, iconId) {
     } else {
         input.type = 'password';
         icon.className = 'fas fa-eye';
+    }
+}
+
+document.getElementById('new_pw').addEventListener('input', checkConfirm);
+document.getElementById('conf_pw').addEventListener('input', checkConfirm);
+
+function checkConfirm() {
+    var pw   = document.getElementById('new_pw').value;
+    var pw2  = document.getElementById('conf_pw').value;
+    var msg  = document.getElementById('confirm-msg');
+    var btn  = document.getElementById('btn-ganti-pw');
+    if (!pw2) { msg.textContent = ''; btn.disabled = false; return; }
+    if (pw === pw2) {
+        msg.textContent = '✓ Password cocok';
+        msg.style.color = '#16a34a';
+        btn.disabled = false;
+    } else {
+        msg.textContent = '✗ Password tidak cocok';
+        msg.style.color = '#dc2626';
+        btn.disabled = true;
     }
 }
 </script>

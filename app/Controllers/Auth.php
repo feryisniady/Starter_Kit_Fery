@@ -152,10 +152,9 @@ class Auth extends BaseController
 
         $user = $this->userModel->where('email', $email)->first();
 
-        // Selalu tampilkan pesan sukses (cegah user enumeration)
         if (!$user) {
-            return redirect()->to('/forgot-password')
-                ->with('success', 'Jika email terdaftar, link reset akan dikirim ke ' . esc($email));
+            return redirect()->back()->withInput()
+                ->with('error', 'Email ' . esc($email) . ' tidak terdaftar di sistem.');
         }
 
         $resetModel = new PasswordResetModel();
