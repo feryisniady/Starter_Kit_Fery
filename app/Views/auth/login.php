@@ -274,7 +274,7 @@
             </div>
             <label class="show-pw" onclick="togglePassword()">
                 <i class="fas fa-eye" style="font-size:12px;color:#9ca3af"></i>
-                Show Password
+                Lihat Password
             </label>
         </div>
 
