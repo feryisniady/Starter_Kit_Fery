@@ -60,6 +60,21 @@ class PkptKegiatanModel extends Model
     }
 
     /**
+     * Total HP terpakai dalam 1 PKPT (semua kegiatan aktif).
+     * Jika excludeId diberikan, kegiatan tersebut dikecualikan (untuk mode edit).
+     */
+    public function getTotalHpByPkpt(int $pkptId, ?int $excludeId = null): int
+    {
+        $q = $this->db->table('pkpt_tim pt')
+            ->join('pkpt_kegiatan pk', 'pk.id = pt.pkpt_kegiatan_id')
+            ->where('pk.pkpt_id', $pkptId)
+            ->where('pk.status !=', 'batal');
+        if ($excludeId) $q->where('pk.id !=', $excludeId);
+        $row = $q->selectSum('pt.hp_total')->get()->getRow();
+        return (int)($row->hp_total ?? 0);
+    }
+
+    /**
      * Generate kode kegiatan: PKP-{TAHUN}-{KODE_IRBAN}-{URUTAN 3 DIGIT}
      */
     public function generateKode(int $pkptId): string

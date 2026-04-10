@@ -198,20 +198,23 @@ class PkptController extends BaseController
             return redirect()->to('/admin/pkpt')->with('error', 'Akses ditolak.');
         }
 
-        $setting = $this->settingModel->getByTahun((int)$pkpt['tahun']);
-
+        $setting   = $this->settingModel->getByTahun((int)$pkpt['tahun']);
         $hpEfektif = (new HariLiburModel())->hitungHariKerjaTahun((int)$pkpt['tahun']);
         if ($hpEfektif === 0 && $setting) $hpEfektif = (int)$setting['total_hp_tahunan'];
 
+        $hpTerpakai = $this->kegiatanModel->getTotalHpByPkpt($pkptId);
+
         return view('admin/pkpt/kegiatan_form', [
-            'title'     => 'Tambah Kegiatan PKPT',
-            'pkpt'      => $pkpt,
-            'setting'   => $setting,
-            'hpEfektif' => $hpEfektif,
-            'entitas'   => $this->entitasModel->getAktif(),
-            'sdm'       => $this->sdmModel->withIrban(),
-            'row'       => null,
-            'timRows'   => [],
+            'title'      => 'Tambah Kegiatan PKPT',
+            'pkpt'       => $pkpt,
+            'setting'    => $setting,
+            'hpEfektif'  => $hpEfektif,
+            'hpTerpakai' => $hpTerpakai,
+            'hpSisa'     => max(0, $hpEfektif - $hpTerpakai),
+            'entitas'    => $this->entitasModel->getAktif(),
+            'sdm'        => $this->sdmModel->withIrban(),
+            'row'        => null,
+            'timRows'    => [],
         ]);
     }
 
@@ -230,6 +233,18 @@ class PkptController extends BaseController
         if (!$this->validate($rules)) {
             return redirect()->back()->withInput()
                 ->with('error', implode('<br>', $this->validator->getErrors()));
+        }
+
+        // Cek sisa HP PKPT
+        $setting   = $this->settingModel->getByTahun((int)$pkpt['tahun']);
+        $hpEfektif = (new HariLiburModel())->hitungHariKerjaTahun((int)$pkpt['tahun']);
+        if ($hpEfektif === 0 && $setting) $hpEfektif = (int)$setting['total_hp_tahunan'];
+        $hpTerpakai   = $this->kegiatanModel->getTotalHpByPkpt($pkptId);
+        $hpSisa       = max(0, $hpEfektif - $hpTerpakai);
+        $hpDiajukan   = array_sum(array_map('intval', (array)($this->request->getPost('tim_hp') ?? [])));
+        if ($hpDiajukan > 0 && $hpDiajukan > $hpSisa) {
+            return redirect()->back()->withInput()
+                ->with('error', "Total HP tim ({$hpDiajukan} hari) melebihi sisa HP PKPT yang tersedia ({$hpSisa} hari).");
         }
 
         $kode = $this->kegiatanModel->generateKode($pkptId);
@@ -276,19 +291,23 @@ class PkptController extends BaseController
         $pkpt = $this->pkptModel->getWithIrban($kegiatan['pkpt_id']);
         if (!$this->canAccessPkpt($pkpt)) return redirect()->to('/admin/pkpt')->with('error', 'Akses ditolak.');
 
-        $setting   = $this->settingModel->getByTahun((int)$pkpt['tahun']);
-        $hpEfektif = (new HariLiburModel())->hitungHariKerjaTahun((int)$pkpt['tahun']);
+        $setting    = $this->settingModel->getByTahun((int)$pkpt['tahun']);
+        $hpEfektif  = (new HariLiburModel())->hitungHariKerjaTahun((int)$pkpt['tahun']);
         if ($hpEfektif === 0 && $setting) $hpEfektif = (int)$setting['total_hp_tahunan'];
+        // Exclude kegiatan ini sendiri saat hitung sisa (mode edit)
+        $hpTerpakai = $this->kegiatanModel->getTotalHpByPkpt($kegiatan['pkpt_id'], $id);
 
         return view('admin/pkpt/kegiatan_form', [
-            'title'     => 'Edit Kegiatan PKPT',
-            'pkpt'      => $pkpt,
-            'setting'   => $setting,
-            'hpEfektif' => $hpEfektif,
-            'entitas'   => $this->entitasModel->getAktif(),
-            'sdm'       => $this->sdmModel->withIrban(),
-            'row'       => $kegiatan,
-            'timRows'   => $kegiatan['tim'],
+            'title'      => 'Edit Kegiatan PKPT',
+            'pkpt'       => $pkpt,
+            'setting'    => $setting,
+            'hpEfektif'  => $hpEfektif,
+            'hpTerpakai' => $hpTerpakai,
+            'hpSisa'     => max(0, $hpEfektif - $hpTerpakai),
+            'entitas'    => $this->entitasModel->getAktif(),
+            'sdm'        => $this->sdmModel->withIrban(),
+            'row'        => $kegiatan,
+            'timRows'    => $kegiatan['tim'],
         ]);
     }
 
@@ -299,6 +318,18 @@ class PkptController extends BaseController
 
         $pkpt = $this->pkptModel->getWithIrban($kegiatan['pkpt_id']);
         if (!$this->canAccessPkpt($pkpt)) return redirect()->to('/admin/pkpt')->with('error', 'Akses ditolak.');
+
+        // Cek sisa HP (kecualikan kegiatan ini sendiri)
+        $setting   = $this->settingModel->getByTahun((int)$pkpt['tahun']);
+        $hpEfektif = (new HariLiburModel())->hitungHariKerjaTahun((int)$pkpt['tahun']);
+        if ($hpEfektif === 0 && $setting) $hpEfektif = (int)$setting['total_hp_tahunan'];
+        $hpTerpakai = $this->kegiatanModel->getTotalHpByPkpt($kegiatan['pkpt_id'], $id);
+        $hpSisa     = max(0, $hpEfektif - $hpTerpakai);
+        $hpDiajukan = array_sum(array_map('intval', (array)($this->request->getPost('tim_hp') ?? [])));
+        if ($hpDiajukan > 0 && $hpDiajukan > $hpSisa) {
+            return redirect()->back()->withInput()
+                ->with('error', "Total HP tim ({$hpDiajukan} hari) melebihi sisa HP PKPT yang tersedia ({$hpSisa} hari).");
+        }
 
         $this->kegiatanModel->update($id, [
             'area_pengawasan'  => $this->request->getPost('area_pengawasan'),

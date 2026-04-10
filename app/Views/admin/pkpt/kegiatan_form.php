@@ -18,33 +18,52 @@
 <?php endif; ?>
 
 <!-- Info Header PKPT + HP Tersedia -->
+<?php
+$hpPct = $hpEfektif > 0 ? min(100, round(($hpTerpakai / $hpEfektif) * 100)) : 0;
+$hpBarColor = $hpPct >= 90 ? '#ef4444' : ($hpPct >= 70 ? '#f59e0b' : '#22c55e');
+?>
 <div class="card mb-3" style="border-left:4px solid #6366f1">
-    <div class="card-body" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px;padding:14px 20px">
-        <div>
-            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">Header PKPT</div>
-            <div style="font-weight:600;font-size:13px"><?= esc($setting['nomor_pkpt'] ?? '—') ?></div>
-            <div style="font-size:11px;color:#64748b">
-                <?= ($setting['tanggal_pkpt'] ?? '') ? date('d/m/Y', strtotime($setting['tanggal_pkpt'])) : '—' ?>
-                <?php if($setting): ?>
-                &nbsp;<span class="badge badge-<?= $setting['status']==='disetujui' ? 'success' : 'warning' ?>" style="font-size:10px">
-                    <?= $setting['status']==='disetujui' ? 'Disetujui' : 'Draft' ?>
-                </span>
-                <?php endif; ?>
+    <div class="card-body" style="padding:14px 20px">
+        <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1fr;gap:16px;align-items:center">
+            <div>
+                <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">Header PKPT</div>
+                <div style="font-weight:600;font-size:13px"><?= esc($setting['nomor_pkpt'] ?? '—') ?></div>
+                <div style="font-size:11px;color:#64748b">
+                    <?= ($setting['tanggal_pkpt'] ?? '') ? date('d/m/Y', strtotime($setting['tanggal_pkpt'])) : '—' ?>
+                    <?php if($setting): ?>
+                    &nbsp;<span class="badge badge-<?= $setting['status']==='disetujui' ? 'success' : 'warning' ?>" style="font-size:10px">
+                        <?= $setting['status']==='disetujui' ? 'Disetujui' : 'Draft' ?>
+                    </span>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <div>
+                <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">HP Efektif</div>
+                <div style="font-weight:700;font-size:20px;color:#6366f1"><?= $hpEfektif ?? '—' ?></div>
+                <div style="font-size:11px;color:#94a3b8">hari/tahun</div>
+            </div>
+            <div>
+                <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">HP Terpakai</div>
+                <div style="font-weight:700;font-size:20px;color:#f59e0b"><?= $hpTerpakai ?></div>
+                <div style="font-size:11px;color:#94a3b8">dari kegiatan lain</div>
+            </div>
+            <div>
+                <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">Sisa HP</div>
+                <div style="font-weight:700;font-size:20px;color:<?= $hpSisa <= 0 ? '#ef4444' : '#22c55e' ?>" id="disp-sisa-hp"><?= $hpSisa ?></div>
+                <div style="font-size:11px;color:#94a3b8">tersedia</div>
+            </div>
+            <div>
+                <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">Tarif HP</div>
+                <div style="font-weight:600;font-size:14px">Rp <?= number_format($setting['tarif_hp'] ?? 160000, 0, ',', '.') ?></div>
+                <div style="font-size:11px;color:#94a3b8">per hari</div>
             </div>
         </div>
-        <div>
-            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">Irban</div>
-            <div style="font-weight:600;font-size:13px"><?= esc($pkpt['irban_nama']) ?></div>
-        </div>
-        <div>
-            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">Total HP Efektif</div>
-            <div style="font-weight:700;font-size:20px;color:#6366f1"><?= $hpEfektif ?? '—' ?></div>
-            <div style="font-size:11px;color:#94a3b8">hari kerja / tahun</div>
-        </div>
-        <div>
-            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">Tarif HP</div>
-            <div style="font-weight:600;font-size:14px">Rp <?= number_format($setting['tarif_hp'] ?? 160000, 0, ',', '.') ?></div>
-            <div style="font-size:11px;color:#94a3b8">per hari</div>
+        <!-- Progress Bar HP -->
+        <div style="margin-top:12px">
+            <div style="font-size:11px;color:#94a3b8;margin-bottom:4px">Utilisasi HP PKPT: <?= $hpPct ?>%</div>
+            <div style="height:6px;background:#f1f5f9;border-radius:3px;overflow:hidden">
+                <div id="hp-progress-bar" style="height:100%;width:<?= $hpPct ?>%;background:<?= $hpBarColor ?>;border-radius:3px;transition:width .3s"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -151,7 +170,12 @@
                     </button>
                 </div>
                 <div class="card-body">
-                    <div id="tim-sisa-info" style="font-size:12px;color:#64748b;margin-bottom:10px"></div>
+                    <div id="hp-kegiatan-counter" style="display:flex;align-items:center;gap:16px;padding:10px 14px;background:#f8fafc;border-radius:8px;margin-bottom:12px;font-size:13px">
+                        <span>HP kegiatan ini: <strong id="hp-kegiatan-val" style="color:#6366f1">0</strong> hari</span>
+                        <span style="color:#94a3b8">|</span>
+                        <span>Sisa setelah simpan: <strong id="hp-after-val" style="color:#22c55e">—</strong> hari</span>
+                        <span id="hp-warning" style="color:#ef4444;display:none"><i class="fas fa-triangle-exclamation"></i> Melebihi sisa HP!</span>
+                    </div>
                     <table class="table-admin w-100" id="tbl-tim">
                         <thead>
                             <tr>
@@ -248,11 +272,13 @@
 <?= $this->endSection() ?>
 <?= $this->section('scripts') ?>
 <script>
-const tarif = <?= ($setting['tarif_hp'] ?? 160000) ?>;
-const tahun = <?= $pkpt['tahun'] ?>;
+const tarif    = <?= ($setting['tarif_hp'] ?? 160000) ?>;
+const tahun    = <?= $pkpt['tahun'] ?>;
+const hpSisa   = <?= (int)($hpSisa ?? 0) ?>;   // sisa HP PKPT sebelum kegiatan ini
+const hpEfektif = <?= (int)($hpEfektif ?? 0) ?>;
+const hpTerpakai = <?= (int)($hpTerpakai ?? 0) ?>;
 
 const sdmOptions = `<?php foreach($sdm as $s): ?><option value="<?= $s['id'] ?>"><?= esc($s['nama']) ?> (<?= esc($s['irban_nama'] ?? '-') ?>)</option><?php endforeach; ?>`;
-
 const peranOptions = ['PJ','WPJ','Dalnis','KT','AT'];
 
 function tambahBarisTim() {
@@ -275,7 +301,7 @@ function tambahBarisTim() {
 
 function hitungTotal() {
     let totalHp = 0, totalAng = 0;
-    $('.hp-input').each(function(i) {
+    $('.hp-input').each(function() {
         const hp  = parseInt($(this).val()) || 0;
         const ang = hp * tarif;
         totalHp  += hp;
@@ -284,13 +310,36 @@ function hitungTotal() {
     });
     $('#total-hp').text(totalHp);
     $('#total-anggaran').text('Rp ' + totalAng.toLocaleString('id-ID'));
+
+    // Live HP counter
+    const sisaSetelah = hpSisa - totalHp;
+    $('#hp-kegiatan-val').text(totalHp);
+    $('#hp-after-val').text(sisaSetelah >= 0 ? sisaSetelah : 0);
+    if (sisaSetelah < 0) {
+        $('#hp-after-val').css('color', '#ef4444');
+        $('#hp-warning').show();
+    } else if (sisaSetelah <= Math.ceil(hpEfektif * 0.1)) {
+        $('#hp-after-val').css('color', '#f59e0b');
+        $('#hp-warning').hide();
+    } else {
+        $('#hp-after-val').css('color', '#22c55e');
+        $('#hp-warning').hide();
+    }
+
+    // Update progress bar
+    if (hpEfektif > 0) {
+        const pct = Math.min(100, Math.round(((hpTerpakai + totalHp) / hpEfektif) * 100));
+        const color = pct >= 90 ? '#ef4444' : (pct >= 70 ? '#f59e0b' : '#22c55e');
+        $('#hp-progress-bar').css({'width': pct + '%', 'background': color});
+        $('#disp-sisa-hp').text(Math.max(0, hpSisa - totalHp)).css('color', sisaSetelah <= 0 ? '#ef4444' : '#22c55e');
+    }
 }
 
 function updateSisaHp(sel) {
     const sdmId = $(sel).val();
     if (!sdmId) return;
     $.get('/admin/pkpt/sisa-hp?sdm_id=' + sdmId + '&tahun=' + tahun, res => {
-        $(sel).next('.sisa-hp-info').text('Sisa HP: ' + res.sisa_hp + ' hari');
+        $(sel).next('.sisa-hp-info').text('Sisa HP SDM: ' + res.sisa_hp + ' hari');
     });
 }
 
