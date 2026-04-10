@@ -5,9 +5,12 @@ namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Models\IrbanModel;
 use App\Models\SdmModel;
+use App\Traits\DatatableTrait;
 
 class MasterIrbanController extends BaseController
 {
+    use DatatableTrait;
+
     protected IrbanModel $irbanModel;
     protected SdmModel   $sdmModel;
 
@@ -19,10 +22,51 @@ class MasterIrbanController extends BaseController
 
     public function index()
     {
-        return view('admin/master/irban/index', [
-            'title' => 'Master Irban',
-            'data'  => $this->irbanModel->withKepala(),
-        ]);
+        return view('admin/master/irban/index', ['title' => 'Master Irban']);
+    }
+
+    public function getData()
+    {
+        if (!$this->request->isAJAX()) return $this->response->setStatusCode(403);
+
+        ['draw'=>$draw,'start'=>$start,'length'=>$length,'search'=>$search,'order'=>$order] = $this->dtRequest();
+
+        $db = \Config\Database::connect();
+
+        $baseQ = $db->table('irban i')
+            ->select('i.*, s.nama as kepala_nama')
+            ->join('sdm s', 's.id = i.kepala_sdm_id', 'left');
+
+        $total = (clone $baseQ)->countAllResults(false);
+
+        if ($search) {
+            $baseQ->groupStart()
+                ->like('i.kode', $search)
+                ->orLike('i.nama', $search)
+                ->orLike('s.nama', $search)
+                ->groupEnd();
+        }
+
+        $filtered = $search ? (clone $baseQ)->countAllResults(false) : $total;
+
+        [$ordCol, $ordDir] = $this->dtOrder($order, [2=>'i.kode', 3=>'i.nama', 4=>'s.nama'], 'i.kode');
+        $rows = $baseQ->orderBy($ordCol, $ordDir)->limit($length, $start)->get()->getResultArray();
+
+        $data = [];
+        foreach ($rows as $i => $row) {
+            $data[] = [
+                'no'      => $start + $i + 1,
+                'kode'    => '<span class="badge badge-primary">' . esc($row['kode']) . '</span>',
+                'nama'    => esc($row['nama']),
+                'kepala'  => esc($row['kepala_nama'] ?? '—'),
+                'aksi'    => $this->dtActions([
+                    ['type'=>'warning', 'icon'=>'fa-pen',   'title'=>'Edit',  'href'=>'/admin/master/irban/edit/'.$row['id']],
+                    ['type'=>'danger',  'icon'=>'fa-trash', 'title'=>'Hapus', 'href'=>'/admin/master/irban/delete/'.$row['id'], 'ajax'=>true],
+                ]),
+            ];
+        }
+
+        return $this->dtResponse($draw, $total, $filtered, $data);
     }
 
     public function create()

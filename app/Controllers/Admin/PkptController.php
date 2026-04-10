@@ -11,9 +11,12 @@ use App\Models\IrbanModel;
 use App\Models\EntitasModel;
 use App\Models\SdmModel;
 use App\Models\HariLiburModel;
+use App\Traits\DatatableTrait;
 
 class PkptController extends BaseController
 {
+    use DatatableTrait;
+
     protected PkptModel         $pkptModel;
     protected PkptKegiatanModel $kegiatanModel;
     protected PkptTimModel      $timModel;
@@ -39,11 +42,30 @@ class PkptController extends BaseController
 
     public function index()
     {
+        $tahun = (int)($this->request->getGet('tahun') ?? $this->settingModel->getTahunAktif());
+
+        return view('admin/pkpt/index', [
+            'title'          => 'PKPT ' . $tahun,
+            'tahun'          => $tahun,
+            'settings'       => $this->settingModel->orderBy('tahun', 'DESC')->findAll(),
+            'currentSetting' => $this->settingModel->getByTahun($tahun),
+            'irbanList'      => (new IrbanModel())->orderBy('kode')->findAll(),
+        ]);
+    }
+
+    public function getData()
+    {
+        if (!$this->request->isAJAX()) return $this->response->setStatusCode(403);
+
+        ['draw'=>$draw,'start'=>$start,'length'=>$length,'search'=>$search,'order'=>$order] = $this->dtRequest();
+
         $userId  = session()->get('user_id');
         $isAdmin = $this->isAdmin();
-        $tahun   = (int)($this->request->getGet('tahun') ?? $this->settingModel->getTahunAktif());
+        $tahun   = (int)($this->request->getPost('tahun') ?? $this->settingModel->getTahunAktif());
 
-        $q = $this->pkptModel->db->table('pkpt p')
+        $db = \Config\Database::connect();
+
+        $baseQ = $db->table('pkpt p')
             ->select('p.*, i.nama as irban_nama, i.kode as irban_kode,
                 (SELECT COUNT(*) FROM pkpt_kegiatan WHERE pkpt_id = p.id) as jumlah_kegiatan')
             ->join('irban i', 'i.id = p.irban_id')
@@ -51,16 +73,40 @@ class PkptController extends BaseController
 
         if (!$isAdmin) {
             $irbanId = $this->getUserIrbanId($userId);
-            if ($irbanId) $q->where('p.irban_id', $irbanId);
+            if ($irbanId) $baseQ->where('p.irban_id', $irbanId);
         }
 
-        return view('admin/pkpt/index', [
-            'title'          => 'PKPT Tahun ' . $tahun,
-            'pkptList'       => $q->orderBy('i.kode')->get()->getResultArray(),
-            'tahun'          => $tahun,
-            'settings'       => $this->settingModel->orderBy('tahun', 'DESC')->findAll(),
-            'currentSetting' => $this->settingModel->getByTahun($tahun),
-        ]);
+        $total = (clone $baseQ)->countAllResults(false);
+
+        if ($search) {
+            $baseQ->groupStart()
+                ->like('i.kode', $search)
+                ->orLike('i.nama', $search)
+                ->groupEnd();
+        }
+
+        $filtered = $search ? (clone $baseQ)->countAllResults(false) : $total;
+        $rows = $baseQ->orderBy('i.kode')->limit($length, $start)->get()->getResultArray();
+
+        $statusColor = ['draft'=>'secondary','diajukan'=>'info','disetujui'=>'success'];
+        $statusLabel = ['draft'=>'Draft','diajukan'=>'Diajukan','disetujui'=>'Disetujui'];
+
+        $data = [];
+        foreach ($rows as $i => $row) {
+            $badge = '<span class="badge badge-'.($statusColor[$row['status']]??'secondary').'">'.($statusLabel[$row['status']]??$row['status']).'</span>';
+            $data[] = [
+                'no'       => $start + $i + 1,
+                'kode'     => '<span class="badge badge-primary">'.esc($row['irban_kode']).'</span>',
+                'irban'    => esc($row['irban_nama']),
+                'kegiatan' => '<span style="font-weight:600">'.$row['jumlah_kegiatan'].'</span> kegiatan',
+                'status'   => $badge,
+                'aksi'     => $this->dtActions([
+                    ['type'=>'primary', 'icon'=>'fa-list-check', 'title'=>'Kelola Kegiatan', 'href'=>'/admin/pkpt/'.$row['id']],
+                ]),
+            ];
+        }
+
+        return $this->dtResponse($draw, $total, $filtered, $data);
     }
 
     public function show(int $id)

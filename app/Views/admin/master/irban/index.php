@@ -22,44 +22,17 @@
 
 <div class="card">
     <div class="card-body">
-        <table class="table-admin w-100">
+        <table id="dt-irban" class="w-100">
             <thead>
                 <tr>
                     <th width="50">#</th>
                     <th width="80">Kode</th>
                     <th>Nama Irban</th>
                     <th>Kepala Irban</th>
-                    <th width="80" style="text-align:center">PKPT</th>
-                    <th width="120">Aksi</th>
+                    <th width="100" class="dt-nosort dt-nosearch">Aksi</th>
                 </tr>
             </thead>
-            <tbody>
-                <?php
-                $tahunAktif = (new \App\Models\PkptSettingModel())->getTahunAktif();
-                foreach($data as $i => $row):
-                    $pkptRow = (new \App\Models\PkptModel())->getByIrbanTahun($row['id'], $tahunAktif);
-                ?>
-                <tr>
-                    <td><?= $i+1 ?></td>
-                    <td><span class="badge badge-primary"><?= esc($row['kode']) ?></span></td>
-                    <td><?= esc($row['nama']) ?></td>
-                    <td><?= esc($row['kepala_nama'] ?? '—') ?></td>
-                    <td style="text-align:center">
-                        <?php if($pkptRow): ?>
-                            <a href="/admin/pkpt/<?= $pkptRow['id'] ?>" class="btn btn-xs btn-primary" title="PKPT <?= $tahunAktif ?>">
-                                <i class="fas fa-list-check"></i> <?= $tahunAktif ?>
-                            </a>
-                        <?php else: ?>
-                            <span style="font-size:11px;color:#94a3b8">—</span>
-                        <?php endif; ?>
-                    </td>
-                    <td>
-                        <a href="/admin/master/irban/edit/<?= $row['id'] ?>" class="btn btn-xs btn-warning">Edit</a>
-                        <button class="btn btn-xs btn-danger btn-del" data-id="<?= $row['id'] ?>">Hapus</button>
-                    </td>
-                </tr>
-                <?php endforeach; ?>
-            </tbody>
+            <tbody></tbody>
         </table>
     </div>
 </div>
@@ -69,11 +42,33 @@
 <script>
 const csrfToken = '<?= csrf_hash() ?>';
 const csrfName  = '<?= csrf_token() ?>';
-$(document).on('click', '.btn-del', function() {
-    if (!confirm('Hapus irban ini?')) return;
-    $.post('/admin/master/irban/delete/' + $(this).data('id'), { [csrfName]: csrfToken }, res => {
-        if (res.success) location.reload();
-        else alert(res.message);
+
+$(function() {
+    const dt = $('#dt-irban').DataTable({
+        processing: true, serverSide: true,
+        language: DT_LANG_ID,
+        ajax: {
+            url: '/admin/master/irban/data',
+            type: 'POST',
+            data: d => { d[csrfName] = csrfToken; }
+        },
+        columns: [
+            { data: 'no',     orderable: false },
+            { data: 'kode',   orderable: false },
+            { data: 'nama' },
+            { data: 'kepala' },
+            { data: 'aksi',   orderable: false, searchable: false },
+        ],
+        order: [[2, 'asc']],
+    });
+
+    $(document).on('click', '.btn-delete', function() {
+        if (!confirm('Hapus irban ini? Pastikan tidak ada PKPT atau SDM yang terkait.')) return;
+        const url = $(this).data('url');
+        $.post(url, { [csrfName]: csrfToken }, res => {
+            if (res.success) dt.ajax.reload();
+            else alert(res.message || 'Gagal menghapus.');
+        });
     });
 });
 </script>
