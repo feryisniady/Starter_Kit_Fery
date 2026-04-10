@@ -13,6 +13,7 @@ use App\Models\SdmModel;
 use App\Models\IrbanModel;
 use App\Models\PkaModel;
 use App\Models\TemuanModel;
+use App\Models\SptKmModel;
 use App\Traits\DatatableTrait;
 
 class SptController extends BaseController
@@ -22,6 +23,7 @@ class SptController extends BaseController
     protected SptTimModel       $timModel;
     protected PkaModel          $pkaModel;
     protected TemuanModel       $temuanModel;
+    protected SptKmModel        $kmModel;
     protected SptApprovalModel  $approvalModel;
     protected PkptKegiatanModel $kegiatanModel;
     protected PkptModel         $pkptModel;
@@ -41,6 +43,7 @@ class SptController extends BaseController
         $this->irbanModel    = new IrbanModel();
         $this->pkaModel      = new PkaModel();
         $this->temuanModel   = new TemuanModel();
+        $this->kmModel       = new SptKmModel();
     }
 
     // ===================================================
@@ -209,12 +212,13 @@ class SptController extends BaseController
         if (!$spt) return redirect()->to('/admin/spt')->with('error', 'SPT tidak ditemukan.');
 
         return view('admin/spt/show', [
-            'title'       => 'Detail SPT — ' . ($spt['nomor_naskah'] ?: '#' . $id),
-            'spt'         => $spt,
-            'statusLabel' => SptModel::$statusLabel,
-            'statusColor' => SptModel::$statusColor,
-            'pkaStats'    => $this->pkaModel->getStatsBySpt($id),
+            'title'         => 'Detail SPT — ' . ($spt['nomor_naskah'] ?: '#' . $id),
+            'spt'           => $spt,
+            'statusLabel'   => SptModel::$statusLabel,
+            'statusColor'   => SptModel::$statusColor,
+            'pkaStats'      => $this->pkaModel->getStatsBySpt($id),
             'temuanSummary' => $this->temuanModel->getSummaryBySpt($id),
+            'kmChecklist'   => $this->kmModel->getChecklist($id),
         ]);
     }
 
@@ -278,6 +282,14 @@ class SptController extends BaseController
         $spt = $this->sptModel->find($id);
         if (!$spt || $spt['status'] !== 'draft') {
             return redirect()->back()->with('error', 'SPT tidak dalam status draft.');
+        }
+
+        // Cek kelengkapan KM sebelum bisa diajukan
+        $missing = $this->kmModel->getMissingLabels($id);
+        if (!empty($missing)) {
+            $list = implode(', ', $missing);
+            return redirect()->to('/admin/spt/' . $id . '/km')
+                ->with('error', 'SPT belum dapat diajukan. Lengkapi dokumen KM berikut: ' . $list);
         }
 
         $this->sptModel->update($id, ['status' => 'diajukan']);

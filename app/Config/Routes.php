@@ -181,4 +181,19 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	// =====================================================================
 	$routes->get('master/kode-temuan',          'Admin\KodetemuanController::index');
 	$routes->post('master/kode-temuan/data',    'Admin\KodetemuanController::getData');
+
+	// =====================================================================
+	// KM — Kendali Mutu (per SPT)
+	// =====================================================================
+	$routes->get('spt/(:num)/km',                         'Admin\KmController::index/$1');
+	$routes->get('spt/(:num)/km/1',                       'Admin\KmController::km1/$1');
+	$routes->post('spt/(:num)/km/1/save',                 'Admin\KmController::saveKm1/$1');
+	$routes->get('spt/(:num)/km/4',                       'Admin\KmController::km4/$1');
+	$routes->post('spt/(:num)/km/4/save',                 'Admin\KmController::saveKm4/$1');
+	$routes->get('spt/(:num)/km/6',                       'Admin\KmController::km6/$1');
+	$routes->post('spt/(:num)/km/6/save',                 'Admin\KmController::saveKm6/$1');
+	$routes->get('spt/(:num)/km/anggaran-waktu',          'Admin\KmController::anggaranWaktu/$1');
+	$routes->post('spt/(:num)/km/anggaran-waktu/save',    'Admin\KmController::saveAnggaranWaktu/$1');
+	$routes->get('spt/(:num)/km/independensi',            'Admin\KmController::independensi/$1');
+	$routes->post('spt/(:num)/km/independensi/save',      'Admin\KmController::saveIndepensi/$1');
 });

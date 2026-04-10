@@ -10,6 +10,18 @@
         <a href="/admin/spt" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Kembali</a>
         <?php if($spt['status'] === 'draft'): ?>
             <a href="/admin/spt/<?= $spt['id'] ?>/edit" class="btn btn-warning"><i class="fas fa-edit"></i> Edit</a>
+            <a href="/admin/spt/<?= $spt['id'] ?>/km" class="btn btn-info">
+                <i class="fas fa-shield-check"></i> Kelengkapan KM
+                <?php
+                $kmDone = count(array_filter($kmChecklist, fn($c) => $c['complete']));
+                $kmTotal = count($kmChecklist);
+                if ($kmDone < $kmTotal):
+                ?>
+                <span class="badge badge-warning" style="margin-left:4px"><?= $kmDone ?>/<?= $kmTotal ?></span>
+                <?php else: ?>
+                <span class="badge badge-success" style="margin-left:4px"><i class="fas fa-check"></i></span>
+                <?php endif; ?>
+            </a>
             <button class="btn btn-primary" onclick="$('#modal-ajukan').show()">
                 <i class="fas fa-paper-plane"></i> Ajukan
             </button>
@@ -152,6 +164,52 @@
                 </div>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- KM Checklist Summary -->
+<?php
+$kmDoneAll  = count(array_filter($kmChecklist, fn($c) => $c['complete']));
+$kmTotalAll = count($kmChecklist);
+$kmAllDone  = $kmDoneAll === $kmTotalAll;
+?>
+<div class="card" style="margin-top:24px;border-left:4px solid <?= $kmAllDone ? '#22c55e' : '#f59e0b' ?>">
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+        <h3 class="card-title" style="margin:0"><i class="fas fa-shield-check"></i> Kelengkapan Kendali Mutu (KM)</h3>
+        <div style="display:flex;align-items:center;gap:10px">
+            <span class="badge badge-<?= $kmAllDone ? 'success' : 'warning' ?>" style="font-size:12px">
+                <?= $kmDoneAll ?>/<?= $kmTotalAll ?> Lengkap
+            </span>
+            <a href="/admin/spt/<?= $spt['id'] ?>/km" class="btn btn-xs btn-<?= $kmAllDone ? 'secondary' : 'primary' ?>">
+                <?= $kmAllDone ? 'Lihat KM' : 'Lengkapi KM' ?>
+            </a>
+        </div>
+    </div>
+    <div class="card-body" style="padding:12px 20px">
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px">
+            <?php
+            $kmIcons = ['km1'=>'id-card','km4'=>'clipboard-list','km6'=>'handshake','anggaran_waktu'=>'calendar-days','independensi'=>'user-shield'];
+            foreach($kmChecklist as $key => $item):
+            ?>
+            <div style="text-align:center;padding:10px 6px;border-radius:8px;background:<?= $item['complete'] ? '#f0fdf4' : '#fff7ed' ?>">
+                <div style="font-size:20px;margin-bottom:4px">
+                    <i class="fas fa-<?= $kmIcons[$key] ?>" style="color:<?= $item['complete'] ? '#16a34a' : '#f59e0b' ?>"></i>
+                </div>
+                <div style="font-size:10px;font-weight:600;color:#475569;line-height:1.3">
+                    <?= strtoupper(str_replace(['anggaran_waktu','independensi'],['Angg. Waktu','Independen'], $key)) ?>
+                </div>
+                <div style="font-size:10px;margin-top:3px;color:<?= $item['complete'] ? '#16a34a' : '#f59e0b' ?>">
+                    <?= $item['complete'] ? '<i class="fas fa-check-circle"></i> Lengkap' : '<i class="fas fa-clock"></i> Belum' ?>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <?php if(!$kmAllDone && $spt['status'] === 'draft'): ?>
+        <div style="margin-top:10px;font-size:12px;color:#f59e0b;text-align:center">
+            <i class="fas fa-triangle-exclamation"></i>
+            SPT tidak dapat diajukan sebelum semua dokumen KM dilengkapi.
+        </div>
+        <?php endif; ?>
     </div>
 </div>
 
