@@ -52,12 +52,25 @@ class ProfileController extends BaseController
         if ($avatar && $avatar->isValid() && !$avatar->hasMoved()) {
             $allowedMime = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
             $allowedExt  = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
-            if (!in_array($avatar->getMimeType(), $allowedMime)) {
-                return redirect()->back()->with('error', 'Format gambar tidak didukung (gunakan JPG, PNG, WEBP).');
+
+            // Validasi MIME dari konten file sebenarnya (anti Tamper Data / header spoofing)
+            $finfo    = new \finfo(FILEINFO_MIME_TYPE);
+            $realMime = $finfo->file($avatar->getTempName());
+            if (!in_array($realMime, $allowedMime)) {
+                return redirect()->back()->with('error', 'Format gambar tidak valid.');
             }
-            if (!in_array(strtolower($avatar->guessExtension()), $allowedExt)) {
+
+            // Verifikasi file benar-benar gambar via getimagesize()
+            if (!@getimagesize($avatar->getTempName())) {
+                return redirect()->back()->with('error', 'File bukan gambar yang valid.');
+            }
+
+            // Validasi ekstensi dari nama file asli
+            $origExt = strtolower(pathinfo($avatar->getClientFilename(), PATHINFO_EXTENSION));
+            if (!in_array($origExt, $allowedExt)) {
                 return redirect()->back()->with('error', 'Ekstensi file tidak diizinkan.');
             }
+
             if ($avatar->getSize() > 2 * 1024 * 1024) {
                 return redirect()->back()->with('error', 'Ukuran foto maksimal 2MB.');
             }
