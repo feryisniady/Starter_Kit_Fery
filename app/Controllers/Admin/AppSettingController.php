@@ -190,8 +190,16 @@ class AppSettingController extends BaseController
 
             $allowedMime = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/x-icon', 'image/vnd.microsoft.icon'];
             $allowedExt  = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'ico'];
-            if (!in_array($file->getMimeType(), $allowedMime)) continue;
-            if (!in_array(strtolower($file->guessExtension()), $allowedExt)) continue;
+
+            // Validasi MIME dari konten file sebenarnya (anti Tamper Data)
+            $finfo    = new \finfo(FILEINFO_MIME_TYPE);
+            $realMime = $finfo->file($file->getTempName());
+            if (!in_array($realMime, $allowedMime)) continue;
+
+            // Validasi ekstensi dari nama file asli
+            $origExt = strtolower(pathinfo($file->getClientFilename(), PATHINFO_EXTENSION));
+            if (!in_array($origExt, $allowedExt)) continue;
+
             if ($file->getSize() > 2 * 1024 * 1024) continue;
 
             $existing = $this->settingModel->where('key', $key)->first();

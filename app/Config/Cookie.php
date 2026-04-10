@@ -87,7 +87,7 @@ class Cookie extends BaseConfig
      *
      * @phpstan-var 'None'|'Lax'|'Strict'|''
      */
-    public string $samesite = 'Lax';
+    public string $samesite = 'Strict';
 
     /**
      * --------------------------------------------------------------------------

@@ -1,0 +1,11 @@
+# Cegah eksekusi script apapun di folder uploads
+# Penting: mencegah serangan upload webshell/backdoor
+
+Options -ExecCGI
+RemoveHandler .php .php3 .php4 .php5 .php7 .phtml .phar
+RemoveType application/x-httpd-php application/x-httpd-php5
+
+<FilesMatch "\.(php|php3|php4|php5|php7|phtml|phar|pl|py|cgi|sh|asp|aspx|jsp)$">
+    Order Deny,Allow
+    Deny from all
+</FilesMatch>
