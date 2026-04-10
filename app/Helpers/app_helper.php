@@ -83,3 +83,21 @@ if (!function_exists('send_wa')) {
         return (new \App\Services\WaService())->send($phone, $message);
     }
 }
+
+/**
+ * ======================================================
+ * FORMAT TANGGAL INDONESIA
+ * ======================================================
+ */
+if (!function_exists('tgl_indo')) {
+    function tgl_indo(string $date): string
+    {
+        $bulan = [
+            1=>'Januari',2=>'Februari',3=>'Maret',4=>'April',
+            5=>'Mei',6=>'Juni',7=>'Juli',8=>'Agustus',
+            9=>'September',10=>'Oktober',11=>'November',12=>'Desember',
+        ];
+        $ts = strtotime($date);
+        return date('j', $ts) . ' ' . ($bulan[(int)date('n', $ts)] ?? '') . ' ' . date('Y', $ts);
+    }
+}

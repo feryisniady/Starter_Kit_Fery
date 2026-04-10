@@ -84,4 +84,63 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	$routes->post('login-services/store',       'Admin\LoginServiceController::store',     ['filter' => 'permission:setting.manage']);
 	$routes->post('login-services/update/(:num)','Admin\LoginServiceController::update/$1',['filter' => 'permission:setting.manage']);
 	$routes->get('login-services/delete/(:num)','Admin\LoginServiceController::delete/$1', ['filter' => 'permission:setting.manage']);
+
+	// =====================================================================
+	// MASTER DATA PENGAWASAN
+	// =====================================================================
+	// Master Irban
+	$routes->get('master/irban',                 'Admin\MasterIrbanController::index');
+	$routes->get('master/irban/create',          'Admin\MasterIrbanController::create');
+	$routes->post('master/irban/store',          'Admin\MasterIrbanController::store');
+	$routes->get('master/irban/edit/(:num)',     'Admin\MasterIrbanController::edit/$1');
+	$routes->post('master/irban/update/(:num)', 'Admin\MasterIrbanController::update/$1');
+	$routes->post('master/irban/delete/(:num)', 'Admin\MasterIrbanController::delete/$1');
+
+	// Master Entitas
+	$routes->get('master/entitas',              'Admin\MasterEntitasController::index');
+	$routes->post('master/entitas/data',        'Admin\MasterEntitasController::getData');
+	$routes->post('master/entitas/store',       'Admin\MasterEntitasController::store');
+	$routes->get('master/entitas/(:num)',       'Admin\MasterEntitasController::show/$1');
+	$routes->post('master/entitas/update/(:num)','Admin\MasterEntitasController::update/$1');
+	$routes->post('master/entitas/delete/(:num)','Admin\MasterEntitasController::delete/$1');
+
+	// Master SDM
+	$routes->get('master/sdm',                  'Admin\MasterSdmController::index');
+	$routes->post('master/sdm/data',            'Admin\MasterSdmController::getData');
+	$routes->post('master/sdm/store',           'Admin\MasterSdmController::store');
+	$routes->get('master/sdm/(:num)',           'Admin\MasterSdmController::show/$1');
+	$routes->post('master/sdm/update/(:num)',   'Admin\MasterSdmController::update/$1');
+	$routes->post('master/sdm/delete/(:num)',   'Admin\MasterSdmController::delete/$1');
+	$routes->get('master/sdm/sisa-hp/(:num)',   'Admin\MasterSdmController::sisaHp/$1');
+
+	// =====================================================================
+	// PKPT
+	// =====================================================================
+	$routes->get('pkpt/setting',                'Admin\PkptSettingController::index');
+	$routes->post('pkpt/setting/store',         'Admin\PkptSettingController::store');
+	$routes->post('pkpt/setting/delete/(:num)', 'Admin\PkptSettingController::delete/$1');
+
+	$routes->get('pkpt',                            'Admin\PkptController::index');
+	$routes->post('pkpt/buat',                      'Admin\PkptController::createOrGetPkpt');
+	$routes->get('pkpt/(:num)',                     'Admin\PkptController::show/$1');
+	$routes->get('pkpt/(:num)/kegiatan/create',    'Admin\PkptController::createKegiatan/$1');
+	$routes->post('pkpt/(:num)/kegiatan/store',    'Admin\PkptController::storeKegiatan/$1');
+	$routes->get('pkpt/kegiatan/edit/(:num)',       'Admin\PkptController::editKegiatan/$1');
+	$routes->post('pkpt/kegiatan/update/(:num)',    'Admin\PkptController::updateKegiatan/$1');
+	$routes->post('pkpt/kegiatan/delete/(:num)',    'Admin\PkptController::deleteKegiatan/$1');
+	$routes->get('pkpt/sisa-hp',                    'Admin\PkptController::sisaHpSdm');
+
+	// =====================================================================
+	// SPT
+	// =====================================================================
+	$routes->get('spt',                         'Admin\SptController::index');
+	$routes->get('spt/create/(:num)',           'Admin\SptController::create/$1');
+	$routes->post('spt/store/(:num)',           'Admin\SptController::store/$1');
+	$routes->get('spt/(:num)',                  'Admin\SptController::show/$1');
+	$routes->get('spt/(:num)/edit',             'Admin\SptController::edit/$1');
+	$routes->post('spt/(:num)/update',          'Admin\SptController::update/$1');
+	$routes->post('spt/(:num)/ajukan',          'Admin\SptController::ajukan/$1');
+	$routes->post('spt/(:num)/approve',         'Admin\SptController::approve/$1');
+	$routes->post('spt/(:num)/reject',          'Admin\SptController::reject/$1');
+	$routes->get('spt/(:num)/word',             'Admin\SptController::downloadWord/$1');
 });
