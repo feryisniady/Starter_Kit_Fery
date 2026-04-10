@@ -17,6 +17,38 @@
 <div class="alert-error-inline mb-3"><i class="fas fa-circle-exclamation"></i> <?= session()->getFlashdata('error') ?></div>
 <?php endif; ?>
 
+<!-- Info Header PKPT + HP Tersedia -->
+<div class="card mb-3" style="border-left:4px solid #6366f1">
+    <div class="card-body" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px;padding:14px 20px">
+        <div>
+            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">Header PKPT</div>
+            <div style="font-weight:600;font-size:13px"><?= esc($setting['nomor_pkpt'] ?? '—') ?></div>
+            <div style="font-size:11px;color:#64748b">
+                <?= ($setting['tanggal_pkpt'] ?? '') ? date('d/m/Y', strtotime($setting['tanggal_pkpt'])) : '—' ?>
+                <?php if($setting): ?>
+                &nbsp;<span class="badge badge-<?= $setting['status']==='disetujui' ? 'success' : 'warning' ?>" style="font-size:10px">
+                    <?= $setting['status']==='disetujui' ? 'Disetujui' : 'Draft' ?>
+                </span>
+                <?php endif; ?>
+            </div>
+        </div>
+        <div>
+            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">Irban</div>
+            <div style="font-weight:600;font-size:13px"><?= esc($pkpt['irban_nama']) ?></div>
+        </div>
+        <div>
+            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">Total HP Efektif</div>
+            <div style="font-weight:700;font-size:20px;color:#6366f1"><?= $hpEfektif ?? '—' ?></div>
+            <div style="font-size:11px;color:#94a3b8">hari kerja / tahun</div>
+        </div>
+        <div>
+            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">Tarif HP</div>
+            <div style="font-weight:600;font-size:14px">Rp <?= number_format($setting['tarif_hp'] ?? 160000, 0, ',', '.') ?></div>
+            <div style="font-size:11px;color:#94a3b8">per hari</div>
+        </div>
+    </div>
+</div>
+
 <form action="<?= $row ? '/admin/pkpt/kegiatan/update/'.$row['id'] : '/admin/pkpt/'.$pkpt['id'].'/kegiatan/store' ?>" method="POST">
     <?= csrf_field() ?>
 

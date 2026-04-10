@@ -10,6 +10,7 @@ use App\Models\PkptSettingModel;
 use App\Models\IrbanModel;
 use App\Models\EntitasModel;
 use App\Models\SdmModel;
+use App\Models\HariLiburModel;
 
 class PkptController extends BaseController
 {
@@ -54,10 +55,11 @@ class PkptController extends BaseController
         }
 
         return view('admin/pkpt/index', [
-            'title'    => 'PKPT Tahun ' . $tahun,
-            'pkptList' => $q->orderBy('i.kode')->get()->getResultArray(),
-            'tahun'    => $tahun,
-            'settings' => $this->settingModel->orderBy('tahun', 'DESC')->findAll(),
+            'title'          => 'PKPT Tahun ' . $tahun,
+            'pkptList'       => $q->orderBy('i.kode')->get()->getResultArray(),
+            'tahun'          => $tahun,
+            'settings'       => $this->settingModel->orderBy('tahun', 'DESC')->findAll(),
+            'currentSetting' => $this->settingModel->getByTahun($tahun),
         ]);
     }
 
@@ -100,6 +102,30 @@ class PkptController extends BaseController
         return redirect()->to('/admin/pkpt/' . $id);
     }
 
+    /** Ubah status PKPT: draft → diajukan → disetujui */
+    public function updateStatus(int $id)
+    {
+        $pkpt = $this->pkptModel->find($id);
+        if (!$pkpt) return redirect()->back()->with('error', 'PKPT tidak ditemukan.');
+
+        $flow   = ['draft' => 'diajukan', 'diajukan' => 'disetujui'];
+        $status = $this->request->getPost('status') ?? ($flow[$pkpt['status']] ?? null);
+
+        if (!$status || !in_array($status, ['draft', 'diajukan', 'disetujui'])) {
+            return redirect()->back()->with('error', 'Status tidak valid.');
+        }
+
+        $update = ['status' => $status];
+        if ($status === 'disetujui') {
+            $update['approved_by'] = session()->get('user_id');
+            $update['approved_at'] = date('Y-m-d H:i:s');
+        }
+
+        $this->pkptModel->update($id, $update);
+        logActivity('pkpt.status', 'pkpt', "Update status PKPT id={$id} → {$status}");
+        return redirect()->to('/admin/pkpt/' . $id)->with('success', 'Status PKPT diperbarui: ' . ucfirst($status));
+    }
+
     // ===================================================
     // PKPT KEGIATAN
     // ===================================================
@@ -113,14 +139,18 @@ class PkptController extends BaseController
 
         $setting = $this->settingModel->getByTahun((int)$pkpt['tahun']);
 
+        $hpEfektif = (new HariLiburModel())->hitungHariKerjaTahun((int)$pkpt['tahun']);
+        if ($hpEfektif === 0 && $setting) $hpEfektif = (int)$setting['total_hp_tahunan'];
+
         return view('admin/pkpt/kegiatan_form', [
-            'title'    => 'Tambah Kegiatan PKPT',
-            'pkpt'     => $pkpt,
-            'setting'  => $setting,
-            'entitas'  => $this->entitasModel->getAktif(),
-            'sdm'      => $this->sdmModel->withIrban(),
-            'row'      => null,
-            'timRows'  => [],
+            'title'     => 'Tambah Kegiatan PKPT',
+            'pkpt'      => $pkpt,
+            'setting'   => $setting,
+            'hpEfektif' => $hpEfektif,
+            'entitas'   => $this->entitasModel->getAktif(),
+            'sdm'       => $this->sdmModel->withIrban(),
+            'row'       => null,
+            'timRows'   => [],
         ]);
     }
 
@@ -185,14 +215,19 @@ class PkptController extends BaseController
         $pkpt = $this->pkptModel->getWithIrban($kegiatan['pkpt_id']);
         if (!$this->canAccessPkpt($pkpt)) return redirect()->to('/admin/pkpt')->with('error', 'Akses ditolak.');
 
+        $setting   = $this->settingModel->getByTahun((int)$pkpt['tahun']);
+        $hpEfektif = (new HariLiburModel())->hitungHariKerjaTahun((int)$pkpt['tahun']);
+        if ($hpEfektif === 0 && $setting) $hpEfektif = (int)$setting['total_hp_tahunan'];
+
         return view('admin/pkpt/kegiatan_form', [
-            'title'   => 'Edit Kegiatan PKPT',
-            'pkpt'    => $pkpt,
-            'setting' => $this->settingModel->getByTahun((int)$pkpt['tahun']),
-            'entitas' => $this->entitasModel->getAktif(),
-            'sdm'     => $this->sdmModel->withIrban(),
-            'row'     => $kegiatan,
-            'timRows' => $kegiatan['tim'],
+            'title'     => 'Edit Kegiatan PKPT',
+            'pkpt'      => $pkpt,
+            'setting'   => $setting,
+            'hpEfektif' => $hpEfektif,
+            'entitas'   => $this->entitasModel->getAktif(),
+            'sdm'       => $this->sdmModel->withIrban(),
+            'row'       => $kegiatan,
+            'timRows'   => $kegiatan['tim'],
         ]);
     }
 

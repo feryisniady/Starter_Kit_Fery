@@ -116,13 +116,24 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	// =====================================================================
 	// PKPT
 	// =====================================================================
-	$routes->get('pkpt/setting',                'Admin\PkptSettingController::index');
-	$routes->post('pkpt/setting/store',         'Admin\PkptSettingController::store');
-	$routes->post('pkpt/setting/delete/(:num)', 'Admin\PkptSettingController::delete/$1');
+	// Header PKPT (dokumen SK per tahun)
+	$routes->get('pkpt/setting',                  'Admin\PkptSettingController::index');
+	$routes->post('pkpt/setting/store',           'Admin\PkptSettingController::store');
+	$routes->post('pkpt/setting/approve/(:num)',  'Admin\PkptSettingController::approve/$1');
+	$routes->post('pkpt/setting/revok/(:num)',    'Admin\PkptSettingController::revok/$1');
+	$routes->post('pkpt/setting/delete/(:num)',   'Admin\PkptSettingController::delete/$1');
+
+	// Hari Libur
+	$routes->get('pkpt/hari-libur',               'Admin\HariLiburController::index');
+	$routes->post('pkpt/hari-libur/store',        'Admin\HariLiburController::store');
+	$routes->post('pkpt/hari-libur/store-batch',  'Admin\HariLiburController::storeBatch');
+	$routes->post('pkpt/hari-libur/delete/(:num)','Admin\HariLiburController::delete/$1');
+	$routes->get('pkpt/hari-libur/hitung-hp',     'Admin\HariLiburController::hitungHp');
 
 	$routes->get('pkpt',                            'Admin\PkptController::index');
 	$routes->post('pkpt/buat',                      'Admin\PkptController::createOrGetPkpt');
 	$routes->get('pkpt/(:num)',                     'Admin\PkptController::show/$1');
+	$routes->post('pkpt/(:num)/status',             'Admin\PkptController::updateStatus/$1');
 	$routes->get('pkpt/(:num)/kegiatan/create',    'Admin\PkptController::createKegiatan/$1');
 	$routes->post('pkpt/(:num)/kegiatan/store',    'Admin\PkptController::storeKegiatan/$1');
 	$routes->get('pkpt/kegiatan/edit/(:num)',       'Admin\PkptController::editKegiatan/$1');
