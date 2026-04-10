@@ -14,18 +14,32 @@ class MasterSdmController extends BaseController
 
     protected SdmModel   $sdmModel;
     protected IrbanModel $irbanModel;
+    protected UserModel  $userModel;
 
     public function __construct()
     {
         $this->sdmModel   = new SdmModel();
         $this->irbanModel = new IrbanModel();
+        $this->userModel  = new UserModel();
     }
 
     public function index()
     {
+        // Users yang belum di-link ke SDM manapun
+        $db        = \Config\Database::connect();
+        $linkedIds = array_column(
+            $db->table('sdm')->select('user_id')->where('user_id IS NOT NULL')->get()->getResultArray(),
+            'user_id'
+        );
+        $users = $this->userModel->select('id, username, name')
+            ->when($linkedIds, fn($q) => $q->whereNotIn('id', $linkedIds))
+            ->orderBy('name')
+            ->findAll();
+
         return view('admin/master/sdm/index', [
             'title' => 'Master SDM Pengawas',
             'irban' => $this->irbanModel->getDropdown(),
+            'users' => $users,
         ]);
     }
 
@@ -80,6 +94,15 @@ class MasterSdmController extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => implode(', ', $this->validator->getErrors())]);
         }
 
+        $userId = (int)$this->request->getPost('user_id') ?: null;
+        // Pastikan user_id tidak sudah dipakai SDM lain
+        if ($userId) {
+            $existing = $this->sdmModel->where('user_id', $userId)->first();
+            if ($existing) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Akun user tersebut sudah terhubung ke SDM lain.']);
+            }
+        }
+
         $id = $this->sdmModel->insert([
             'nip'                 => $this->request->getPost('nip'),
             'nama'                => $this->request->getPost('nama'),
@@ -87,6 +110,7 @@ class MasterSdmController extends BaseController
             'jabatan_struktural'  => $this->request->getPost('jabatan_struktural'),
             'jabatan_fungsional'  => $this->request->getPost('jabatan_fungsional'),
             'irban_id'            => $this->request->getPost('irban_id') ?: null,
+            'user_id'             => $userId,
             'aktif'               => 1,
         ]);
 
@@ -106,6 +130,15 @@ class MasterSdmController extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => implode(', ', $this->validator->getErrors())]);
         }
 
+        $userId = (int)$this->request->getPost('user_id') ?: null;
+        // Pastikan user_id tidak dipakai SDM lain (kecuali SDM ini sendiri)
+        if ($userId) {
+            $existing = $this->sdmModel->where('user_id', $userId)->where('id !=', $id)->first();
+            if ($existing) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Akun user tersebut sudah terhubung ke SDM lain.']);
+            }
+        }
+
         $this->sdmModel->update($id, [
             'nip'                 => $this->request->getPost('nip'),
             'nama'                => $this->request->getPost('nama'),
@@ -113,6 +146,7 @@ class MasterSdmController extends BaseController
             'jabatan_struktural'  => $this->request->getPost('jabatan_struktural'),
             'jabatan_fungsional'  => $this->request->getPost('jabatan_fungsional'),
             'irban_id'            => $this->request->getPost('irban_id') ?: null,
+            'user_id'             => $userId,
             'aktif'               => (int)$this->request->getPost('aktif'),
         ]);
 
