@@ -24,7 +24,7 @@
 <!-- Info PKPT + HP Summary -->
 <?php
 $totalHpIrbanIni  = array_sum(array_column($kegiatan, 'total_hp'));     // HP yang dipakai irban ini
-$hpEfektifShow    = $setting ? (int)$setting['total_hp_tahunan'] : 0;
+$hpEfektifShow    = $hpEfektif ?? ($setting ? (int)$setting['total_hp_tahunan'] : 0); // dinamis dari controller
 $hpGlobalTerpakai = $hpGlobalTerpakai ?? $totalHpIrbanIni;              // dari controller (semua irban)
 $hpSisaShow       = max(0, $hpEfektifShow - $hpGlobalTerpakai);         // sisa dari budget organisasi
 $hpPctShow        = $hpEfektifShow > 0 ? min(100, round(($hpGlobalTerpakai / $hpEfektifShow) * 100)) : 0;
