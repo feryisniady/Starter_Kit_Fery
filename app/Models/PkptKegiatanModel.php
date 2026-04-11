@@ -75,6 +75,22 @@ class PkptKegiatanModel extends Model
     }
 
     /**
+     * Total HP terpakai lintas SEMUA Irban dalam 1 tahun (budget organisasi bersama).
+     * Jika excludeId diberikan, kegiatan tersebut dikecualikan (untuk mode edit).
+     */
+    public function getTotalHpByTahun(int $tahun, ?int $excludeId = null): int
+    {
+        $q = $this->db->table('pkpt_tim pt')
+            ->join('pkpt_kegiatan pk', 'pk.id = pt.pkpt_kegiatan_id')
+            ->join('pkpt p', 'p.id = pk.pkpt_id')
+            ->where('p.tahun', $tahun)
+            ->where('pk.status !=', 'batal');
+        if ($excludeId) $q->where('pk.id !=', $excludeId);
+        $row = $q->selectSum('pt.hp_total')->get()->getRow();
+        return (int)($row->hp_total ?? 0);
+    }
+
+    /**
      * Generate kode kegiatan: PKP-{TAHUN}-{KODE_IRBAN}-{URUTAN 3 DIGIT}
      */
     public function generateKode(int $pkptId): string

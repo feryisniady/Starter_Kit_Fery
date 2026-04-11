@@ -126,11 +126,15 @@ class PkptController extends BaseController
         if (!$pkpt) return redirect()->to('/admin/pkpt')->with('error', 'PKPT tidak ditemukan.');
         if (!$this->canAccessPkpt($pkpt)) return redirect()->to('/admin/pkpt')->with('error', 'Akses ditolak.');
 
+        $setting        = $this->settingModel->getByTahun((int)$pkpt['tahun']);
+        $hpGlobalTerpakai = $this->kegiatanModel->getTotalHpByTahun((int)$pkpt['tahun']);
+
         return view('admin/pkpt/show', [
-            'title'     => 'Detail PKPT — ' . $pkpt['irban_nama'] . ' ' . $pkpt['tahun'],
-            'pkpt'      => $pkpt,
-            'kegiatan'  => $this->kegiatanModel->getByPkpt($id),
-            'setting'   => $this->settingModel->getByTahun((int)$pkpt['tahun']),
+            'title'           => 'Detail PKPT — ' . $pkpt['irban_nama'] . ' ' . $pkpt['tahun'],
+            'pkpt'            => $pkpt,
+            'kegiatan'        => $this->kegiatanModel->getByPkpt($id),
+            'setting'         => $setting,
+            'hpGlobalTerpakai'=> $hpGlobalTerpakai,
         ]);
     }
 
@@ -213,7 +217,7 @@ class PkptController extends BaseController
         $hpEfektif = (new HariLiburModel())->hitungHariKerjaTahun((int)$pkpt['tahun']);
         if ($hpEfektif === 0 && $setting) $hpEfektif = (int)$setting['total_hp_tahunan'];
 
-        $hpTerpakai = $this->kegiatanModel->getTotalHpByPkpt($pkptId);
+        $hpTerpakai = $this->kegiatanModel->getTotalHpByTahun((int)$pkpt['tahun']);
 
         return view('admin/pkpt/kegiatan_form', [
             'title'      => 'Tambah Kegiatan PKPT',
@@ -246,11 +250,11 @@ class PkptController extends BaseController
                 ->with('error', implode('<br>', $this->validator->getErrors()));
         }
 
-        // Cek sisa HP PKPT
+        // Cek sisa HP organisasi (lintas semua irban tahun ini)
         $setting   = $this->settingModel->getByTahun((int)$pkpt['tahun']);
         $hpEfektif = (new HariLiburModel())->hitungHariKerjaTahun((int)$pkpt['tahun']);
         if ($hpEfektif === 0 && $setting) $hpEfektif = (int)$setting['total_hp_tahunan'];
-        $hpTerpakai   = $this->kegiatanModel->getTotalHpByPkpt($pkptId);
+        $hpTerpakai   = $this->kegiatanModel->getTotalHpByTahun((int)$pkpt['tahun']);
         $hpSisa       = max(0, $hpEfektif - $hpTerpakai);
         $hpDiajukan   = array_sum(array_map('intval', (array)($this->request->getPost('tim_hp') ?? [])));
         if ($hpDiajukan > 0 && $hpDiajukan > $hpSisa) {
@@ -305,8 +309,8 @@ class PkptController extends BaseController
         $setting    = $this->settingModel->getByTahun((int)$pkpt['tahun']);
         $hpEfektif  = (new HariLiburModel())->hitungHariKerjaTahun((int)$pkpt['tahun']);
         if ($hpEfektif === 0 && $setting) $hpEfektif = (int)$setting['total_hp_tahunan'];
-        // Exclude kegiatan ini sendiri saat hitung sisa (mode edit)
-        $hpTerpakai = $this->kegiatanModel->getTotalHpByPkpt($kegiatan['pkpt_id'], $id);
+        // Exclude kegiatan ini sendiri saat hitung sisa (mode edit) — lintas semua irban
+        $hpTerpakai = $this->kegiatanModel->getTotalHpByTahun((int)$pkpt['tahun'], $id);
 
         return view('admin/pkpt/kegiatan_form', [
             'title'      => 'Edit Kegiatan PKPT',
@@ -330,11 +334,11 @@ class PkptController extends BaseController
         $pkpt = $this->pkptModel->getWithIrban($kegiatan['pkpt_id']);
         if (!$this->canAccessPkpt($pkpt)) return redirect()->to('/admin/pkpt')->with('error', 'Akses ditolak.');
 
-        // Cek sisa HP (kecualikan kegiatan ini sendiri)
+        // Cek sisa HP organisasi (kecualikan kegiatan ini sendiri, lintas semua irban)
         $setting   = $this->settingModel->getByTahun((int)$pkpt['tahun']);
         $hpEfektif = (new HariLiburModel())->hitungHariKerjaTahun((int)$pkpt['tahun']);
         if ($hpEfektif === 0 && $setting) $hpEfektif = (int)$setting['total_hp_tahunan'];
-        $hpTerpakai = $this->kegiatanModel->getTotalHpByPkpt($kegiatan['pkpt_id'], $id);
+        $hpTerpakai = $this->kegiatanModel->getTotalHpByTahun((int)$pkpt['tahun'], $id);
         $hpSisa     = max(0, $hpEfektif - $hpTerpakai);
         $hpDiajukan = array_sum(array_map('intval', (array)($this->request->getPost('tim_hp') ?? [])));
         if ($hpDiajukan > 0 && $hpDiajukan > $hpSisa) {
