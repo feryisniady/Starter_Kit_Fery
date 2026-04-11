@@ -126,14 +126,17 @@ class PkptController extends BaseController
         if (!$pkpt) return redirect()->to('/admin/pkpt')->with('error', 'PKPT tidak ditemukan.');
         if (!$this->canAccessPkpt($pkpt)) return redirect()->to('/admin/pkpt')->with('error', 'Akses ditolak.');
 
-        $setting        = $this->settingModel->getByTahun((int)$pkpt['tahun']);
+        $setting          = $this->settingModel->getByTahun((int)$pkpt['tahun']);
         $hpGlobalTerpakai = $this->kegiatanModel->getTotalHpByTahun((int)$pkpt['tahun']);
+        $hpEfektif        = (new HariLiburModel())->hitungHariKerjaTahun((int)$pkpt['tahun']);
+        if ($hpEfektif === 0 && $setting) $hpEfektif = (int)$setting['total_hp_tahunan'];
 
         return view('admin/pkpt/show', [
             'title'           => 'Detail PKPT — ' . $pkpt['irban_nama'] . ' ' . $pkpt['tahun'],
             'pkpt'            => $pkpt,
             'kegiatan'        => $this->kegiatanModel->getByPkpt($id),
             'setting'         => $setting,
+            'hpEfektif'       => $hpEfektif,
             'hpGlobalTerpakai'=> $hpGlobalTerpakai,
         ]);
     }
@@ -399,7 +402,9 @@ class PkptController extends BaseController
         $tahun   = (int)($this->request->getGet('tahun') ?? $this->settingModel->getTahunAktif());
         $setting = $this->settingModel->getByTahun($tahun);
 
-        $hpEfektif = $setting ? (int)$setting['total_hp_tahunan'] : 0;
+        // Hitung HP efektif secara dinamis dari data hari libur (selalu fresh)
+        $hpEfektif = (new HariLiburModel())->hitungHariKerjaTahun($tahun);
+        if ($hpEfektif === 0 && $setting) $hpEfektif = (int)$setting['total_hp_tahunan'];
 
         $db   = \Config\Database::connect();
         $rows = $db->table('irban i')
