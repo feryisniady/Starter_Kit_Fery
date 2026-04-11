@@ -25,21 +25,22 @@ class MasterSdmController extends BaseController
 
     public function index()
     {
-        // Users yang belum di-link ke SDM manapun
-        $db        = \Config\Database::connect();
-        $linkedIds = array_column(
-            $db->table('sdm')->select('user_id')->where('user_id IS NOT NULL')->get()->getResultArray(),
-            'user_id'
-        );
-        $users = $this->userModel->select('id, username, name')
-            ->when($linkedIds, fn($q) => $q->whereNotIn('id', $linkedIds))
-            ->orderBy('name')
-            ->findAll();
+        // Semua user (tidak difilter) — validasi uniqueness dilakukan di backend
+        $allUsers = $this->userModel->select('id, username, name')->orderBy('name')->findAll();
+
+        // Map user_id → {sdm_id, sdm_nama} untuk warning di dropdown
+        $db = \Config\Database::connect();
+        $linkedRows = $db->table('sdm')->select('id, user_id, nama')->whereNotNull('user_id')->get()->getResultArray();
+        $linkedMap  = [];
+        foreach ($linkedRows as $lr) {
+            $linkedMap[(int)$lr['user_id']] = ['sdm_id' => (int)$lr['id'], 'sdm_nama' => $lr['nama']];
+        }
 
         return view('admin/master/sdm/index', [
-            'title' => 'Master SDM Pengawas',
-            'irban' => $this->irbanModel->getDropdown(),
-            'users' => $users,
+            'title'     => 'Master SDM Pengawas',
+            'irban'     => $this->irbanModel->getDropdown(),
+            'users'     => $allUsers,
+            'linkedMap' => $linkedMap,
         ]);
     }
 
@@ -53,8 +54,9 @@ class MasterSdmController extends BaseController
         $total = $db->table('sdm')->countAllResults();
 
         $q = $db->table('sdm s')
-            ->select('s.*, i.nama as irban_nama')
+            ->select('s.*, i.nama as irban_nama, u.name as user_nama, u.username as user_username')
             ->join('irban i', 'i.id = s.irban_id', 'left')
+            ->join('users u', 'u.id = s.user_id', 'left')
             ->orderBy('i.kode, s.nama');
 
         if ($search) {
@@ -63,18 +65,29 @@ class MasterSdmController extends BaseController
         $filtered = $search ? $q->countAllResults(false) : $total;
         $rows     = $q->limit($length, $start)->get()->getResultArray();
 
-        $data = array_map(fn($r) => [
-            'nip'                => esc($r['nip']),
-            'nama'               => esc($r['nama']),
-            'jabatan_struktural' => esc($r['jabatan_struktural']),
-            'pangkat_golongan'   => esc($r['pangkat_golongan']),
-            'irban'              => esc($r['irban_nama'] ?? '-'),
-            'aktif'              => $r['aktif']
-                ? '<span class="badge badge-success">Aktif</span>'
-                : '<span class="badge badge-secondary">Nonaktif</span>',
-            'aksi' => '<button class="btn btn-xs btn-warning btn-edit" data-id="' . $r['id'] . '">Edit</button>
-                       <button class="btn btn-xs btn-danger btn-delete" data-id="' . $r['id'] . '">Hapus</button>',
-        ], $rows);
+        $data = array_map(function($r) {
+            $irbanCell = $r['irban_nama']
+                ? esc($r['irban_nama'])
+                : '<span style="color:#ef4444;font-size:11px"><i class="fas fa-exclamation-circle"></i> Belum diset</span>';
+
+            $userCell = $r['user_nama']
+                ? '<span style="color:#6366f1;font-size:12px"><i class="fas fa-link"></i> ' . esc($r['user_username']) . '</span>'
+                : '<span style="color:#f59e0b;font-size:11px"><i class="fas fa-unlink"></i> Belum terhubung</span>';
+
+            return [
+                'nip'                => esc($r['nip'] ?: '—'),
+                'nama'               => esc($r['nama']),
+                'jabatan_struktural' => esc($r['jabatan_struktural'] ?: '—'),
+                'pangkat_golongan'   => esc($r['pangkat_golongan'] ?: '—'),
+                'irban'              => $irbanCell,
+                'user_linked'        => $userCell,
+                'aktif'              => $r['aktif']
+                    ? '<span class="badge badge-success">Aktif</span>'
+                    : '<span class="badge badge-secondary">Nonaktif</span>',
+                'aksi' => '<button class="btn btn-xs btn-warning btn-edit" data-id="' . $r['id'] . '"><i class="fas fa-edit"></i></button>
+                           <button class="btn btn-xs btn-danger btn-delete" data-id="' . $r['id'] . '"><i class="fas fa-trash"></i></button>',
+            ];
+        }, $rows);
 
         return $this->response->setJSON([
             'draw'            => $draw,
