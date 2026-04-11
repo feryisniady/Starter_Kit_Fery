@@ -55,7 +55,7 @@
 
     <!-- Form tambah -->
     <div class="card">
-        <div class="card-header"><h3 class="card-title"><i class="fas fa-plus"></i> Tambah Hari Libur</h3></div>
+        <div class="card-header"><h3 class="card-title"><i class="fas fa-calendar-xmark"></i> Tambah Hari Libur</h3></div>
         <div class="card-body">
             <form action="/admin/pkpt/hari-libur/store" method="POST">
                 <?= csrf_field() ?>
