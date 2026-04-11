@@ -72,6 +72,11 @@ class SptController extends BaseController
         $status  = $this->request->getPost('status') ?? '';
         $irbanId = $isAdmin ? null : $this->getUserIrbanId($userId);
 
+        // Non-admin dengan akun tidak terhubung ke SDM/Irban — tampilkan kosong
+        if (!$isAdmin && $irbanId === null) {
+            return $this->dtResponse($draw, 0, 0, []);
+        }
+
         $db = \Config\Database::connect();
 
         // Total tanpa search (basis filter tahun + irban)
@@ -138,6 +143,14 @@ class SptController extends BaseController
         if (!$kegiatan) return redirect()->back()->with('error', 'Kegiatan tidak ditemukan.');
 
         $pkpt    = $this->pkptModel->getWithIrban($kegiatan['pkpt_id']);
+
+        // Irban user hanya boleh buat SPT untuk irbannya sendiri
+        if (!$this->isAdmin()) {
+            $myIrbanId = $this->getUserIrbanId(session()->get('user_id'));
+            if ($myIrbanId === null || (int)$pkpt['irban_id'] !== $myIrbanId) {
+                return redirect()->back()->with('error', 'Akses ditolak.');
+            }
+        }
         $setting = $this->settingModel->getByTahun((int)$pkpt['tahun']);
 
         // Tim default dari PKPT
@@ -169,6 +182,15 @@ class SptController extends BaseController
     {
         $kegiatan = $this->kegiatanModel->find($pkptKegiatanId);
         if (!$kegiatan) return redirect()->back()->with('error', 'Kegiatan tidak ditemukan.');
+
+        // Irban user hanya boleh buat SPT untuk irbannya sendiri
+        if (!$this->isAdmin()) {
+            $pkpt      = $this->pkptModel->find($kegiatan['pkpt_id']);
+            $myIrbanId = $this->getUserIrbanId(session()->get('user_id'));
+            if (!$pkpt || $myIrbanId === null || (int)$pkpt['irban_id'] !== $myIrbanId) {
+                return redirect()->to('/admin/spt')->with('error', 'Akses ditolak.');
+            }
+        }
 
         $rules = ['tanggal_naskah' => 'required', 'tujuan' => 'required'];
         if (!$this->validate($rules)) {
@@ -210,6 +232,7 @@ class SptController extends BaseController
     {
         $spt = $this->sptModel->getDetail($id);
         if (!$spt) return redirect()->to('/admin/spt')->with('error', 'SPT tidak ditemukan.');
+        if (!$this->canAccessSpt($spt)) return redirect()->to('/admin/spt')->with('error', 'Akses ditolak.');
 
         return view('admin/spt/show', [
             'title'         => 'Detail SPT — ' . ($spt['nomor_naskah'] ?: '#' . $id),
@@ -226,6 +249,7 @@ class SptController extends BaseController
     {
         $spt = $this->sptModel->getDetail($id);
         if (!$spt) return redirect()->to('/admin/spt')->with('error', 'SPT tidak ditemukan.');
+        if (!$this->canAccessSpt($spt)) return redirect()->to('/admin/spt')->with('error', 'Akses ditolak.');
 
         if (!in_array($spt['status'], ['draft'])) {
             return redirect()->to('/admin/spt/' . $id)->with('error', 'SPT sudah diajukan, tidak bisa diedit.');
@@ -249,8 +273,11 @@ class SptController extends BaseController
 
     public function update(int $id)
     {
-        $spt = $this->sptModel->find($id);
-        if (!$spt || $spt['status'] !== 'draft') {
+        $spt = $this->sptModel->getDetail($id);
+        if (!$spt || !$this->canAccessSpt($spt)) {
+            return redirect()->to('/admin/spt')->with('error', !$spt ? 'SPT tidak bisa diedit.' : 'Akses ditolak.');
+        }
+        if ($spt['status'] !== 'draft') {
             return redirect()->back()->with('error', 'SPT tidak bisa diedit.');
         }
 
@@ -279,8 +306,11 @@ class SptController extends BaseController
 
     public function ajukan(int $id)
     {
-        $spt = $this->sptModel->find($id);
-        if (!$spt || $spt['status'] !== 'draft') {
+        $spt = $this->sptModel->getDetail($id);
+        if (!$spt || !$this->canAccessSpt($spt)) {
+            return redirect()->to('/admin/spt')->with('error', !$spt ? 'SPT tidak ditemukan.' : 'Akses ditolak.');
+        }
+        if ($spt['status'] !== 'draft') {
             return redirect()->back()->with('error', 'SPT tidak dalam status draft.');
         }
 
@@ -299,10 +329,12 @@ class SptController extends BaseController
 
     public function approve(int $id)
     {
-        $spt    = $this->sptModel->find($id);
+        $spt    = $this->sptModel->getDetail($id);
         $userId = session()->get('user_id');
 
-        if (!$spt) return redirect()->back()->with('error', 'SPT tidak ditemukan.');
+        if (!$spt || !$this->canAccessSpt($spt)) {
+            return redirect()->back()->with('error', !$spt ? 'SPT tidak ditemukan.' : 'Akses ditolak.');
+        }
 
         $tahap     = $this->sptModel->getNextApprovalTahap($spt['status']);
         $nextStatus = $this->sptModel->getNextStatus($spt['status']);
@@ -323,10 +355,12 @@ class SptController extends BaseController
 
     public function reject(int $id)
     {
-        $spt    = $this->sptModel->find($id);
+        $spt    = $this->sptModel->getDetail($id);
         $userId = session()->get('user_id');
 
-        if (!$spt) return redirect()->back()->with('error', 'SPT tidak ditemukan.');
+        if (!$spt || !$this->canAccessSpt($spt)) {
+            return redirect()->back()->with('error', !$spt ? 'SPT tidak ditemukan.' : 'Akses ditolak.');
+        }
 
         $tahap   = $this->sptModel->getNextApprovalTahap($spt['status']);
         $catatan = $this->request->getPost('catatan') ?: 'Ditolak';
@@ -346,6 +380,7 @@ class SptController extends BaseController
     {
         $spt = $this->sptModel->getDetail($id);
         if (!$spt) return redirect()->back()->with('error', 'SPT tidak ditemukan.');
+        if (!$this->canAccessSpt($spt)) return redirect()->back()->with('error', 'Akses ditolak.');
 
         $templatePath = FCPATH . 'assets/templates/spt_template.docx';
         if (!is_file($templatePath)) {
@@ -418,12 +453,23 @@ class SptController extends BaseController
 
     private function isAdmin(): bool
     {
-        return session()->get('is_superadmin') || hasPermission('spt.manage_all');
+        return hasRole('superadmin') || hasRole('admin') || hasPermission('spt.manage_all');
     }
 
     private function getUserIrbanId(int $userId): ?int
     {
         $sdm = $this->sdmModel->where('user_id', $userId)->first();
         return $sdm ? (int)$sdm['irban_id'] : null;
+    }
+
+    /**
+     * Cek apakah user saat ini boleh mengakses SPT ini.
+     * Admin: semua SPT. Irban user: hanya SPT milik irbannya.
+     */
+    private function canAccessSpt(array $spt): bool
+    {
+        if ($this->isAdmin()) return true;
+        $irbanId = $this->getUserIrbanId(session()->get('user_id'));
+        return $irbanId !== null && (int)$spt['irban_id'] === $irbanId;
     }
 }
