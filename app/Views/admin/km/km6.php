@@ -3,7 +3,7 @@
 
 <div class="page-header">
     <div class="page-title">
-        <h1><i class="fas fa-handshake"></i> KM6 — Notulensi Kesepakatan</h1>
+        <h1><i class="fas fa-handshake"></i> KM-5b — Entry Meeting</h1>
         <p>SPT: <?= esc($spt['nomor_naskah'] ?: '#'.$spt['id']) ?> — <?= esc($spt['irban_nama']) ?></p>
     </div>
     <div class="page-actions">

@@ -153,10 +153,25 @@ class KmController extends BaseController
     }
 
     // --------------------------------------------------
-    // KM6 — Notulensi Kesepakatan
+    // KM3 — Dokumen SPT (auto-prefill, read-only)
     // --------------------------------------------------
 
-    public function km6(int $sptId)
+    public function km3(int $sptId)
+    {
+        $spt = $this->sptModel->getDetail($sptId);
+        if (!$spt) return redirect()->to('/admin/spt')->with('error', 'SPT tidak ditemukan.');
+
+        return view('admin/km/km3', [
+            'title' => 'KM-3 — Dokumen SPT',
+            'spt'   => $spt,
+        ]);
+    }
+
+    // --------------------------------------------------
+    // KM5b — Entry Meeting (dulu KM6)
+    // --------------------------------------------------
+
+    public function km5b(int $sptId)
     {
         $spt = $this->sptModel->getDetail($sptId);
         if (!$spt) return redirect()->to('/admin/spt')->with('error', 'SPT tidak ditemukan.');
@@ -171,7 +186,7 @@ class KmController extends BaseController
         ]);
     }
 
-    public function saveKm6(int $sptId)
+    public function saveKm5b(int $sptId)
     {
         $spt = $this->sptModel->find($sptId);
         if (!$spt) return redirect()->back()->with('error', 'SPT tidak ditemukan.');

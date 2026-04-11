@@ -3,7 +3,7 @@
 
 <div class="page-header">
     <div class="page-title">
-        <h1><i class="fas fa-id-card"></i> KM1 — Kartu Penugasan</h1>
+        <h1><i class="fas fa-map"></i> KM-1 — Peta Pengawasan</h1>
         <p>SPT: <?= esc($spt['nomor_naskah'] ?: '#'.$spt['id']) ?> — <?= esc($spt['irban_nama']) ?></p>
     </div>
     <div class="page-actions">
