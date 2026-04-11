@@ -53,12 +53,12 @@
 <!-- Daftar Temuan -->
 <div class="card">
     <div class="card-body">
-        <table class="table-admin w-100">
+        <table id="dt-temuan" class="w-100">
             <thead>
                 <tr>
                     <th width="80">No. Temuan</th>
                     <th>Judul Temuan</th>
-                    <th width="80">Nilai (Rp)</th>
+                    <th width="120">Nilai (Rp)</th>
                     <th width="80">Rekomendasi</th>
                     <th width="90">Status</th>
                     <th width="110">Aksi</th>
@@ -95,12 +95,6 @@
                 </td>
             </tr>
             <?php endforeach; ?>
-            <?php if(empty($temuanList)): ?>
-            <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:32px">
-                <i class="fas fa-folder-open" style="font-size:24px;display:block;margin-bottom:8px"></i>
-                Belum ada temuan. <a href="/admin/spt/<?= $spt['id'] ?>/temuan/create">Tambah temuan pertama</a>.
-            </td></tr>
-            <?php endif; ?>
             </tbody>
         </table>
     </div>
@@ -112,13 +106,19 @@
 const csrfToken = '<?= csrf_hash() ?>';
 const csrfName  = '<?= csrf_token() ?>';
 
-$(document).on('click', '.btn-del-temuan', function() {
-    if (!confirm('Hapus temuan ini beserta seluruh rekomendasi-nya?')) return;
-    const id = $(this).data('id');
-    const row = $(this).closest('tr');
-    $.post('/admin/spt/temuan/' + id + '/delete', { [csrfName]: csrfToken }, function(res) {
-        if (res.success) row.fadeOut(300, function() { $(this).remove(); });
-        else alert('Gagal menghapus.');
+$(function() {
+    const dt = $('#dt-temuan').DataTable({
+        paging: false, language: DT_LANG_ID, order: [],
+    });
+
+    $(document).on('click', '.btn-del-temuan', function() {
+        if (!confirm('Hapus temuan ini beserta seluruh rekomendasi-nya?')) return;
+        const id  = $(this).data('id');
+        const row = $(this).closest('tr');
+        $.post('/admin/spt/temuan/' + id + '/delete', { [csrfName]: csrfToken }, res => {
+            if (res.success) dt.row(row).remove().draw();
+            else alert('Gagal menghapus.');
+        });
     });
 });
 </script>

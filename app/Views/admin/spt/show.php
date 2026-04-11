@@ -89,15 +89,15 @@
         <div class="card">
             <div class="card-header"><h3 class="card-title"><i class="fas fa-users"></i> Susunan Tim</h3></div>
             <div class="card-body">
-                <table class="table-admin w-100">
+                <table id="dt-tim" class="w-100">
                     <thead>
                         <tr>
-                            <th>No</th>
+                            <th width="40">No</th>
                             <th>Nama</th>
                             <th>Jabatan / Peran</th>
-                            <th>On Desk</th>
-                            <th>On Field</th>
-                            <th>Total HP</th>
+                            <th width="80">On Desk</th>
+                            <th width="80">On Field</th>
+                            <th width="80">Total HP</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -350,4 +350,15 @@ $kmAllDone  = $kmDoneAll === $kmTotalAll;
 .rejected .step-icon { background:#dc2626;color:#fff; }
 </style>
 
+<?= $this->endSection() ?>
+<?= $this->section('scripts') ?>
+<script>
+$(function() {
+    $('#dt-tim').DataTable({
+        paging: false, searching: false, info: false,
+        language: DT_LANG_ID,
+        order: [],
+    });
+});
+</script>
 <?= $this->endSection() ?>
