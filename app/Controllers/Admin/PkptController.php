@@ -392,6 +392,51 @@ class PkptController extends BaseController
     }
 
     /**
+     * AJAX: monitoring sisa HP organisasi per irban untuk tahun tertentu.
+     */
+    public function hpMonitor()
+    {
+        $tahun   = (int)($this->request->getGet('tahun') ?? $this->settingModel->getTahunAktif());
+        $setting = $this->settingModel->getByTahun($tahun);
+
+        $hpEfektif = $setting ? (int)$setting['total_hp_tahunan'] : 0;
+
+        $db   = \Config\Database::connect();
+        $rows = $db->table('irban i')
+            ->select("i.id, i.kode as irban_kode, i.nama as irban_nama,
+                COUNT(DISTINCT pk.id) as jumlah_kegiatan,
+                COALESCE(SUM(pt.hp_total), 0) as hp_terpakai")
+            ->join('pkpt p',          "p.irban_id = i.id AND p.tahun = {$tahun}", 'left')
+            ->join('pkpt_kegiatan pk',"pk.pkpt_id = p.id AND pk.status != 'batal'", 'left')
+            ->join('pkpt_tim pt',     'pt.pkpt_kegiatan_id = pk.id', 'left')
+            ->groupBy('i.id, i.kode, i.nama')
+            ->orderBy('i.kode')
+            ->get()->getResultArray();
+
+        $hpTerpakai = (int)array_sum(array_column($rows, 'hp_terpakai'));
+        $hpSisa     = max(0, $hpEfektif - $hpTerpakai);
+        $pct        = $hpEfektif > 0 ? round(($hpTerpakai / $hpEfektif) * 100, 1) : 0;
+        $irbanAktif = count(array_filter($rows, fn($r) => (int)$r['hp_terpakai'] > 0));
+
+        return $this->response->setJSON([
+            'tahun'              => $tahun,
+            'hp_efektif'         => $hpEfektif,
+            'hp_terpakai_global' => $hpTerpakai,
+            'hp_sisa'            => $hpSisa,
+            'pct'                => $pct,
+            'irban_aktif'        => $irbanAktif,
+            'updated_at'         => date('d M Y H:i:s'),
+            'irbans'             => array_map(fn($r) => [
+                'kode'        => $r['irban_kode'],
+                'nama'        => $r['irban_nama'],
+                'kegiatan'    => (int)$r['jumlah_kegiatan'],
+                'hp_terpakai' => (int)$r['hp_terpakai'],
+                'pct'         => $hpEfektif > 0 ? round(((int)$r['hp_terpakai'] / $hpEfektif) * 100, 1) : 0,
+            ], $rows),
+        ]);
+    }
+
+    /**
      * AJAX: sisa HP SDM untuk tahun tertentu.
      */
     public function sisaHpSdm()
