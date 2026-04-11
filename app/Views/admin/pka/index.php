@@ -45,7 +45,7 @@
 <div class="card mb-3">
     <div class="card-header"><h3 class="card-title"><i class="fas fa-list-check"></i> Prosedur Audit</h3></div>
     <div class="card-body">
-        <table class="table-admin w-100">
+        <table id="dt-pka" class="w-100">
             <thead>
                 <tr>
                     <th width="40">No</th>
@@ -57,7 +57,7 @@
                     <th width="100">Aksi</th>
                 </tr>
             </thead>
-            <tbody id="pka-tbody">
+            <tbody>
             <?php foreach($pkaList as $row): ?>
             <tr id="pka-row-<?= $row['id'] ?>">
                 <td><?= $row['nomor_urut'] ?></td>
@@ -89,9 +89,6 @@
                 </td>
             </tr>
             <?php endforeach; ?>
-            <?php if(empty($pkaList)): ?>
-            <tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:24px">Belum ada prosedur PKA</td></tr>
-            <?php endif; ?>
             </tbody>
         </table>
     </div>
@@ -180,51 +177,59 @@
 const csrfToken = '<?= csrf_hash() ?>';
 const csrfName  = '<?= csrf_token() ?>';
 
-// Toggle selesai
-$(document).on('click', '.btn-selesai', function() {
-    const id  = $(this).data('id');
-    const btn = $(this);
-    $.post('/admin/spt/pka/selesai/' + id, { [csrfName]: csrfToken }, function(res) {
-        if (!res.success) return;
-        const done = res.status === 'selesai';
-        $('#status-badge-' + id)
-            .removeClass('badge-warning badge-success')
-            .addClass(done ? 'badge-success' : 'badge-warning')
-            .text(done ? 'Selesai' : 'Belum');
-        btn.removeClass('btn-success btn-warning')
-           .addClass(done ? 'btn-warning' : 'btn-success')
-           .html('<i class="fas fa-' + (done ? 'undo' : 'check') + '"></i>');
+$(function() {
+    const dt = $('#dt-pka').DataTable({
+        paging: false, language: DT_LANG_ID, order: [],
+        columnDefs: [{ orderable: false, targets: [5, 6] }],
     });
-});
 
-// Buka modal edit
-$(document).on('click', '.btn-edit-pka', function() {
-    $('#edit-pka-id').val($(this).data('id'));
-    $('#edit-uraian').val($(this).data('uraian'));
-    $('#edit-pic').val($(this).data('pic'));
-    $('#edit-rencana').val($(this).data('rencana'));
-    $('#edit-realisasi').val($(this).data('realisasi'));
-    $('#modal-edit-pka').show();
-});
-
-// Submit edit
-$('#form-edit-pka').on('submit', function(e) {
-    e.preventDefault();
-    const id   = $('#edit-pka-id').val();
-    const data = $(this).serialize() + '&' + csrfName + '=' + csrfToken;
-    $.post('/admin/spt/pka/update/' + id, data, function(res) {
-        if (res.success) location.reload();
-        else alert('Gagal menyimpan.');
+    // Toggle selesai
+    $(document).on('click', '.btn-selesai', function() {
+        const id  = $(this).data('id');
+        const btn = $(this);
+        $.post('/admin/spt/pka/selesai/' + id, { [csrfName]: csrfToken }, res => {
+            if (!res.success) return;
+            const done = res.status === 'selesai';
+            $('#status-badge-' + id)
+                .removeClass('badge-warning badge-success')
+                .addClass(done ? 'badge-success' : 'badge-warning')
+                .text(done ? 'Selesai' : 'Belum');
+            btn.removeClass('btn-success btn-warning')
+               .addClass(done ? 'btn-warning' : 'btn-success')
+               .html('<i class="fas fa-' + (done ? 'undo' : 'check') + '"></i>');
+        });
     });
-});
 
-// Hapus PKA
-$(document).on('click', '.btn-del-pka', function() {
-    if (!confirm('Hapus prosedur ini?')) return;
-    const id = $(this).data('id');
-    $.post('/admin/spt/pka/delete/' + id, { [csrfName]: csrfToken }, function(res) {
-        if (res.success) $('#pka-row-' + id).remove();
-        else alert('Gagal menghapus.');
+    // Buka modal edit
+    $(document).on('click', '.btn-edit-pka', function() {
+        $('#edit-pka-id').val($(this).data('id'));
+        $('#edit-uraian').val($(this).data('uraian'));
+        $('#edit-pic').val($(this).data('pic'));
+        $('#edit-rencana').val($(this).data('rencana'));
+        $('#edit-realisasi').val($(this).data('realisasi'));
+        $('#modal-edit-pka').show();
+    });
+
+    // Submit edit
+    $('#form-edit-pka').on('submit', function(e) {
+        e.preventDefault();
+        const id   = $('#edit-pka-id').val();
+        const data = $(this).serialize() + '&' + csrfName + '=' + csrfToken;
+        $.post('/admin/spt/pka/update/' + id, data, res => {
+            if (res.success) location.reload();
+            else alert('Gagal menyimpan.');
+        });
+    });
+
+    // Hapus PKA
+    $(document).on('click', '.btn-del-pka', function() {
+        if (!confirm('Hapus prosedur ini?')) return;
+        const id  = $(this).data('id');
+        const row = $(this).closest('tr');
+        $.post('/admin/spt/pka/delete/' + id, { [csrfName]: csrfToken }, res => {
+            if (res.success) dt.row(row).remove().draw();
+            else alert('Gagal menghapus.');
+        });
     });
 });
 </script>
