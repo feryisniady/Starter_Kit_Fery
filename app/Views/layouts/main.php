@@ -191,6 +191,11 @@
   window._flashSuccess = "<?= addslashes(session()->getFlashdata('success')) ?>";
 </script>
 <?php endif; ?>
+<?php if(session()->getFlashdata('success_modal')): ?>
+<script>
+  window._flashSuccessModal = "<?= addslashes(session()->getFlashdata('success_modal')) ?>";
+</script>
+<?php endif; ?>
 <?php if(session()->getFlashdata('error')): ?>
 <script>
   window._flashError = "<?= addslashes(session()->getFlashdata('error')) ?>";
@@ -244,7 +249,7 @@
 
 // Flash Messages
   $(document).ready(function() {
-    // Notifikasi Sukses (Sudah benar)
+    // Notifikasi Sukses Toast
     if(window._flashSuccess) {
       Swal.fire({
         icon: 'success',
@@ -255,6 +260,17 @@
         toast: true,
         position: 'top-end',
         timerProgressBar: true
+      });
+    }
+    // Notifikasi Sukses Modal (untuk aksi penting seperti ajukan)
+    if(window._flashSuccessModal) {
+      Swal.fire({
+        icon: 'success',
+        title: 'Berhasil!',
+        html: window._flashSuccessModal,
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#4f46e5',
+        customClass: { popup: 'swal-wide' }
       });
     }
 

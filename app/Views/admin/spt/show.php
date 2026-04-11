@@ -279,19 +279,92 @@ $kmAllDone  = $kmDoneAll === $kmTotalAll;
 
 <!-- Modal Ajukan -->
 <div id="modal-ajukan" class="modal-overlay" style="display:none">
-    <div class="modal-box" style="max-width:400px">
-        <div class="modal-header">
-            <h3>Ajukan SPT</h3>
-            <button class="modal-close" onclick="$('#modal-ajukan').hide()"><i class="fas fa-times"></i></button>
+    <div class="modal-box" style="max-width:460px">
+
+        <!-- Hero area -->
+        <div style="background:linear-gradient(135deg,#4f46e5 0%,#6366f1 100%);
+                    border-radius:10px 10px 0 0;padding:28px 24px 20px;text-align:center">
+            <div style="width:60px;height:60px;background:rgba(255,255,255,.2);border-radius:50%;
+                        display:inline-flex;align-items:center;justify-content:center;margin-bottom:10px">
+                <i class="fas fa-paper-plane" style="font-size:26px;color:#fff"></i>
+            </div>
+            <h3 style="color:#fff;margin:0 0 4px;font-size:18px;font-weight:700">Ajukan SPT</h3>
+            <p style="color:rgba(255,255,255,.8);margin:0;font-size:13px">
+                Kirim ke Kepala Irban untuk persetujuan
+            </p>
         </div>
-        <p style="margin:16px 0">Yakin ingin mengajukan SPT ini untuk persetujuan Kepala Irban?</p>
+
+        <!-- Info ringkasan SPT -->
+        <div style="padding:20px 24px 0">
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;font-size:13px">
+                <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 12px;align-items:baseline">
+                    <span style="color:#64748b;font-size:11px;font-weight:600;white-space:nowrap">NOMOR</span>
+                    <span style="font-weight:600;color:#1e293b">
+                        <?= $spt['nomor_naskah'] ? esc($spt['nomor_naskah']) : '<em style="color:#94a3b8">Draft — belum bernomor</em>' ?>
+                    </span>
+                    <span style="color:#64748b;font-size:11px;font-weight:600;white-space:nowrap">KEGIATAN</span>
+                    <span><span class="badge badge-primary"><?= esc($spt['kode_kegiatan']) ?></span></span>
+                    <span style="color:#64748b;font-size:11px;font-weight:600;white-space:nowrap">IRBAN</span>
+                    <span style="color:#475569"><?= esc($spt['irban_nama']) ?></span>
+                    <span style="color:#64748b;font-size:11px;font-weight:600;white-space:nowrap">TUJUAN</span>
+                    <span style="color:#475569;line-height:1.4"><?= esc($spt['tujuan']) ?></span>
+                </div>
+            </div>
+
+            <!-- Alur persetujuan mini -->
+            <div style="margin-top:14px;display:flex;align-items:center;gap:0;font-size:11px;color:#64748b">
+                <div style="flex:0 0 auto;text-align:center;padding:0 8px">
+                    <div style="width:28px;height:28px;border-radius:50%;background:#e0e7ff;color:#4f46e5;
+                                display:flex;align-items:center;justify-content:center;margin:0 auto 4px;font-size:12px">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div>Anda</div>
+                </div>
+                <div style="flex:1;height:2px;background:linear-gradient(90deg,#c7d2fe,#e2e8f0);margin-bottom:14px"></div>
+                <div style="flex:0 0 auto;text-align:center;padding:0 8px">
+                    <div style="width:28px;height:28px;border-radius:50%;background:#fef3c7;color:#d97706;
+                                display:flex;align-items:center;justify-content:center;margin:0 auto 4px;font-size:11px">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <div style="white-space:nowrap">Ka. Irban</div>
+                </div>
+                <div style="flex:1;height:2px;background:#e2e8f0;margin-bottom:14px"></div>
+                <div style="flex:0 0 auto;text-align:center;padding:0 8px">
+                    <div style="width:28px;height:28px;border-radius:50%;background:#f1f5f9;color:#94a3b8;
+                                display:flex;align-items:center;justify-content:center;margin:0 auto 4px;font-size:11px">
+                        <i class="fas fa-user-check"></i>
+                    </div>
+                    <div>Evlap</div>
+                </div>
+                <div style="flex:1;height:2px;background:#e2e8f0;margin-bottom:14px"></div>
+                <div style="flex:0 0 auto;text-align:center;padding:0 8px">
+                    <div style="width:28px;height:28px;border-radius:50%;background:#f1f5f9;color:#94a3b8;
+                                display:flex;align-items:center;justify-content:center;margin:0 auto 4px;font-size:11px">
+                        <i class="fas fa-stamp"></i>
+                    </div>
+                    <div style="white-space:nowrap">Terbit</div>
+                </div>
+            </div>
+
+            <p style="margin:10px 0 0;font-size:12px;color:#64748b;text-align:center">
+                <i class="fas fa-info-circle" style="color:#6366f1"></i>
+                Setelah diajukan, SPT tidak dapat diedit sampai ada penolakan.
+            </p>
+        </div>
+
+        <!-- Footer -->
         <form action="/admin/spt/<?= $spt['id'] ?>/ajukan" method="POST">
             <?= csrf_field() ?>
-            <div class="form-actions">
-                <button type="button" class="btn btn-secondary" onclick="$('#modal-ajukan').hide()">Batal</button>
-                <button type="submit" class="btn btn-primary">Ajukan</button>
+            <div style="padding:16px 24px 20px;display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+                <button type="button" class="btn btn-secondary" onclick="$('#modal-ajukan').hide()">
+                    Batal
+                </button>
+                <button type="submit" class="btn btn-primary" style="background:#4f46e5;border-color:#4f46e5">
+                    <i class="fas fa-paper-plane"></i> Ajukan Sekarang
+                </button>
             </div>
         </form>
+
     </div>
 </div>
 
