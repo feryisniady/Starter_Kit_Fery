@@ -13,26 +13,22 @@
     </div>
 </div>
 
-<?php
-// Hitung SDM yang belum lengkap
-$totalUnlinkedUser  = count(array_filter($users, fn($u) => false)); // dihitung via DataTable
-?>
-
 <div class="card">
     <div class="card-body">
-        <table id="dt-sdm" class="w-100">
+        <table id="dt-sdm" data-url="/admin/master/sdm/data" class="w-100">
             <thead>
                 <tr>
-                    <th width="40">#</th>
-                    <th>NIP</th>
-                    <th>Nama</th>
-                    <th>Jabatan</th>
-                    <th>Irban</th>
-                    <th width="130">Akun User</th>
-                    <th width="70">Status</th>
-                    <th width="90">Aksi</th>
+                    <th class="dt-nosort dt-nosearch" data-dt="no" width="40">#</th>
+                    <th data-dt="nip" width="120">NIP</th>
+                    <th data-dt="nama">Nama</th>
+                    <th data-dt="jabatan_struktural">Jabatan</th>
+                    <th class="dt-nosort" data-dt="irban">Irban</th>
+                    <th class="dt-nosort" data-dt="user_linked" width="150">Akun User</th>
+                    <th class="dt-nosort" data-dt="aktif" width="70">Status</th>
+                    <th class="dt-nosort dt-nosearch" data-dt="aksi" width="90">Aksi</th>
                 </tr>
             </thead>
+            <tbody></tbody>
         </table>
     </div>
 </div>
@@ -146,38 +142,17 @@ $totalUnlinkedUser  = count(array_filter($users, fn($u) => false)); // dihitung 
 
 <?= $this->section('scripts') ?>
 <script>
-const csrfToken  = '<?= csrf_hash() ?>';
-const csrfName   = '<?= csrf_token() ?>';
-
-// Tidak dipakai langsung — info ada di data-attribute option
-
 $(function() {
-    $('#dt-sdm').DataTable({
-        processing: true, serverSide: true,
-        language: DT_LANG_ID,
-        ajax: { url: '/admin/master/sdm/data', type: 'POST',
-                data: d => { d[csrfName] = csrfToken; } },
-        columns: [
-            { data: null, render: (d,t,r,m) => m.row + m.settings._iDisplayStart + 1, orderable: false },
-            { data: 'nip', width: '110px' },
-            { data: 'nama' },
-            { data: 'jabatan_struktural' },
-            { data: 'irban', orderable: false },
-            { data: 'user_linked', orderable: false },
-            { data: 'aktif', orderable: false },
-            { data: 'aksi', orderable: false },
-        ]
-    });
+    const csrfN = $('meta[name="csrf-token-name"]').attr('content');
+    const csrfH = $('meta[name="csrf-token"]').attr('content');
 
     // Warning saat pilih user yang sudah ter-link ke SDM LAIN
     $('#f-user').on('change', function() {
-        const currentSdmId = parseInt($('#sdm-id').val()) || 0;
-        const opt          = $(this).find('option:selected');
-        const linkedSdmId  = parseInt(opt.data('linked-sdm-id')) || 0;
-        const linkedSdmNama= opt.data('linked-sdm-nama') || '';
-
+        const currentSdmId  = parseInt($('#sdm-id').val()) || 0;
+        const opt           = $(this).find('option:selected');
+        const linkedSdmId   = parseInt(opt.data('linked-sdm-id'))   || 0;
+        const linkedSdmNama = opt.data('linked-sdm-nama') || '';
         if (linkedSdmId && linkedSdmId !== currentSdmId) {
-            // Terhubung ke SDM yang berbeda — tampilkan peringatan
             $('#user-link-other-sdm').text(linkedSdmNama);
             $('#user-link-warning').show();
         } else {
@@ -185,9 +160,9 @@ $(function() {
         }
     });
 
+    // Edit
     $(document).on('click', '.btn-edit', function() {
-        const id = $(this).data('id');
-        $.get('/admin/master/sdm/' + id, res => {
+        $.get('/admin/master/sdm/' + $(this).data('id'), res => {
             $('#sdm-id').val(res.id);
             $('#sdm-current-user-id').val(res.user_id || '');
             $('#f-nip').val(res.nip || '');
@@ -198,36 +173,30 @@ $(function() {
             $('#f-irban').val(res.irban_id || '');
             $('#f-aktif').val(res.aktif);
             $('#user-link-warning').hide();
-
-            // Set user dropdown — semua user ada di dropdown, tinggal pilih
             $('#f-user').val(res.user_id || '').trigger('change');
-
             $('#wrap-aktif').show();
             $('#modal-title').text('Edit SDM — ' + res.nama);
             $('#modal-sdm').show();
         });
     });
 
+    // Hapus
     $(document).on('click', '.btn-delete', function() {
         if (!confirm('Hapus SDM ini?')) return;
-        $.post('/admin/master/sdm/delete/' + $(this).data('id'),
-            { [csrfName]: csrfToken }, res => {
-                if (res.success) $('#dt-sdm').DataTable().ajax.reload();
-                else alert(res.message);
-            });
+        $.post('/admin/master/sdm/delete/' + $(this).data('id'), { [csrfN]: csrfH }, res => {
+            if (res.success) dtReload('dt-sdm');
+            else alert(res.message);
+        });
     });
 
+    // Simpan
     $('#form-sdm').on('submit', function(e) {
         e.preventDefault();
         const id  = $('#sdm-id').val();
         const url = id ? '/admin/master/sdm/update/' + id : '/admin/master/sdm/store';
-        $.post(url, $(this).serialize() + '&' + csrfName + '=' + csrfToken, res => {
-            if (res.success) {
-                closeModal();
-                $('#dt-sdm').DataTable().ajax.reload();
-            } else {
-                alert(res.message || 'Gagal menyimpan.');
-            }
+        $.post(url, $(this).serialize() + '&' + csrfN + '=' + csrfH, res => {
+            if (res.success) { closeModal(); dtReload('dt-sdm'); }
+            else alert(res.message || 'Gagal menyimpan.');
         });
     });
 });

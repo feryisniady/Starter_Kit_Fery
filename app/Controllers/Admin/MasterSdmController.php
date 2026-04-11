@@ -78,7 +78,8 @@ class MasterSdmController extends BaseController
         $filtered = $search ? $q->countAllResults(false) : $total;
         $rows     = $q->limit($length, $start)->get()->getResultArray();
 
-        $data = array_map(function($r) {
+        $data = [];
+        foreach ($rows as $i => $r) {
             $irbanCell = $r['irban_nama']
                 ? esc($r['irban_nama'])
                 : '<span style="color:#ef4444;font-size:11px"><i class="fas fa-exclamation-circle"></i> Belum diset</span>';
@@ -87,27 +88,22 @@ class MasterSdmController extends BaseController
                 ? '<span style="color:#6366f1;font-size:12px"><i class="fas fa-link"></i> ' . esc($r['user_email']) . '</span>'
                 : '<span style="color:#f59e0b;font-size:11px"><i class="fas fa-unlink"></i> Belum terhubung</span>';
 
-            return [
+            $data[] = [
+                'no'                 => $start + $i + 1,
                 'nip'                => esc($r['nip'] ?: '—'),
                 'nama'               => esc($r['nama']),
                 'jabatan_struktural' => esc($r['jabatan_struktural'] ?: '—'),
-                'pangkat_golongan'   => esc($r['pangkat_golongan'] ?: '—'),
                 'irban'              => $irbanCell,
                 'user_linked'        => $userCell,
                 'aktif'              => $r['aktif']
                     ? '<span class="badge badge-success">Aktif</span>'
                     : '<span class="badge badge-secondary">Nonaktif</span>',
-                'aksi' => '<button class="btn btn-xs btn-warning btn-edit" data-id="' . $r['id'] . '"><i class="fas fa-edit"></i></button>
-                           <button class="btn btn-xs btn-danger btn-delete" data-id="' . $r['id'] . '"><i class="fas fa-trash"></i></button>',
+                'aksi' => '<button class="btn btn-xs btn-warning btn-edit" data-id="' . $r['id'] . '"><i class="fas fa-edit"></i></button> '
+                        . '<button class="btn btn-xs btn-danger btn-delete" data-id="' . $r['id'] . '"><i class="fas fa-trash"></i></button>',
             ];
-        }, $rows);
+        }
 
-        return $this->response->setJSON([
-            'draw'            => $draw,
-            'recordsTotal'    => $total,
-            'recordsFiltered' => $filtered,
-            'data'            => $data,
-        ]);
+        return $this->dtResponse($draw, $total, $filtered, $data);
     }
 
     public function store()
