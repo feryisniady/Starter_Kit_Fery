@@ -73,6 +73,29 @@
 <?php endif; ?>
 </div>
 
+<?php if($isAdmin): ?>
+<!-- HP Real-time Monitor (Admin only) -->
+<div class="card mb-3" id="hp-monitor-card">
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;padding:12px 20px">
+        <h3 class="card-title" style="margin:0;display:flex;align-items:center;gap:8px">
+            <span id="hp-live-dot" style="width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block;box-shadow:0 0 0 0 rgba(34,197,94,.4);animation:pulse-dot 2s infinite"></span>
+            Monitoring Sisa HP Real-time
+        </h3>
+        <div style="display:flex;align-items:center;gap:10px">
+            <span id="hp-monitor-updated" style="font-size:11px;color:#94a3b8"></span>
+            <button id="btn-refresh-hp" class="btn btn-sm btn-outline-secondary" title="Refresh sekarang">
+                <i class="fas fa-rotate-right"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body" id="hp-monitor-body" style="padding:16px 20px">
+        <div style="text-align:center;padding:20px;color:#94a3b8">
+            <i class="fas fa-spinner fa-spin"></i> Memuat data...
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
 <?php if(!$isAdmin && !$myPkpt): ?>
 <div class="alert-error-inline mb-3">
     <i class="fas fa-clock"></i>
@@ -141,6 +164,13 @@
 
 <?= $this->endSection() ?>
 <?= $this->section('scripts') ?>
+<style>
+@keyframes pulse-dot {
+    0%   { box-shadow: 0 0 0 0 rgba(34,197,94,.5); }
+    70%  { box-shadow: 0 0 0 7px rgba(34,197,94,0); }
+    100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+}
+</style>
 <script>
 const csrfToken = '<?= csrf_hash() ?>';
 const csrfName  = '<?= csrf_token() ?>';
@@ -178,6 +208,89 @@ $(function() {
     $('#btn-buat-pkpt').on('click', function() {
         Modal.open('modal-buat');
     });
+
+    // ── HP Monitor (admin only) ────────────────────────────────────
+    if ($('#hp-monitor-card').length) {
+        loadHpMonitor(currentTahun);
+        const monitorInterval = setInterval(() => loadHpMonitor(currentTahun), 30000);
+
+        $('#btn-refresh-hp').on('click', function() {
+            const icon = $(this).find('i').addClass('fa-spin');
+            loadHpMonitor(currentTahun, () => icon.removeClass('fa-spin'));
+        });
+    }
 });
+
+function loadHpMonitor(tahun, done) {
+    $.get('/admin/pkpt/hp-monitor', { tahun }, function(d) {
+        const pctColor = d.pct >= 90 ? '#ef4444' : (d.pct >= 70 ? '#f59e0b' : '#22c55e');
+        const sisaPct  = Math.max(0, 100 - d.pct).toFixed(1);
+
+        let html = `
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:14px;text-align:center">
+            <div>
+                <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">HP Efektif</div>
+                <div style="font-size:28px;font-weight:700;color:#64748b">${d.hp_efektif}</div>
+                <div style="font-size:11px;color:#94a3b8">hari / tahun</div>
+            </div>
+            <div>
+                <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">HP Terpakai</div>
+                <div style="font-size:28px;font-weight:700;color:#f59e0b">${d.hp_terpakai_global}</div>
+                <div style="font-size:11px;color:#94a3b8">${d.pct}% dari total</div>
+            </div>
+            <div>
+                <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">Sisa HP</div>
+                <div style="font-size:28px;font-weight:700;color:${d.hp_sisa <= 0 ? '#ef4444' : '#22c55e'}">${d.hp_sisa}</div>
+                <div style="font-size:11px;color:#94a3b8">${sisaPct}% tersisa</div>
+            </div>
+            <div>
+                <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">Irban Aktif</div>
+                <div style="font-size:28px;font-weight:700;color:#6366f1">${d.irban_aktif}<span style="font-size:14px;color:#94a3b8"> / ${d.irbans.length}</span></div>
+                <div style="font-size:11px;color:#94a3b8">memiliki kegiatan</div>
+            </div>
+        </div>
+        <div style="height:10px;background:#f1f5f9;border-radius:5px;overflow:hidden;margin-bottom:16px" title="${d.pct}% terpakai">
+            <div style="height:100%;width:${d.pct}%;background:${pctColor};border-radius:5px;transition:width .6s ease"></div>
+        </div>
+        <table style="width:100%;font-size:13px;border-collapse:collapse">
+            <thead>
+                <tr style="background:#f8fafc">
+                    <th style="text-align:left;padding:8px 10px;color:#64748b;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Irban</th>
+                    <th style="text-align:center;padding:8px 10px;color:#64748b;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Kegiatan</th>
+                    <th style="text-align:right;padding:8px 10px;color:#64748b;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">HP Terpakai</th>
+                    <th style="padding:8px 10px;color:#64748b;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;min-width:160px">Utilisasi dari Total</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+        d.irbans.forEach(irban => {
+            const bc = irban.pct >= 90 ? '#ef4444' : (irban.pct >= 70 ? '#f59e0b' : '#22c55e');
+            html += `
+            <tr style="border-top:1px solid #f1f5f9">
+                <td style="padding:10px 10px">
+                    <span class="badge badge-primary" style="margin-right:6px">${irban.kode}</span>
+                    <span style="color:#1e293b">${irban.nama}</span>
+                </td>
+                <td style="text-align:center;padding:10px;font-weight:700;color:#6366f1">${irban.kegiatan}</td>
+                <td style="text-align:right;padding:10px;font-weight:700;color:${irban.hp_terpakai > 0 ? '#f59e0b' : '#94a3b8'}">
+                    ${irban.hp_terpakai} hari
+                </td>
+                <td style="padding:10px 10px">
+                    <div style="display:flex;align-items:center;gap:8px">
+                        <div style="flex:1;height:7px;background:#f1f5f9;border-radius:4px;overflow:hidden">
+                            <div style="height:100%;width:${irban.pct}%;background:${bc};border-radius:4px;transition:width .5s ease"></div>
+                        </div>
+                        <span style="font-size:12px;color:#64748b;min-width:40px;text-align:right">${irban.pct}%</span>
+                    </div>
+                </td>
+            </tr>`;
+        });
+
+        html += `</tbody></table>`;
+        $('#hp-monitor-body').html(html);
+        $('#hp-monitor-updated').text('Diperbarui: ' + d.updated_at);
+        if (done) done();
+    });
+}
 </script>
 <?= $this->endSection() ?>
