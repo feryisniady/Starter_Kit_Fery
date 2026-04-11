@@ -42,10 +42,11 @@ class PkptController extends BaseController
 
     public function index()
     {
-        $tahun = (int)($this->request->getGet('tahun') ?? $this->settingModel->getTahunAktif());
+        $tahun   = (int)($this->request->getGet('tahun') ?? $this->settingModel->getTahunAktif());
+        $isAdmin = $this->isAdmin();
 
         $myPkpt = null;
-        if (!$this->isAdmin()) {
+        if (!$isAdmin) {
             $irbanId = $this->getUserIrbanId(session()->get('user_id'));
             if ($irbanId) {
                 $myPkpt = $this->pkptModel->getByIrbanTahun($irbanId, $tahun);
@@ -58,6 +59,7 @@ class PkptController extends BaseController
             'settings'       => $this->settingModel->orderBy('tahun', 'DESC')->findAll(),
             'currentSetting' => $this->settingModel->getByTahun($tahun),
             'irbanList'      => (new IrbanModel())->orderBy('kode')->findAll(),
+            'isAdmin'        => $isAdmin,
             'myPkpt'         => $myPkpt,
         ]);
     }
