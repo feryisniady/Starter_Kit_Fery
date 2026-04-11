@@ -73,7 +73,7 @@
 <?php endif; ?>
 </div>
 
-<!-- HP Real-time Monitor (Admin only) -->
+<!-- HP Real-time Monitor  -->
 <div class="card mb-3" id="hp-monitor-card">
     <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;padding:12px 20px">
         <h3 class="card-title" style="margin:0;display:flex;align-items:center;gap:8px">
