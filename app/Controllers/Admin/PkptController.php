@@ -423,7 +423,7 @@ class PkptController extends BaseController
 
     private function isAdmin(): bool
     {
-        return session()->get('is_superadmin') || hasPermission('pkpt.manage_all');
+        return hasRole('superadmin') || hasRole('admin') || hasPermission('pkpt.manage_all');
     }
 
     private function getUserIrbanId(int $userId): ?int
