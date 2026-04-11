@@ -23,10 +23,11 @@
 
 <!-- Info PKPT + HP Summary -->
 <?php
-$totalHpTerpakai  = array_sum(array_column($kegiatan, 'total_hp'));
+$totalHpIrbanIni  = array_sum(array_column($kegiatan, 'total_hp'));     // HP yang dipakai irban ini
 $hpEfektifShow    = $setting ? (int)$setting['total_hp_tahunan'] : 0;
-$hpSisaShow       = max(0, $hpEfektifShow - $totalHpTerpakai);
-$hpPctShow        = $hpEfektifShow > 0 ? min(100, round(($totalHpTerpakai / $hpEfektifShow) * 100)) : 0;
+$hpGlobalTerpakai = $hpGlobalTerpakai ?? $totalHpIrbanIni;              // dari controller (semua irban)
+$hpSisaShow       = max(0, $hpEfektifShow - $hpGlobalTerpakai);         // sisa dari budget organisasi
+$hpPctShow        = $hpEfektifShow > 0 ? min(100, round(($hpGlobalTerpakai / $hpEfektifShow) * 100)) : 0;
 $hpBarColorShow   = $hpPctShow >= 90 ? '#ef4444' : ($hpPctShow >= 70 ? '#f59e0b' : '#22c55e');
 ?>
 <div class="card mb-3" style="border-left:4px solid #6366f1">
@@ -46,12 +47,12 @@ $hpBarColorShow   = $hpPctShow >= 90 ? '#ef4444' : ($hpPctShow >= 70 ? '#f59e0b'
                 <div style="font-size:11px;color:#94a3b8">hari/tahun</div>
             </div>
             <div>
-                <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">HP Terpakai</div>
-                <div style="font-size:20px;font-weight:700;color:#f59e0b"><?= $totalHpTerpakai ?></div>
-                <div style="font-size:11px;color:#94a3b8"><?= $hpPctShow ?>% utilisasi</div>
+                <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">HP Terpakai Irban Ini</div>
+                <div style="font-size:20px;font-weight:700;color:#f59e0b"><?= $totalHpIrbanIni ?></div>
+                <div style="font-size:11px;color:#94a3b8"><?= $hpPctShow ?>% utilisasi (total org)</div>
             </div>
             <div>
-                <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">Sisa HP</div>
+                <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px">Sisa HP (Semua Irban)</div>
                 <div style="font-size:20px;font-weight:700;color:<?= $hpSisaShow <= 0 ? '#ef4444' : '#22c55e' ?>"><?= $hpSisaShow ?></div>
                 <div style="font-size:11px;color:#94a3b8">
                     Rp <?= number_format(array_sum(array_column($kegiatan, 'total_anggaran')), 0, ',', '.') ?>
