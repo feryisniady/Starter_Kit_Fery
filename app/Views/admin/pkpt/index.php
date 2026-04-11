@@ -12,14 +12,14 @@
             <option value="<?= $s['tahun'] ?>" <?= $s['tahun'] == $tahun ? 'selected' : '' ?>><?= $s['tahun'] ?></option>
             <?php endforeach; ?>
         </select>
-        <?php if($myPkpt): ?>
-        <a href="/admin/pkpt/<?= $myPkpt['id'] ?>/kegiatan/create" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Tambah Kegiatan
-        </a>
-        <?php else: ?>
+        <?php if($isAdmin): ?>
         <button class="btn btn-primary" id="btn-buat-pkpt">
             <i class="fas fa-plus"></i> Buat PKPT
         </button>
+        <?php elseif($myPkpt): ?>
+        <a href="/admin/pkpt/<?= $myPkpt['id'] ?>/kegiatan/create" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Tambah Kegiatan
+        </a>
         <?php endif; ?>
     </div>
 </div>
@@ -50,22 +50,36 @@
             <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Total HP Tahunan</div>
             <div style="font-weight:600;font-size:14px"><?= number_format($currentSetting['total_hp_tahunan']) ?> Hari</div>
         </div>
+        <?php if($isAdmin): ?>
         <div>
             <a href="/admin/pkpt/setting" class="btn btn-sm btn-outline-secondary" title="Edit Setting PKPT">
                 <i class="fas fa-sliders"></i> Setting
             </a>
         </div>
+        <?php endif; ?>
     </div>
 </div>
 <?php else: ?>
 <div class="alert-error-inline mb-3">
     <i class="fas fa-triangle-exclamation"></i>
     <strong>Header PKPT tahun <?= $tahun ?> belum diatur.</strong>
+    <?php if($isAdmin): ?>
     Isi Nomor SK dan Tanggal Penetapan terlebih dahulu.
     <a href="/admin/pkpt/setting" class="btn btn-xs btn-primary" style="margin-left:12px"><i class="fas fa-sliders"></i> Atur Sekarang</a>
+    <?php else: ?>
+    Hubungi bagian Evlap untuk mengatur header PKPT tahun ini.
+    <?php endif; ?>
 </div>
 <?php endif; ?>
 </div>
+
+<?php if(!$isAdmin && !$myPkpt): ?>
+<div class="alert-error-inline mb-3">
+    <i class="fas fa-clock"></i>
+    <strong>PKPT irban Anda untuk tahun <?= $tahun ?> belum tersedia.</strong>
+    Silakan hubungi bagian Evaluasi &amp; Pelaporan (Evlap) untuk membuat PKPT terlebih dahulu.
+</div>
+<?php endif; ?>
 
 <div class="card">
     <div class="card-body">
