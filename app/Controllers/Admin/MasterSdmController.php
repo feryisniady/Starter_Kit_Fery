@@ -30,7 +30,7 @@ class MasterSdmController extends BaseController
 
         // Map user_id → {sdm_id, sdm_nama} untuk warning di dropdown
         $db = \Config\Database::connect();
-        $linkedRows = $db->table('sdm')->select('id, user_id, nama')->whereNotNull('user_id')->get()->getResultArray();
+        $linkedRows = $db->table('sdm')->select('id, user_id, nama')->where('user_id IS NOT NULL')->get()->getResultArray();
         $linkedMap  = [];
         foreach ($linkedRows as $lr) {
             $linkedMap[(int)$lr['user_id']] = ['sdm_id' => (int)$lr['id'], 'sdm_nama' => $lr['nama']];
