@@ -25,11 +25,24 @@ class MasterSdmController extends BaseController
 
     public function index()
     {
-        // Semua user (tidak difilter) — validasi uniqueness dilakukan di backend
-        $allUsers = $this->userModel->select('id, email, name')->orderBy('name')->findAll();
+        $db = \Config\Database::connect();
+
+        // Semua user kecuali yang punya role superadmin (tidak boleh di-link ke SDM)
+        $superadminIds = array_column(
+            $db->table('user_roles ur')
+                ->select('ur.user_id')
+                ->join('roles r', 'r.id = ur.role_id')
+                ->where('r.name', 'superadmin')
+                ->get()->getResultArray(),
+            'user_id'
+        );
+        $userQuery = $this->userModel->select('id, email, name')->orderBy('name');
+        if (!empty($superadminIds)) {
+            $userQuery->whereNotIn('id', $superadminIds);
+        }
+        $allUsers = $userQuery->findAll();
 
         // Map user_id → {sdm_id, sdm_nama} untuk warning di dropdown
-        $db = \Config\Database::connect();
         $linkedRows = $db->table('sdm')->select('id, user_id, nama')->where('user_id IS NOT NULL')->get()->getResultArray();
         $linkedMap  = [];
         foreach ($linkedRows as $lr) {
