@@ -93,7 +93,7 @@ $totalUnlinkedUser  = count(array_filter($users, fn($u) => false)); // dihitung 
                     <option value="">— Tidak dihubungkan —</option>
                     <?php foreach($users as $u):
                         $link = $linkedMap[$u['id']] ?? null;
-                        $displayName = esc($u['name'] ?: $u['username']) . ' (@' . esc($u['username']) . ')';
+                        $displayName = esc($u['name'] ?: $u['email']) . ' (' . esc($u['email']) . ')';
                         $suffix = $link ? ' ← terhubung ke: ' . esc($link['sdm_nama']) : '';
                     ?>
                     <option value="<?= $u['id'] ?>"

@@ -26,7 +26,7 @@ class MasterSdmController extends BaseController
     public function index()
     {
         // Semua user (tidak difilter) — validasi uniqueness dilakukan di backend
-        $allUsers = $this->userModel->select('id, username, name')->orderBy('name')->findAll();
+        $allUsers = $this->userModel->select('id, email, name')->orderBy('name')->findAll();
 
         // Map user_id → {sdm_id, sdm_nama} untuk warning di dropdown
         $db = \Config\Database::connect();
@@ -54,7 +54,7 @@ class MasterSdmController extends BaseController
         $total = $db->table('sdm')->countAllResults();
 
         $q = $db->table('sdm s')
-            ->select('s.*, i.nama as irban_nama, u.name as user_nama, u.username as user_username')
+            ->select('s.*, i.nama as irban_nama, u.name as user_nama, u.email as user_email')
             ->join('irban i', 'i.id = s.irban_id', 'left')
             ->join('users u', 'u.id = s.user_id', 'left')
             ->orderBy('i.kode, s.nama');
@@ -71,7 +71,7 @@ class MasterSdmController extends BaseController
                 : '<span style="color:#ef4444;font-size:11px"><i class="fas fa-exclamation-circle"></i> Belum diset</span>';
 
             $userCell = $r['user_nama']
-                ? '<span style="color:#6366f1;font-size:12px"><i class="fas fa-link"></i> ' . esc($r['user_username']) . '</span>'
+                ? '<span style="color:#6366f1;font-size:12px"><i class="fas fa-link"></i> ' . esc($r['user_email']) . '</span>'
                 : '<span style="color:#f59e0b;font-size:11px"><i class="fas fa-unlink"></i> Belum terhubung</span>';
 
             return [
