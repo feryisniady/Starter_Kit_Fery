@@ -98,16 +98,16 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	$routes->post('master/irban/delete/(:num)', 'Admin\MasterIrbanController::delete/$1');
 
 	// Master Entitas
-	$routes->get('master/entitas',              'Admin\MasterEntitasController::index');
-	$routes->post('master/entitas/data',        'Admin\MasterEntitasController::getData');
+	$routes->get('master/entitas', 'Admin\MasterEntitasController::index', ['filter' => 'permission:data_entitas.view']);
+	$routes->post('master/entitas/data',        'Admin\MasterEntitasController::getData', ['filter' => 'permission:data_entitas.view']);
 	$routes->post('master/entitas/store',       'Admin\MasterEntitasController::store');
 	$routes->get('master/entitas/(:num)',       'Admin\MasterEntitasController::show/$1');
 	$routes->post('master/entitas/update/(:num)','Admin\MasterEntitasController::update/$1');
 	$routes->post('master/entitas/delete/(:num)','Admin\MasterEntitasController::delete/$1');
 
 	// Master SDM
-	$routes->get('master/sdm',                  'Admin\MasterSdmController::index');
-	$routes->post('master/sdm/data',            'Admin\MasterSdmController::getData');
+	$routes->get('master/sdm',                  'Admin\MasterSdmController::index', ['filter' => 'permission:master_sdm.view']);
+	$routes->post('master/sdm/data',            'Admin\MasterSdmController::getData', ['filter' => 'permission:master_sdm.view']);
 	$routes->post('master/sdm/store',           'Admin\MasterSdmController::store');
 	$routes->get('master/sdm/(:num)',           'Admin\MasterSdmController::show/$1');
 	$routes->post('master/sdm/update/(:num)',   'Admin\MasterSdmController::update/$1');

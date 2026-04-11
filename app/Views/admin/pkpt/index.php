@@ -73,7 +73,6 @@
 <?php endif; ?>
 </div>
 
-<?php if($isAdmin): ?>
 <!-- HP Real-time Monitor (Admin only) -->
 <div class="card mb-3" id="hp-monitor-card">
     <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;padding:12px 20px">
@@ -94,7 +93,6 @@
         </div>
     </div>
 </div>
-<?php endif; ?>
 
 <?php if(!$isAdmin && !$myPkpt): ?>
 <div class="alert-error-inline mb-3">
