@@ -87,51 +87,58 @@
             </div>
 
             <!-- Tim SPT -->
+            <?php
+            $peranSptOpts = ['Penanggung Jawab','Wakil Penanggung Jawab','Pengendali Teknis','Ketua Tim','Anggota Tim'];
+            $sdmMap = array_column($sdmAll, null, 'id');
+            ?>
             <div class="card">
-                <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
-                    <h3 class="card-title"><i class="fas fa-users"></i> Susunan Tim</h3>
+                <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px">
+                    <h3 class="card-title" style="margin:0"><i class="fas fa-users"></i> Susunan Tim
+                        <span id="tim-count-badge" class="badge badge-secondary" style="margin-left:6px;font-size:11px"><?= count($timDefault) ?></span>
+                    </h3>
                     <button type="button" class="btn btn-sm btn-primary" onclick="tambahTim()">
                         <i class="fas fa-plus"></i> Tambah
                     </button>
                 </div>
-                <div class="card-body">
-                    <table class="table-admin w-100">
+                <div style="max-height:280px;overflow-y:auto;overflow-x:hidden;border-bottom:1px solid #e2e8f0" id="tim-scroll-area">
+                    <table style="width:100%;border-collapse:collapse;font-size:12.5px">
                         <thead>
                             <tr>
-                                <th>Nama</th>
-                                <th>Peran SPT</th>
-                                <th>On Desk</th>
-                                <th>On Field</th>
-                                <th></th>
+                                <th style="position:sticky;top:0;z-index:2;background:#f8fafc;padding:7px 10px;border-bottom:2px solid #e2e8f0;font-weight:600;text-align:left;white-space:nowrap">Nama</th>
+                                <th style="position:sticky;top:0;z-index:2;background:#f8fafc;padding:7px 10px;border-bottom:2px solid #e2e8f0;font-weight:600;text-align:left">Peran SPT</th>
+                                <th style="position:sticky;top:0;z-index:2;background:#f8fafc;padding:7px 6px;border-bottom:2px solid #e2e8f0;font-weight:600;text-align:center;width:54px">Desk</th>
+                                <th style="position:sticky;top:0;z-index:2;background:#f8fafc;padding:7px 6px;border-bottom:2px solid #e2e8f0;font-weight:600;text-align:center;width:54px">Field</th>
+                                <th style="position:sticky;top:0;z-index:2;background:#f8fafc;border-bottom:2px solid #e2e8f0;width:32px"></th>
                             </tr>
                         </thead>
                         <tbody id="spt-tim-rows">
-                        <?php
-                        $peranSptOpts = ['Penanggung Jawab','Wakil Penanggung Jawab','Pengendali Teknis','Ketua Tim','Anggota Tim'];
-                        $sdmMap = array_column($sdmAll, null, 'id');
-                        foreach($timDefault as $t):
+                        <?php foreach($timDefault as $t):
                             $sdmNm = $sdmMap[$t['sdm_id']]['nama'] ?? '—';
                         ?>
-                        <tr class="spt-tim-row">
-                            <td>
+                        <tr class="spt-tim-row" style="border-bottom:1px solid #f1f5f9">
+                            <td style="padding:5px 10px;max-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="<?= esc($sdmNm) ?>">
                                 <input type="hidden" name="tim_sdm_id[]" value="<?= $t['sdm_id'] ?>">
                                 <input type="hidden" name="tim_from_pkpt[]" value="<?= $t['from_pkpt'] ?? 1 ?>">
-                                <strong style="font-size:13px"><?= esc($sdmNm) ?></strong>
+                                <span style="font-weight:600"><?= esc($sdmNm) ?></span>
                                 <?php if(($t['from_pkpt'] ?? 1) == 0): ?>
-                                <span class="badge badge-warning" style="font-size:10px">Tambahan</span>
+                                <span class="badge badge-warning" style="font-size:10px;vertical-align:middle">+</span>
                                 <?php endif; ?>
                             </td>
-                            <td>
-                                <select name="tim_peran_spt[]" class="form-control form-control-sm">
+                            <td style="padding:4px 6px">
+                                <select name="tim_peran_spt[]" class="form-control form-control-sm" style="font-size:12px;padding:3px 6px;height:28px">
                                     <?php foreach($peranSptOpts as $p): ?>
                                     <option value="<?= $p ?>" <?= ($t['peran_spt'] ?? '') === $p ? 'selected' : '' ?>><?= $p ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </td>
-                            <td><input type="number" name="tim_hp_desk[]" class="form-control form-control-sm" value="<?= $t['hp_desk'] ?? 1 ?>" min="0" style="width:60px"></td>
-                            <td><input type="number" name="tim_hp_field[]" class="form-control form-control-sm" value="<?= $t['hp_field'] ?? 0 ?>" min="0" style="width:60px"></td>
-                            <td>
-                                <button type="button" class="btn btn-xs btn-danger" onclick="$(this).closest('tr').remove()">
+                            <td style="padding:4px 6px;text-align:center">
+                                <input type="number" name="tim_hp_desk[]" class="form-control form-control-sm" value="<?= $t['hp_desk'] ?? 1 ?>" min="0" style="width:48px;text-align:center;padding:3px 4px;height:28px;font-size:12px">
+                            </td>
+                            <td style="padding:4px 6px;text-align:center">
+                                <input type="number" name="tim_hp_field[]" class="form-control form-control-sm" value="<?= $t['hp_field'] ?? 0 ?>" min="0" style="width:48px;text-align:center;padding:3px 4px;height:28px;font-size:12px">
+                            </td>
+                            <td style="padding:4px 6px;text-align:center">
+                                <button type="button" class="btn btn-xs btn-danger btn-del-tim" style="padding:2px 6px">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </td>
@@ -139,6 +146,20 @@
                         <?php endforeach; ?>
                         </tbody>
                     </table>
+                </div>
+                <?php if(empty($timDefault)): ?>
+                <div id="tim-empty" style="text-align:center;color:#94a3b8;padding:18px;font-size:13px">
+                    <i class="fas fa-users-slash"></i> Belum ada anggota tim.
+                </div>
+                <?php else: ?>
+                <div id="tim-empty" style="display:none;text-align:center;color:#94a3b8;padding:18px;font-size:13px">
+                    <i class="fas fa-users-slash"></i> Belum ada anggota tim.
+                </div>
+                <?php endif; ?>
+                <div style="padding:6px 12px;background:#f8fafc;border-top:1px solid #f1f5f9;font-size:11.5px;color:#64748b;display:flex;gap:16px">
+                    <span>Total: <strong id="tim-total-desk">—</strong> Desk</span>
+                    <span>+ <strong id="tim-total-field">—</strong> Field</span>
+                    <span>= <strong id="tim-total-hp">—</strong> HP</span>
                 </div>
             </div>
         </div>
@@ -176,26 +197,61 @@
 <?= $this->endSection() ?>
 <?= $this->section('scripts') ?>
 <script>
-const sdmOptions = `<?php foreach($sdmAll as $s): ?>
-<option value="<?= $s['id'] ?>"><?= esc($s['nama']) ?></option>
-<?php endforeach; ?>`;
+const sdmOptions = `<?php foreach($sdmAll as $s): ?><option value="<?= $s['id'] ?>"><?= esc($s['nama']) ?></option><?php endforeach; ?>`;
 
 const peranOpts = ['Penanggung Jawab','Wakil Penanggung Jawab','Pengendali Teknis','Ketua Tim','Anggota Tim']
     .map(p => `<option value="${p}">${p}</option>`).join('');
 
+const inputStyle = 'width:48px;text-align:center;padding:3px 4px;height:28px;font-size:12px';
+const selectStyle = 'font-size:12px;padding:3px 6px;height:28px';
+
 function tambahTim() {
-    $('#spt-tim-rows').append(`<tr class="spt-tim-row">
-        <td>
-            <select name="tim_sdm_id[]" class="form-control form-control-sm" required>
+    const row = `<tr class="spt-tim-row" style="border-bottom:1px solid #f1f5f9">
+        <td style="padding:5px 10px">
+            <select name="tim_sdm_id[]" class="form-control form-control-sm" required style="font-size:12px;padding:3px 6px;height:28px">
                 <option value="">— Pilih SDM —</option>${sdmOptions}
             </select>
             <input type="hidden" name="tim_from_pkpt[]" value="0">
         </td>
-        <td><select name="tim_peran_spt[]" class="form-control form-control-sm">${peranOpts}</select></td>
-        <td><input type="number" name="tim_hp_desk[]" class="form-control form-control-sm" value="1" min="0" style="width:60px"></td>
-        <td><input type="number" name="tim_hp_field[]" class="form-control form-control-sm" value="0" min="0" style="width:60px"></td>
-        <td><button type="button" class="btn btn-xs btn-danger" onclick="$(this).closest('tr').remove()"><i class="fas fa-times"></i></button></td>
-    </tr>`);
+        <td style="padding:4px 6px"><select name="tim_peran_spt[]" class="form-control form-control-sm" style="${selectStyle}">${peranOpts}</select></td>
+        <td style="padding:4px 6px;text-align:center"><input type="number" name="tim_hp_desk[]"  class="form-control form-control-sm" value="1" min="0" style="${inputStyle}"></td>
+        <td style="padding:4px 6px;text-align:center"><input type="number" name="tim_hp_field[]" class="form-control form-control-sm" value="0" min="0" style="${inputStyle}"></td>
+        <td style="padding:4px 6px;text-align:center"><button type="button" class="btn btn-xs btn-danger btn-del-tim" style="padding:2px 6px"><i class="fas fa-times"></i></button></td>
+    </tr>`;
+    $('#spt-tim-rows').append(row);
+    updateTimSummary();
+    // Scroll to bottom after adding
+    const area = document.getElementById('tim-scroll-area');
+    area.scrollTop = area.scrollHeight;
 }
+
+function updateTimSummary() {
+    const rows = $('#spt-tim-rows .spt-tim-row');
+    const count = rows.length;
+    $('#tim-count-badge').text(count);
+    $('#tim-empty').toggle(count === 0);
+
+    let desk = 0, field = 0;
+    rows.find('input[name="tim_hp_desk[]"]').each(function() { desk += parseInt($(this).val()) || 0; });
+    rows.find('input[name="tim_hp_field[]"]').each(function() { field += parseInt($(this).val()) || 0; });
+    $('#tim-total-desk').text(desk);
+    $('#tim-total-field').text(field);
+    $('#tim-total-hp').text(desk + field);
+}
+
+$(function() {
+    updateTimSummary();
+
+    // Delete button (event delegation — works for existing + new rows)
+    $(document).on('click', '.btn-del-tim', function() {
+        $(this).closest('tr').remove();
+        updateTimSummary();
+    });
+
+    // Recalculate on HP input change
+    $(document).on('input', 'input[name="tim_hp_desk[]"], input[name="tim_hp_field[]"]', function() {
+        updateTimSummary();
+    });
+});
 </script>
 <?= $this->endSection() ?>
