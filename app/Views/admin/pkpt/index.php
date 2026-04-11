@@ -253,7 +253,7 @@ function loadHpMonitor(tahun, done) {
         <table style="width:100%;font-size:13px;border-collapse:collapse">
             <thead>
                 <tr style="background:#f8fafc">
-                    <th style="text-align:left;padding:8px 10px;color:#64748b;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Irban</th>
+                    <th style="text-align:left;padding:8px 10px;color:#64748b;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Nama Irban</th>
                     <th style="text-align:center;padding:8px 10px;color:#64748b;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Kegiatan</th>
                     <th style="text-align:right;padding:8px 10px;color:#64748b;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">HP Terpakai</th>
                     <th style="padding:8px 10px;color:#64748b;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;min-width:160px">Utilisasi dari Total</th>
