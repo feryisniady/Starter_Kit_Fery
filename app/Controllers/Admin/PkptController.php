@@ -77,10 +77,10 @@ class PkptController extends BaseController
         $db = \Config\Database::connect();
 
         $baseQ = $db->table('pkpt p')
-            ->select('p.*, i.nama as irban_nama, i.kode as irban_kode,
-                (SELECT COUNT(*) FROM pkpt_kegiatan WHERE pkpt_id = p.id) as jumlah_kegiatan')
-            ->join('irban i', 'i.id = p.irban_id')
-            ->where('p.tahun', $tahun);
+        ->select('p.*, i.nama as irban_nama, i.kode as irban_kode,
+            (SELECT COUNT(*) FROM pkpt_kegiatan WHERE pkpt_id = p.id) as jumlah_kegiatan')
+        ->join('irban i', 'i.id = p.irban_id')
+        ->where('p.tahun', $tahun);
 
         if (!$isAdmin) {
             $irbanId = $this->getUserIrbanId($userId);
@@ -91,9 +91,9 @@ class PkptController extends BaseController
 
         if ($search) {
             $baseQ->groupStart()
-                ->like('i.kode', $search)
-                ->orLike('i.nama', $search)
-                ->groupEnd();
+            ->like('i.kode', $search)
+            ->orLike('i.nama', $search)
+            ->groupEnd();
         }
 
         $filtered = $search ? (clone $baseQ)->countAllResults(false) : $total;
@@ -152,12 +152,12 @@ class PkptController extends BaseController
 
         if (!$irbanId) {
             return redirect()->to('/admin/pkpt?tahun=' . $tahun)
-                ->with('error', 'Silakan pilih Irban terlebih dahulu.');
+            ->with('error', 'Silakan pilih Irban terlebih dahulu.');
         }
 
         if (!$tahun) {
             return redirect()->to('/admin/pkpt')
-                ->with('error', 'Tahun PKPT tidak valid.');
+            ->with('error', 'Tahun PKPT tidak valid.');
         }
 
         $existing = $this->pkptModel->getByIrbanTahun($irbanId, $tahun);
@@ -174,7 +174,7 @@ class PkptController extends BaseController
 
         if (!$id) {
             return redirect()->to('/admin/pkpt?tahun=' . $tahun)
-                ->with('error', 'Gagal membuat PKPT. Periksa data Irban dan Tahun.');
+            ->with('error', 'Gagal membuat PKPT. Periksa data Irban dan Tahun.');
         }
 
         logActivity('pkpt.create', 'pkpt', "Buat PKPT irban_id={$irbanId} tahun={$tahun}");
@@ -238,82 +238,139 @@ class PkptController extends BaseController
 
     public function storeKegiatan(int $pkptId)
     {
+        // 1. Validasi Akses & Eksistensi PKPT
         $pkpt = $this->pkptModel->getWithIrban($pkptId);
         if (!$pkpt || !$this->canAccessPkpt($pkpt)) {
-            return redirect()->to('/admin/pkpt')->with('error', 'Akses ditolak.');
+            return redirect()->to('/admin/pkpt')->with('error', 'Akses ditolak atau data tidak ditemukan.');
         }
 
+        // 2. Definisi Rules Validasi (Termasuk Logic Tanggal)
         $rules = [
             'area_pengawasan'  => 'required',
             'jenis_pengawasan' => 'required',
             'tujuan_sasaran'   => 'required',
+            'tanggal_mulai'    => 'required|valid_date',
+            'tanggal_selesai'  => 'required|valid_date',
+            'entitas_ids'      => 'required', // Minimal pilih satu entitas
         ];
+
         if (!$this->validate($rules)) {
             return redirect()->back()->withInput()
-                ->with('error', implode('<br>', $this->validator->getErrors()));
+            ->with('error', implode('<br>', $this->validator->getErrors()));
         }
 
-        // Cek sisa HP organisasi (lintas semua irban tahun ini)
-        $setting   = $this->settingModel->getByTahun((int)$pkpt['tahun']);
-        $hpEfektif = (new HariLiburModel())->hitungHariKerjaTahun((int)$pkpt['tahun']);
-        if ($hpEfektif === 0 && $setting) $hpEfektif = (int)$setting['total_hp_tahunan'];
-        $hpTerpakai   = $this->kegiatanModel->getTotalHpByTahun((int)$pkpt['tahun']);
-        $hpSisa       = max(0, $hpEfektif - $hpTerpakai);
-        $hpDiajukan   = array_sum(array_map('intval', (array)($this->request->getPost('tim_hp') ?? [])));
-        if ($hpDiajukan > 0 && $hpDiajukan > $hpSisa) {
+        // Validasi tambahan: Tanggal Selesai tidak boleh sebelum Tanggal Mulai
+        $tglMulai   = $this->request->getPost('tanggal_mulai');
+        $tglSelesai = $this->request->getPost('tanggal_selesai');
+        if (strtotime($tglSelesai) < strtotime($tglMulai)) {
+            return redirect()->back()->withInput()->with('error', 'Tanggal selesai tidak boleh lebih awal dari tanggal mulai.');
+        }
+
+        // 3. Kalkulasi & Cek Sisa Hari Pengawasan (HP)
+        $tahun      = (int)$pkpt['tahun'];
+        $setting    = $this->settingModel->getByTahun($tahun);
+        $hpEfektif  = (new HariLiburModel())->hitungHariKerjaTahun($tahun);
+
+        if ($hpEfektif === 0 && $setting) {
+            $hpEfektif = (int)$setting['total_hp_tahunan'];
+        }
+
+        $hpTerpakai = $this->kegiatanModel->getTotalHpByTahun($tahun);
+        $hpSisa     = max(0, $hpEfektif - $hpTerpakai);
+
+        $timData    = $this->parseTimPost();
+        $hpDiajukan = array_sum(array_column($timData, 'hp_total'));
+
+        if ($hpDiajukan > $hpSisa) {
             return redirect()->back()->withInput()
-                ->with('error', "Total HP tim ({$hpDiajukan} hari) melebihi sisa HP PKPT yang tersedia ({$hpSisa} hari).");
+            ->with('error', "Total HP tim ({$hpDiajukan} hari) melebihi sisa HP PKPT ({$hpSisa} hari).");
         }
 
-        $kode = $this->kegiatanModel->generateKode($pkptId);
-
-        $kegiatanId = $this->kegiatanModel->insert([
-            'pkpt_id'          => $pkptId,
-            'kode_kegiatan'    => $kode,
-            'area_pengawasan'  => $this->request->getPost('area_pengawasan'),
-            'jenis_pengawasan' => $this->request->getPost('jenis_pengawasan'),
-            'tujuan_sasaran'   => $this->request->getPost('tujuan_sasaran'),
-            'ruang_lingkup'    => $this->request->getPost('ruang_lingkup'),
-            'risiko_audit'     => $this->request->getPost('risiko_audit') ?: 'sedang',
-            'jadwal_rmp'       => $this->request->getPost('jadwal_rmp'),
-            'jadwal_rpl'       => $this->request->getPost('jadwal_rpl'),
-            'tanggal_mulai'    => $this->request->getPost('tanggal_mulai') ?: null,
-            'tanggal_selesai'  => $this->request->getPost('tanggal_selesai') ?: null,
-            'jumlah_laporan'   => (int)$this->request->getPost('jumlah_laporan') ?: 1,
-            'sarana_prasarana' => $this->request->getPost('sarana_prasarana'),
-            'status'           => 'aktif',
-        ]);
-
-        // Simpan entitas (multi)
-        $entitasIds = $this->request->getPost('entitas_ids') ?? [];
+        // 4. Proses Simpan dengan Database Transaction (Atomic Operation)
         $db = \Config\Database::connect();
-        foreach ((array)$entitasIds as $eid) {
-            $db->table('pkpt_entitas')->insert(['pkpt_kegiatan_id' => $kegiatanId, 'entitas_id' => (int)$eid]);
+        $db->transStart();
+
+        try {
+            $kode = $this->kegiatanModel->generateKode($pkptId);
+
+            // Simpan Main Kegiatan
+            $kegiatanData = [
+                'pkpt_id'          => $pkptId,
+                'kode_kegiatan'    => $kode,
+                'area_pengawasan'  => $this->request->getPost('area_pengawasan'),
+                'jenis_pengawasan' => $this->request->getPost('jenis_pengawasan'),
+                'tujuan_sasaran'   => $this->request->getPost('tujuan_sasaran'),
+                'ruang_lingkup'    => $this->request->getPost('ruang_lingkup'),
+                'risiko_audit'     => $this->request->getPost('risiko_audit') ?: 'sedang',
+                'jadwal_rmp'       => $this->request->getPost('jadwal_rmp'),
+                'jadwal_rpl'       => $this->request->getPost('jadwal_rpl'),
+                'tanggal_mulai'    => $tglMulai,
+                'tanggal_selesai'  => $tglSelesai,
+                'jumlah_laporan'   => (int)$this->request->getPost('jumlah_laporan') ?: 1,
+                'sarana_prasarana' => $this->request->getPost('sarana_prasarana'),
+                'status'           => 'aktif',
+                'created_by'       => session()->get('user_id'),
+            ];
+
+            $kegiatanId = $this->kegiatanModel->insert($kegiatanData);
+            if (!$kegiatanId) throw new \Exception("Gagal menyimpan data kegiatan.");
+
+            // Simpan Entitas (Multi-insert)
+            $entitasIds = (array)$this->request->getPost('entitas_ids');
+            $batchEntitas = [];
+            foreach ($entitasIds as $eid) {
+                $batchEntitas[] = [
+                    'pkpt_kegiatan_id' => $kegiatanId,
+                    'entitas_id'       => (int)$eid
+                ];
+            }
+            $db->table('pkpt_entitas')->insertBatch($batchEntitas);
+
+            // Simpan Tim & Hitung Anggaran Berdasarkan Tarif
+            $tarif = $setting ? (int)$setting['tarif_hp'] : 160000;
+            if (!empty($timData)) {
+                $this->timModel->saveTimKegiatan((int)$kegiatanId, $timData, $tarif);
+            }
+
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                throw new \Exception("Transaksi database gagal (rollback).");
+            }
+
+            // 5. Logging & Response
+            logActivity('pkpt.kegiatan.create', 'pkpt_kegiatan', "Tambah kegiatan {$kode} pada PKPT ID {$pkptId}");
+            return redirect()->to('/admin/pkpt/' . $pkptId)->with('success', "Kegiatan {$kode} berhasil ditambahkan.");
+
+        } catch (\Exception $e) {
+            $db->transRollback();
+            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan sistem: ' . $e->getMessage());
         }
-
-        // Simpan tim
-        $timData = $this->parseTimPost();
-        $setting = $this->settingModel->getByTahun((int)$pkpt['tahun']);
-        $tarif   = $setting ? (int)$setting['tarif_hp'] : 160000;
-        if ($timData) $this->timModel->saveTimKegiatan((int)$kegiatanId, $timData, $tarif);
-
-        logActivity('pkpt.kegiatan.create', 'pkpt_kegiatan', "Tambah kegiatan {$kode}");
-        return redirect()->to('/admin/pkpt/' . $pkptId)->with('success', "Kegiatan {$kode} berhasil ditambahkan.");
     }
 
     public function editKegiatan(int $id)
     {
         $kegiatan = $this->kegiatanModel->getDetail($id);
-        if (!$kegiatan) return redirect()->back()->with('error', 'Kegiatan tidak ditemukan.');
+        if (!$kegiatan) {
+            return redirect()->back()->with('error', 'Kegiatan tidak ditemukan.');
+        }
 
         $pkpt = $this->pkptModel->getWithIrban($kegiatan['pkpt_id']);
-        if (!$this->canAccessPkpt($pkpt)) return redirect()->to('/admin/pkpt')->with('error', 'Akses ditolak.');
+        if (!$this->canAccessPkpt($pkpt)) {
+            return redirect()->to('/admin/pkpt')->with('error', 'Akses ditolak.');
+        }
 
-        $setting    = $this->settingModel->getByTahun((int)$pkpt['tahun']);
-        $hpEfektif  = (new HariLiburModel())->hitungHariKerjaTahun((int)$pkpt['tahun']);
-        if ($hpEfektif === 0 && $setting) $hpEfektif = (int)$setting['total_hp_tahunan'];
-        // Exclude kegiatan ini sendiri saat hitung sisa (mode edit) — lintas semua irban
-        $hpTerpakai = $this->kegiatanModel->getTotalHpByTahun((int)$pkpt['tahun'], $id);
+        $tahun = (int)$pkpt['tahun'];
+        $setting = $this->settingModel->getByTahun($tahun);
+
+        // Ambil HP Efektif (Fresh dari HariLibur atau Fallback ke Setting)
+        $hpEfektif = (new HariLiburModel())->hitungHariKerjaTahun($tahun);
+        if ($hpEfektif === 0 && $setting) {
+            $hpEfektif = (int)$setting['total_hp_tahunan'];
+        }
+
+        // Hitung sisa HP organisasi (kecualikan kegiatan ini sendiri agar tidak double counting)
+        $hpTerpakai = $this->kegiatanModel->getTotalHpByTahun($tahun, $id);
 
         return view('admin/pkpt/kegiatan_form', [
             'title'      => 'Edit Kegiatan PKPT',
@@ -332,52 +389,101 @@ class PkptController extends BaseController
     public function updateKegiatan(int $id)
     {
         $kegiatan = $this->kegiatanModel->find($id);
-        if (!$kegiatan) return redirect()->back()->with('error', 'Kegiatan tidak ditemukan.');
+        if (!$kegiatan) {
+            return redirect()->back()->with('error', 'Kegiatan tidak ditemukan.');
+        }
 
         $pkpt = $this->pkptModel->getWithIrban($kegiatan['pkpt_id']);
-        if (!$this->canAccessPkpt($pkpt)) return redirect()->to('/admin/pkpt')->with('error', 'Akses ditolak.');
+        if (!$this->canAccessPkpt($pkpt)) {
+            return redirect()->to('/admin/pkpt')->with('error', 'Akses ditolak.');
+        }
 
-        // Cek sisa HP organisasi (kecualikan kegiatan ini sendiri, lintas semua irban)
-        $setting   = $this->settingModel->getByTahun((int)$pkpt['tahun']);
-        $hpEfektif = (new HariLiburModel())->hitungHariKerjaTahun((int)$pkpt['tahun']);
+    // 1. Validasi Input Dasar
+        $rules = [
+            'area_pengawasan'  => 'required',
+            'jenis_pengawasan' => 'required',
+            'tujuan_sasaran'   => 'required',
+            'tanggal_mulai'    => 'required|valid_date',
+            'tanggal_selesai'  => 'required|valid_date',
+        ];
+
+        if (!$this->validate($rules)) {
+            return redirect()->back()->withInput()->with('error', implode('<br>', $this->validator->getErrors()));
+        }
+
+    // Validasi Logika Tanggal
+        $tglMulai   = $this->request->getPost('tanggal_mulai');
+        $tglSelesai = $this->request->getPost('tanggal_selesai');
+        if (strtotime($tglSelesai) < strtotime($tglMulai)) {
+            return redirect()->back()->withInput()->with('error', 'Tanggal selesai tidak boleh sebelum tanggal mulai.');
+        }
+
+    // 2. Cek Sisa HP Organisasi (Excluding current activity)
+        $tahun      = (int)$pkpt['tahun'];
+        $setting    = $this->settingModel->getByTahun($tahun);
+        $hpEfektif  = (new HariLiburModel())->hitungHariKerjaTahun($tahun);
         if ($hpEfektif === 0 && $setting) $hpEfektif = (int)$setting['total_hp_tahunan'];
-        $hpTerpakai = $this->kegiatanModel->getTotalHpByTahun((int)$pkpt['tahun'], $id);
+
+        $hpTerpakai = $this->kegiatanModel->getTotalHpByTahun($tahun, $id);
         $hpSisa     = max(0, $hpEfektif - $hpTerpakai);
-        $hpDiajukan = array_sum(array_map('intval', (array)($this->request->getPost('tim_hp') ?? [])));
-        if ($hpDiajukan > 0 && $hpDiajukan > $hpSisa) {
+
+        $timData    = $this->parseTimPost();
+        $hpDiajukan = array_sum(array_column($timData, 'hp_total'));
+
+        if ($hpDiajukan > $hpSisa) {
             return redirect()->back()->withInput()
-                ->with('error', "Total HP tim ({$hpDiajukan} hari) melebihi sisa HP PKPT yang tersedia ({$hpSisa} hari).");
+            ->with('error', "Total HP tim ({$hpDiajukan} hari) melebihi sisa HP PKPT ({$hpSisa} hari).");
         }
 
-        $this->kegiatanModel->update($id, [
-            'area_pengawasan'  => $this->request->getPost('area_pengawasan'),
-            'jenis_pengawasan' => $this->request->getPost('jenis_pengawasan'),
-            'tujuan_sasaran'   => $this->request->getPost('tujuan_sasaran'),
-            'ruang_lingkup'    => $this->request->getPost('ruang_lingkup'),
-            'risiko_audit'     => $this->request->getPost('risiko_audit') ?: 'sedang',
-            'jadwal_rmp'       => $this->request->getPost('jadwal_rmp'),
-            'jadwal_rpl'       => $this->request->getPost('jadwal_rpl'),
-            'tanggal_mulai'    => $this->request->getPost('tanggal_mulai') ?: null,
-            'tanggal_selesai'  => $this->request->getPost('tanggal_selesai') ?: null,
-            'jumlah_laporan'   => (int)$this->request->getPost('jumlah_laporan') ?: 1,
-            'sarana_prasarana' => $this->request->getPost('sarana_prasarana'),
-        ]);
-
-        // Update entitas
+        // 3. Eksekusi Update dengan Transaksi
         $db = \Config\Database::connect();
-        $db->table('pkpt_entitas')->where('pkpt_kegiatan_id', $id)->delete();
-        foreach ((array)($this->request->getPost('entitas_ids') ?? []) as $eid) {
-            $db->table('pkpt_entitas')->insert(['pkpt_kegiatan_id' => $id, 'entitas_id' => (int)$eid]);
+        $db->transStart();
+
+        try {
+            // Update Table Utama
+            $this->kegiatanModel->update($id, [
+                'area_pengawasan'  => $this->request->getPost('area_pengawasan'),
+                'jenis_pengawasan' => $this->request->getPost('jenis_pengawasan'),
+                'tujuan_sasaran'   => $this->request->getPost('tujuan_sasaran'),
+                'ruang_lingkup'    => $this->request->getPost('ruang_lingkup'),
+                'risiko_audit'     => $this->request->getPost('risiko_audit') ?: 'sedang',
+                'jadwal_rmp'       => $this->request->getPost('jadwal_rmp'),
+                'jadwal_rpl'       => $this->request->getPost('jadwal_rpl'),
+                'tanggal_mulai'    => $tglMulai,
+                'tanggal_selesai'  => $tglSelesai,
+                'jumlah_laporan'   => (int)$this->request->getPost('jumlah_laporan') ?: 1,
+                'sarana_prasarana' => $this->request->getPost('sarana_prasarana'),
+                'updated_by'       => session()->get('user_id')
+            ]);
+
+            // Update Entitas (Delete old, Insert Batch new)
+            $db->table('pkpt_entitas')->where('pkpt_kegiatan_id', $id)->delete();
+            $entitasIds = (array)$this->request->getPost('entitas_ids');
+            if (!empty($entitasIds)) {
+                $batchEntitas = array_map(fn($eid) => [
+                    'pkpt_kegiatan_id' => $id,
+                    'entitas_id'       => (int)$eid
+                ], $entitasIds);
+                $db->table('pkpt_entitas')->insertBatch($batchEntitas);
+            }
+
+            // Update Tim
+            $tarif = $setting ? (int)$setting['tarif_hp'] : 160000;
+            $this->timModel->saveTimKegiatan($id, $timData, $tarif);
+
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                throw new \Exception("Gagal melakukan update pada database.");
+            }
+
+            logActivity('pkpt.kegiatan.update', 'pkpt_kegiatan', "Update kegiatan ID {$id}");
+            return redirect()->to('/admin/pkpt/' . $pkpt['id'])->with('success', 'Kegiatan berhasil diperbarui.');
+
+        } catch (\Exception $e) {
+            $db->transRollback();
+            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
-
-        // Update tim
-        $timData = $this->parseTimPost();
-        $setting = $this->settingModel->getByTahun((int)$pkpt['tahun']);
-        $tarif   = $setting ? (int)$setting['tarif_hp'] : 160000;
-        if ($timData) $this->timModel->saveTimKegiatan($id, $timData, $tarif);
-
-        logActivity('pkpt.kegiatan.update', 'pkpt_kegiatan', "Update kegiatan id={$id}");
-        return redirect()->to('/admin/pkpt/' . $kegiatan['pkpt_id'])->with('success', 'Kegiatan berhasil diperbarui.');
     }
 
     public function deleteKegiatan(int $id)
@@ -408,15 +514,15 @@ class PkptController extends BaseController
 
         $db   = \Config\Database::connect();
         $rows = $db->table('irban i')
-            ->select("i.id, i.kode as irban_kode, i.nama as irban_nama,
-                COUNT(DISTINCT pk.id) as jumlah_kegiatan,
-                COALESCE(SUM(pt.hp_total), 0) as hp_terpakai")
-            ->join('pkpt p',          "p.irban_id = i.id AND p.tahun = {$tahun}", 'left')
-            ->join('pkpt_kegiatan pk',"pk.pkpt_id = p.id AND pk.status != 'batal'", 'left')
-            ->join('pkpt_tim pt',     'pt.pkpt_kegiatan_id = pk.id', 'left')
-            ->groupBy('i.id, i.kode, i.nama')
-            ->orderBy('i.kode')
-            ->get()->getResultArray();
+        ->select("i.id, i.kode as irban_kode, i.nama as irban_nama,
+            COUNT(DISTINCT pk.id) as jumlah_kegiatan,
+            COALESCE(SUM(pt.hp_total), 0) as hp_terpakai")
+        ->join('pkpt p',          "p.irban_id = i.id AND p.tahun = {$tahun}", 'left')
+        ->join('pkpt_kegiatan pk',"pk.pkpt_id = p.id AND pk.status != 'batal'", 'left')
+        ->join('pkpt_tim pt',     'pt.pkpt_kegiatan_id = pk.id', 'left')
+        ->groupBy('i.id, i.kode, i.nama')
+        ->orderBy('i.kode')
+        ->get()->getResultArray();
 
         $hpTerpakai = (int)array_sum(array_column($rows, 'hp_terpakai'));
         $hpSisa     = max(0, $hpEfektif - $hpTerpakai);
