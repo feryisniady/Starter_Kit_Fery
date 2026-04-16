@@ -188,15 +188,14 @@ $kmAllDone  = $kmDoneAll === $kmTotalAll;
     <div class="card-body" style="padding:12px 20px">
         <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px">
             <?php
-            $kmIcons = ['km1'=>'id-card','km4'=>'clipboard-list','km6'=>'handshake','anggaran_waktu'=>'calendar-days','independensi'=>'user-shield'];
             foreach($kmChecklist as $key => $item):
             ?>
             <div style="text-align:center;padding:10px 6px;border-radius:8px;background:<?= $item['complete'] ? '#f0fdf4' : '#fff7ed' ?>">
                 <div style="font-size:20px;margin-bottom:4px">
-                    <i class="fas fa-<?= $kmIcons[$key] ?>" style="color:<?= $item['complete'] ? '#16a34a' : '#f59e0b' ?>"></i>
+                    <i class="fas fa-<?= esc($item['icon']) ?>" style="color:<?= $item['complete'] ? '#16a34a' : '#f59e0b' ?>"></i>
                 </div>
                 <div style="font-size:10px;font-weight:600;color:#475569;line-height:1.3">
-                    <?= strtoupper(str_replace(['anggaran_waktu','independensi'],['Angg. Waktu','Independen'], $key)) ?>
+                    <?= esc($item['label']) ?>
                 </div>
                 <div style="font-size:10px;margin-top:3px;color:<?= $item['complete'] ? '#16a34a' : '#f59e0b' ?>">
                     <?= $item['complete'] ? '<i class="fas fa-check-circle"></i> Lengkap' : '<i class="fas fa-clock"></i> Belum' ?>
