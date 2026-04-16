@@ -30,44 +30,83 @@
     </div>
 </div>
 
-<!-- Modal -->
+<!-- Modal Entitas -->
 <div id="modal-entitas" class="modal-overlay" style="display:none">
-    <div class="modal-box" style="max-width:520px">
-        <div class="modal-header">
-            <h3 id="modal-title">Tambah Entitas</h3>
-            <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+    <div class="modal-box" style="max-width:540px;padding:0;overflow:hidden">
+        <!-- Modal Header Gradient -->
+        <div id="modal-header-bg" style="background:linear-gradient(135deg,#4f46e5 0%,#6366f1 100%);padding:18px 22px 14px;position:relative">
+            <button onclick="closeModal()"
+                    style="position:absolute;top:12px;right:14px;background:rgba(255,255,255,.2);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center">
+                <i class="fas fa-times"></i>
+            </button>
+            <div style="display:flex;align-items:center;gap:12px">
+                <div id="modal-icon-wrap" style="width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center">
+                    <i class="fas fa-building" style="color:#fff;font-size:18px"></i>
+                </div>
+                <div>
+                    <h3 id="modal-title" style="color:#fff;margin:0;font-size:15px;font-weight:700">Tambah Entitas</h3>
+                    <p style="color:rgba(255,255,255,.75);margin:2px 0 0;font-size:11px">Entitas / OPD Objek Pengawasan</p>
+                </div>
+            </div>
         </div>
-        <form id="form-entitas">
+
+        <!-- Form Body -->
+        <form id="form-entitas" style="padding:20px 22px">
             <?= csrf_field() ?>
             <input type="hidden" id="entitas-id" name="_id">
+
             <div class="form-row-2">
                 <div class="form-group">
-                    <label>Kode</label>
-                    <input type="text" name="kode" id="f-kode" class="form-control" placeholder="Opsional">
+                    <label style="font-size:12px;font-weight:600;color:#374151">Kode OPD</label>
+                    <input type="text" name="kode" id="f-kode" class="form-control"
+                           placeholder="Contoh: D01" style="border-radius:8px">
                 </div>
                 <div class="form-group">
-                    <label>Nama Entitas / OPD <span style="color:red">*</span></label>
-                    <input type="text" name="nama" id="f-nama" class="form-control" required>
+                    <label style="font-size:12px;font-weight:600;color:#374151">
+                        Nama Entitas / OPD <span style="color:#ef4444">*</span>
+                    </label>
+                    <input type="text" name="nama" id="f-nama" class="form-control" required
+                           placeholder="Nama OPD lengkap..." style="border-radius:8px">
                 </div>
             </div>
+
             <div class="form-group">
-                <label>Kepala / Pimpinan</label>
-                <input type="text" name="kepala" id="f-kepala" class="form-control">
+                <label style="font-size:12px;font-weight:600;color:#374151">
+                    <i class="fas fa-user-tie" style="color:#6366f1"></i> Kepala / Pimpinan
+                </label>
+                <input type="text" name="kepala" id="f-kepala" class="form-control"
+                       placeholder="Nama kepala/pimpinan OPD" style="border-radius:8px">
             </div>
+
             <div class="form-group">
-                <label>Alamat</label>
-                <textarea name="alamat" id="f-alamat" class="form-control" rows="2"></textarea>
+                <label style="font-size:12px;font-weight:600;color:#374151">
+                    <i class="fas fa-location-dot" style="color:#6366f1"></i> Alamat
+                </label>
+                <textarea name="alamat" id="f-alamat" class="form-control" rows="2"
+                          placeholder="Alamat lengkap OPD..." style="border-radius:8px;resize:none"></textarea>
             </div>
+
             <div class="form-group" id="wrap-aktif" style="display:none">
-                <label>Status</label>
-                <select name="aktif" id="f-aktif" class="form-control">
-                    <option value="1">Aktif</option>
-                    <option value="0">Nonaktif</option>
-                </select>
+                <label style="font-size:12px;font-weight:600;color:#374151">Status</label>
+                <div style="display:flex;gap:12px;margin-top:4px">
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:#374151">
+                        <input type="radio" name="aktif" id="f-aktif-1" value="1"> Aktif
+                    </label>
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:#374151">
+                        <input type="radio" name="aktif" id="f-aktif-0" value="0"> Nonaktif
+                    </label>
+                </div>
             </div>
-            <div class="form-actions">
+
+            <div id="modal-err" style="display:none;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 12px;font-size:13px;color:#991b1b;margin-bottom:12px">
+                <i class="fas fa-circle-exclamation"></i> <span id="modal-err-msg"></span>
+            </div>
+
+            <div style="display:flex;gap:10px;justify-content:flex-end;padding-top:4px">
                 <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
-                <button type="submit" class="btn btn-primary">Simpan</button>
+                <button type="submit" id="btn-simpan" class="btn btn-primary" style="background:#4f46e5;border-color:#4f46e5">
+                    <i class="fas fa-save"></i> Simpan
+                </button>
             </div>
         </form>
     </div>
@@ -101,29 +140,55 @@ $(function() {
             $('#f-nama').val(res.nama);
             $('#f-kepala').val(res.kepala);
             $('#f-alamat').val(res.alamat);
-            $('#f-aktif').val(res.aktif);
+            $('input[name="aktif"][value="' + res.aktif + '"]').prop('checked', true);
             $('#wrap-aktif').show();
             $('#modal-title').text('Edit Entitas');
+            $('#modal-header-bg').css('background', 'linear-gradient(135deg,#d97706 0%,#f59e0b 100%)');
+            $('#modal-err').hide();
             $('#modal-entitas').show();
         });
     });
 
     $(document).on('click', '.btn-delete', function() {
-        if (!confirm('Hapus entitas ini?')) return;
-        $.post('/admin/master/entitas/delete/' + $(this).data('id'),
-            { [csrfName]: csrfToken }, res => {
-                if (res.success) $('#dt-entitas').DataTable().ajax.reload();
-                else alert(res.message);
+        const id = $(this).data('id');
+        Swal.fire({
+            title: 'Hapus Entitas?',
+            text: 'Data entitas ini akan dihapus permanen.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Ya, Hapus',
+            cancelButtonText: 'Batal',
+        }).then(result => {
+            if (!result.isConfirmed) return;
+            $.post('/admin/master/entitas/delete/' + id, { [csrfName]: csrfToken }, res => {
+                if (res.success) {
+                    $('#dt-entitas').DataTable().ajax.reload();
+                    Swal.fire({ icon: 'success', title: 'Dihapus!', text: 'Entitas berhasil dihapus.', timer: 1500, showConfirmButton: false });
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Gagal', text: res.message });
+                }
             });
+        });
     });
 
     $('#form-entitas').on('submit', function(e) {
         e.preventDefault();
+        $('#modal-err').hide();
         const id  = $('#entitas-id').val();
         const url = id ? '/admin/master/entitas/update/' + id : '/admin/master/entitas/store';
+        const btn = $('#btn-simpan').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Menyimpan...');
         $.post(url, $(this).serialize(), res => {
-            if (res.success) { closeModal(); $('#dt-entitas').DataTable().ajax.reload(); }
-            else alert(res.message);
+            btn.prop('disabled', false).html('<i class="fas fa-save"></i> Simpan');
+            if (res.success) {
+                closeModal();
+                $('#dt-entitas').DataTable().ajax.reload();
+                Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Data entitas berhasil disimpan.', timer: 1500, showConfirmButton: false });
+            } else {
+                $('#modal-err-msg').text(res.message);
+                $('#modal-err').show();
+            }
         });
     });
 });
@@ -133,6 +198,8 @@ function openModal() {
     $('#entitas-id').val('');
     $('#wrap-aktif').hide();
     $('#modal-title').text('Tambah Entitas');
+    $('#modal-header-bg').css('background', 'linear-gradient(135deg,#4f46e5 0%,#6366f1 100%)');
+    $('#modal-err').hide();
     $('#modal-entitas').show();
 }
 function closeModal() { $('#modal-entitas').hide(); }

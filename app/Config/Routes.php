@@ -140,6 +140,8 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	$routes->post('pkpt/(:num)/status',             'Admin\PkptController::updateStatus/$1');
 	$routes->get('pkpt/(:num)/kegiatan/create',    'Admin\PkptController::createKegiatan/$1');
 	$routes->post('pkpt/(:num)/kegiatan/store',    'Admin\PkptController::storeKegiatan/$1');
+	$routes->post('pkpt/(:num)/kegiatan/data',      'Admin\PkptController::getDataKegiatan/$1');
+	$routes->get('pkpt/kegiatan/view/(:num)',       'Admin\PkptController::viewKegiatan/$1');
 	$routes->get('pkpt/kegiatan/edit/(:num)',       'Admin\PkptController::editKegiatan/$1');
 	$routes->post('pkpt/kegiatan/update/(:num)',    'Admin\PkptController::updateKegiatan/$1');
 	$routes->post('pkpt/kegiatan/delete/(:num)',    'Admin\PkptController::deleteKegiatan/$1');

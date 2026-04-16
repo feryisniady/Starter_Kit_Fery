@@ -301,6 +301,17 @@ class PkptController extends BaseController
         return redirect()->to('/admin/pkpt/' . $pkptId)->with('success', "Kegiatan {$kode} berhasil ditambahkan.");
     }
 
+    public function viewKegiatan(int $id)
+    {
+        $kegiatan = $this->kegiatanModel->getDetail($id);
+        if (!$kegiatan) return $this->response->setJSON(['success' => false, 'message' => 'Tidak ditemukan.']);
+
+        $pkpt = $this->pkptModel->getWithIrban($kegiatan['pkpt_id']);
+        if (!$this->canAccessPkpt($pkpt)) return $this->response->setStatusCode(403);
+
+        return $this->response->setJSON(['success' => true, 'data' => $kegiatan]);
+    }
+
     public function editKegiatan(int $id)
     {
         $kegiatan = $this->kegiatanModel->getDetail($id);
@@ -378,6 +389,79 @@ class PkptController extends BaseController
 
         logActivity('pkpt.kegiatan.update', 'pkpt_kegiatan', "Update kegiatan id={$id}");
         return redirect()->to('/admin/pkpt/' . $kegiatan['pkpt_id'])->with('success', 'Kegiatan berhasil diperbarui.');
+    }
+
+    /**
+     * AJAX DataTable: daftar kegiatan per PKPT
+     */
+    public function getDataKegiatan(int $pkptId)
+    {
+        if (!$this->request->isAJAX()) return $this->response->setStatusCode(403);
+
+        $pkpt = $this->pkptModel->getWithIrban($pkptId);
+        if (!$pkpt || !$this->canAccessPkpt($pkpt)) return $this->response->setStatusCode(403);
+
+        ['draw'=>$draw,'start'=>$start,'length'=>$length,'search'=>$search,'order'=>$order] = $this->dtRequest();
+
+        $db    = \Config\Database::connect();
+        $baseQ = $db->table('pkpt_kegiatan pk')
+            ->select("pk.id, pk.kode_kegiatan, pk.area_pengawasan, pk.jenis_pengawasan,
+                      pk.risiko_audit, pk.tanggal_mulai, pk.tanggal_selesai, pk.status,
+                      COALESCE(SUM(pt.hp_total),0) as total_hp,
+                      COALESCE(SUM(pt.anggaran),0) as total_anggaran,
+                      COUNT(DISTINCT s.id) as jumlah_spt,
+                      SUM(CASE WHEN s.status='terbit' THEN 1 ELSE 0 END) as spt_terbit")
+            ->join('pkpt_tim pt', 'pt.pkpt_kegiatan_id = pk.id', 'left')
+            ->join('spt s',       's.pkpt_kegiatan_id = pk.id', 'left')
+            ->where('pk.pkpt_id', $pkptId)
+            ->groupBy('pk.id');
+
+        $total = (clone $baseQ)->countAllResults(false);
+
+        if ($search) {
+            $baseQ->groupStart()
+                ->like('pk.area_pengawasan', $search)
+                ->orLike('pk.jenis_pengawasan', $search)
+                ->orLike('pk.kode_kegiatan', $search)
+                ->groupEnd();
+        }
+
+        $filtered = $search ? (clone $baseQ)->countAllResults(false) : $total;
+        $rows = $baseQ->orderBy('pk.kode_kegiatan')->limit($length, $start)->get()->getResultArray();
+
+        $riskColor = ['rendah'=>'success','sedang'=>'warning','tinggi'=>'danger'];
+
+        $data = [];
+        foreach ($rows as $i => $row) {
+            $riskBadge = '<span class="badge badge-'.($riskColor[$row['risiko_audit']]??'secondary').'">'.ucfirst($row['risiko_audit']).'</span>';
+            $sptBadge  = $row['spt_terbit'] > 0
+                ? '<span class="badge badge-success"><i class="fas fa-check"></i> Terbit</span>'
+                : ($row['jumlah_spt'] > 0
+                    ? '<span class="badge badge-info">'.$row['jumlah_spt'].' Proses</span>'
+                    : '<span class="badge badge-secondary">Belum ada SPT</span>');
+            $periode = $row['tanggal_mulai']
+                ? date('d/m/Y', strtotime($row['tanggal_mulai'])).' s.d. '.date('d/m/Y', strtotime($row['tanggal_selesai']))
+                : '<span style="color:#94a3b8">—</span>';
+
+            $data[] = [
+                'no'      => $start + $i + 1,
+                'kode'    => '<span class="badge badge-primary">'.esc($row['kode_kegiatan']).'</span>',
+                'area'    => '<div style="font-size:13px;font-weight:500;color:#1e293b">'.esc($row['area_pengawasan']).'</div>'
+                           . '<div style="font-size:11px;color:#64748b">'.esc($row['jenis_pengawasan']).'</div>',
+                'risiko'  => $riskBadge,
+                'periode' => '<span style="font-size:12px">'.$periode.'</span>',
+                'hp'      => '<span style="font-weight:700;color:#6366f1">'.$row['total_hp'].'</span> <span style="font-size:11px;color:#94a3b8">hari</span>',
+                'spt'     => $sptBadge,
+                'aksi'    => $this->dtActions([
+                    ['type'=>'info',    'icon'=>'fa-eye',           'title'=>'Detail',      'href'=>'#', 'extra'=>'onclick="viewKegiatan('.$row['id'].')" '],
+                    ['type'=>'warning', 'icon'=>'fa-edit',          'title'=>'Edit',        'href'=>'/admin/pkpt/kegiatan/edit/'.$row['id']],
+                    ['type'=>'success', 'icon'=>'fa-file-signature','title'=>'Buat SPT',    'href'=>'/admin/spt/create/'.$row['id']],
+                    ['type'=>'danger',  'icon'=>'fa-trash',         'title'=>'Hapus',       'href'=>'#', 'extra'=>'onclick="delKegiatan('.$row['id'].')" '],
+                ]),
+            ];
+        }
+
+        return $this->dtResponse($draw, $total, $filtered, $data);
     }
 
     public function deleteKegiatan(int $id)
