@@ -6,6 +6,7 @@ use App\Controllers\BaseController;
 use App\Models\SptModel;
 use App\Models\SptKmModel;
 use App\Models\SdmModel;
+use App\Models\KkaModel;
 
 /**
  * Kelola Kendali Mutu (KM) untuk setiap SPT.
@@ -275,8 +276,17 @@ class KmController extends BaseController
             $db->table('spt_km5')->insert($data);
         }
 
+        // ── Jika PKA disetujui → auto-create KKA per AT ─────────────────
+        $msg = 'KM-5 Reviu PKA berhasil disimpan.';
+        if ($data['status'] === 'disetujui') {
+            $created = (new KkaModel())->autoCreateForSpt($sptId);
+            if ($created > 0) {
+                $msg .= " KKA otomatis dibuat untuk {$created} anggota tim.";
+            }
+        }
+
         logActivity('spt.km5.save', 'spt_km5', "Simpan KM5 Reviu PKA SPT id={$sptId}");
-        return redirect()->to('/admin/spt/' . $sptId . '/km')->with('success', 'KM-5 Reviu PKA berhasil disimpan.');
+        return redirect()->to('/admin/spt/' . $sptId . '/km')->with('success', $msg);
     }
 
     // --------------------------------------------------

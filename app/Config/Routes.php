@@ -222,4 +222,34 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	// KM-11: Reviu Laporan
 	$routes->get('spt/(:num)/km/11',                      'Admin\KmController::km11/$1');
 	$routes->post('spt/(:num)/km/11/save',                'Admin\KmController::saveKm11/$1');
+
+	// =====================================================================
+	// KKA — Kertas Kerja Audit
+	// =====================================================================
+	// Dashboard per SPT (KT/Dalnis lihat semua; AT redirect ke KKA-nya)
+	$routes->get('spt/(:num)/kka',                        'Admin\KkaController::index/$1');
+
+	// Detail + isi KKA (show satu KKA per AT)
+	$routes->get('kka/(:num)',                            'Admin\KkaController::show/$1');
+
+	// Ikhtisar
+	$routes->post('kka/(:num)/ikhtisar/store',            'Admin\KkaController::storeIkhtisar/$1');
+	$routes->post('kka/ikhtisar/(:num)/update',           'Admin\KkaController::updateIkhtisar/$1');
+	$routes->post('kka/ikhtisar/(:num)/delete',           'Admin\KkaController::deleteIkhtisar/$1');
+	$routes->post('kka/(:num)/ikhtisar/selesai',          'Admin\KkaController::selesaiIkhtisar/$1');
+
+	// Simpulan
+	$routes->post('kka/(:num)/simpulan/store',            'Admin\KkaController::storeSimpulan/$1');
+	$routes->post('kka/simpulan/(:num)/update',           'Admin\KkaController::updateSimpulan/$1');
+	$routes->post('kka/simpulan/(:num)/delete',           'Admin\KkaController::deleteSimpulan/$1');
+	$routes->post('kka/(:num)/simpulan/selesai',          'Admin\KkaController::selesaiSimpulan/$1');
+
+	// Rekomendasi
+	$routes->post('kka/(:num)/rekomendasi/store',         'Admin\KkaController::storeRekomendasi/$1');
+	$routes->post('kka/rekomendasi/(:num)/update',        'Admin\KkaController::updateRekomendasi/$1');
+	$routes->post('kka/rekomendasi/(:num)/delete',        'Admin\KkaController::deleteRekomendasi/$1');
+	$routes->post('kka/(:num)/rekomendasi/selesai',       'Admin\KkaController::selesaiRekomendasi/$1');
+
+	// Catatan Dalnis
+	$routes->post('kka/(:num)/catatan-dalnis',            'Admin\KkaController::saveCatatanDalnis/$1');
 });

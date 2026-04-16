@@ -110,6 +110,16 @@ class InspektoratRoleSeeder extends Seeder
                 'spt.view','spt.create',
             ],
         ],
+        [
+            'name'  => 'dalnis',
+            'label' => 'Pengendali Teknis (Dalnis)',
+            // Reviu PKA (KM-5), pantau semua SPT tim, reviu Temuan Sementara
+            'permissions' => [
+                'master.view',
+                'pkpt.view',
+                'spt.view','spt.manage_all',
+            ],
+        ],
     ];
 
     // ──────────────────────────────────────────────────────────────────────
