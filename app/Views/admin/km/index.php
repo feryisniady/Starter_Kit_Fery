@@ -152,4 +152,21 @@ $urlMap = [
 <?php endforeach; ?>
 </div>
 
+<!-- KKA Quick Access -->
+<div class="card mt-3" style="border-left:4px solid #6366f1">
+    <div class="card-body" style="display:flex;align-items:center;gap:16px;padding:16px 20px">
+        <div style="font-size:28px;color:#6366f1"><i class="fas fa-file-pen"></i></div>
+        <div style="flex:1">
+            <div style="font-weight:700;font-size:14px;color:#1e293b">Kertas Kerja Audit (KKA)</div>
+            <div style="font-size:12px;color:#64748b">
+                Dibuat otomatis setelah KM-5 (Reviu PKA) disetujui Dalnis.
+                Alur: Ikhtisar → Simpulan → Rekomendasi.
+            </div>
+        </div>
+        <a href="/admin/spt/<?= $spt['id'] ?>/kka" class="btn btn-primary btn-sm">
+            <i class="fas fa-arrow-right"></i> Buka KKA
+        </a>
+    </div>
+</div>
+
 <?= $this->endSection() ?>
