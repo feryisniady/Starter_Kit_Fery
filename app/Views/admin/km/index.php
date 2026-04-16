@@ -65,9 +65,12 @@ $urlMap = [
     'km2'          => '/admin/spt/'.$spt['id'].'/km/2',
     'km3'          => '/admin/spt/'.$spt['id'].'/km/3',
     'km4'          => '/admin/spt/'.$spt['id'].'/pka',       // link ke modul PKA
+    'km5'          => '/admin/spt/'.$spt['id'].'/km/5',
     'km5b'         => '/admin/spt/'.$spt['id'].'/km/5b',
-    'km7'          => '/admin/spt/'.$spt['id'].'/temuan',    // link ke modul Temuan
     'independensi' => '/admin/spt/'.$spt['id'].'/km/independensi',
+    'km7'          => '/admin/spt/'.$spt['id'].'/temuan',    // link ke modul Temuan
+    'km10'         => '/admin/spt/'.$spt['id'].'/km/10',
+    'km11'         => '/admin/spt/'.$spt['id'].'/km/11',
 ];
 ?>
 

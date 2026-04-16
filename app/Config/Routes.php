@@ -203,6 +203,9 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	// KM-4: Lembar Perencanaan (form pendukung PKA)
 	$routes->get('spt/(:num)/km/4',                       'Admin\KmController::km4/$1');
 	$routes->post('spt/(:num)/km/4/save',                 'Admin\KmController::saveKm4/$1');
+	// KM-5: Reviu PKA
+	$routes->get('spt/(:num)/km/5',                       'Admin\KmController::km5/$1');
+	$routes->post('spt/(:num)/km/5/save',                 'Admin\KmController::saveKm5/$1');
 	// KM-5b: Entry Meeting
 	$routes->get('spt/(:num)/km/5b',                      'Admin\KmController::km5b/$1');
 	$routes->post('spt/(:num)/km/5b/save',                'Admin\KmController::saveKm5b/$1');
@@ -211,4 +214,10 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	// Independensi
 	$routes->get('spt/(:num)/km/independensi',            'Admin\KmController::independensi/$1');
 	$routes->post('spt/(:num)/km/independensi/save',      'Admin\KmController::saveIndepensi/$1');
+	// KM-10: Exit Meeting
+	$routes->get('spt/(:num)/km/10',                      'Admin\KmController::km10/$1');
+	$routes->post('spt/(:num)/km/10/save',                'Admin\KmController::saveKm10/$1');
+	// KM-11: Reviu Laporan
+	$routes->get('spt/(:num)/km/11',                      'Admin\KmController::km11/$1');
+	$routes->post('spt/(:num)/km/11/save',                'Admin\KmController::saveKm11/$1');
 });

@@ -221,6 +221,185 @@ class KmController extends BaseController
     }
 
     // --------------------------------------------------
+    // KM5 — Reviu PKA
+    // --------------------------------------------------
+
+    public function km5(int $sptId)
+    {
+        $spt = $this->sptModel->getDetail($sptId);
+        if (!$spt) return redirect()->to('/admin/spt')->with('error', 'SPT tidak ditemukan.');
+
+        $db  = \Config\Database::connect();
+        $row = $db->table('spt_km5')->where('spt_id', $sptId)->get()->getRowArray();
+
+        // Ambil PKA untuk ditampilkan
+        $pkaList = $db->table('pka')->where('spt_id', $sptId)->get()->getResultArray();
+
+        return view('admin/km/km5', [
+            'title'   => 'KM-5 — Reviu PKA',
+            'spt'     => $spt,
+            'row'     => $row,
+            'pkaList' => $pkaList,
+        ]);
+    }
+
+    public function saveKm5(int $sptId)
+    {
+        $spt = $this->sptModel->find($sptId);
+        if (!$spt) return redirect()->back()->with('error', 'SPT tidak ditemukan.');
+
+        $db   = \Config\Database::connect();
+        $post = $this->request->getPost();
+
+        $data = [
+            'spt_id'           => $sptId,
+            'tanggal_reviu'    => $post['tanggal_reviu'] ?: null,
+            'status'           => in_array($post['status'] ?? '', ['disetujui', 'dikembalikan']) ? $post['status'] : 'disetujui',
+            'catatan_reviu'    => $post['catatan_reviu'] ?? null,
+            'saran_perbaikan'  => $post['saran_perbaikan'] ?? null,
+            'cek_tujuan'       => isset($post['cek_tujuan']) ? 1 : 0,
+            'cek_sasaran'      => isset($post['cek_sasaran']) ? 1 : 0,
+            'cek_ruang_lingkup'=> isset($post['cek_ruang_lingkup']) ? 1 : 0,
+            'cek_metodologi'   => isset($post['cek_metodologi']) ? 1 : 0,
+            'cek_tim'          => isset($post['cek_tim']) ? 1 : 0,
+            'cek_waktu'        => isset($post['cek_waktu']) ? 1 : 0,
+        ];
+
+        $existing = $db->table('spt_km5')->where('spt_id', $sptId)->get()->getRowArray();
+        if ($existing) {
+            $data['updated_at'] = date('Y-m-d H:i:s');
+            $db->table('spt_km5')->where('spt_id', $sptId)->update($data);
+        } else {
+            $data['created_at'] = date('Y-m-d H:i:s');
+            $data['updated_at'] = date('Y-m-d H:i:s');
+            $db->table('spt_km5')->insert($data);
+        }
+
+        logActivity('spt.km5.save', 'spt_km5', "Simpan KM5 Reviu PKA SPT id={$sptId}");
+        return redirect()->to('/admin/spt/' . $sptId . '/km')->with('success', 'KM-5 Reviu PKA berhasil disimpan.');
+    }
+
+    // --------------------------------------------------
+    // KM10 — Exit Meeting
+    // --------------------------------------------------
+
+    public function km10(int $sptId)
+    {
+        $spt = $this->sptModel->getDetail($sptId);
+        if (!$spt) return redirect()->to('/admin/spt')->with('error', 'SPT tidak ditemukan.');
+
+        $db  = \Config\Database::connect();
+        $row = $db->table('spt_km10')->where('spt_id', $sptId)->get()->getRowArray();
+
+        // Prefill nama/jabatan auditi dari KM-5b jika belum ada
+        if (!$row) {
+            $km5b = $db->table('spt_km6')->where('spt_id', $sptId)->get()->getRowArray();
+            $row  = $km5b ? [
+                'nama_auditi'    => $km5b['nama_auditi'] ?? '',
+                'jabatan_auditi' => $km5b['jabatan_auditi'] ?? '',
+                'nip_auditi'     => $km5b['nip_auditi'] ?? '',
+                'cp'             => $km5b['cp'] ?? '',
+                'tlp_cp'         => $km5b['tlp_cp'] ?? '',
+            ] : null;
+        }
+
+        return view('admin/km/km10', [
+            'title' => 'KM-10 — Exit Meeting',
+            'spt'   => $spt,
+            'row'   => $row,
+        ]);
+    }
+
+    public function saveKm10(int $sptId)
+    {
+        $spt = $this->sptModel->find($sptId);
+        if (!$spt) return redirect()->back()->with('error', 'SPT tidak ditemukan.');
+
+        $db   = \Config\Database::connect();
+        $post = $this->request->getPost();
+
+        $data = [
+            'spt_id'         => $sptId,
+            'waktu_meeting'  => $post['waktu_meeting'] ?: null,
+            'nama_auditi'    => $post['nama_auditi'] ?? null,
+            'jabatan_auditi' => $post['jabatan_auditi'] ?? null,
+            'nip_auditi'     => $post['nip_auditi'] ?? null,
+            'cp'             => $post['cp'] ?? null,
+            'tlp_cp'         => $post['tlp_cp'] ?? null,
+            'hasil_meeting'  => $post['hasil_meeting'] ?? null,
+            'kesepakatan'    => $post['kesepakatan'] ?? null,
+            'catatan'        => $post['catatan'] ?? null,
+        ];
+
+        $existing = $db->table('spt_km10')->where('spt_id', $sptId)->get()->getRowArray();
+        if ($existing) {
+            $data['updated_at'] = date('Y-m-d H:i:s');
+            $db->table('spt_km10')->where('spt_id', $sptId)->update($data);
+        } else {
+            $data['created_at'] = date('Y-m-d H:i:s');
+            $data['updated_at'] = date('Y-m-d H:i:s');
+            $db->table('spt_km10')->insert($data);
+        }
+
+        logActivity('spt.km10.save', 'spt_km10', "Simpan KM10 Exit Meeting SPT id={$sptId}");
+        return redirect()->to('/admin/spt/' . $sptId . '/km')->with('success', 'KM-10 Exit Meeting berhasil disimpan.');
+    }
+
+    // --------------------------------------------------
+    // KM11 — Reviu Laporan
+    // --------------------------------------------------
+
+    public function km11(int $sptId)
+    {
+        $spt = $this->sptModel->getDetail($sptId);
+        if (!$spt) return redirect()->to('/admin/spt')->with('error', 'SPT tidak ditemukan.');
+
+        $db  = \Config\Database::connect();
+        $row = $db->table('spt_km11')->where('spt_id', $sptId)->get()->getRowArray();
+
+        return view('admin/km/km11', [
+            'title' => 'KM-11 — Reviu Laporan',
+            'spt'   => $spt,
+            'row'   => $row,
+        ]);
+    }
+
+    public function saveKm11(int $sptId)
+    {
+        $spt = $this->sptModel->find($sptId);
+        if (!$spt) return redirect()->back()->with('error', 'SPT tidak ditemukan.');
+
+        $db   = \Config\Database::connect();
+        $post = $this->request->getPost();
+
+        $data = [
+            'spt_id'          => $sptId,
+            'tanggal_reviu'   => $post['tanggal_reviu'] ?: null,
+            'status'          => in_array($post['status'] ?? '', ['layak', 'revisi']) ? $post['status'] : 'layak',
+            'catatan_reviu'   => $post['catatan_reviu'] ?? null,
+            'saran_perbaikan' => $post['saran_perbaikan'] ?? null,
+            'cek_sistematika' => isset($post['cek_sistematika']) ? 1 : 0,
+            'cek_fakta'       => isset($post['cek_fakta']) ? 1 : 0,
+            'cek_rekomendasi' => isset($post['cek_rekomendasi']) ? 1 : 0,
+            'cek_bahasa'      => isset($post['cek_bahasa']) ? 1 : 0,
+            'cek_lampiran'    => isset($post['cek_lampiran']) ? 1 : 0,
+        ];
+
+        $existing = $db->table('spt_km11')->where('spt_id', $sptId)->get()->getRowArray();
+        if ($existing) {
+            $data['updated_at'] = date('Y-m-d H:i:s');
+            $db->table('spt_km11')->where('spt_id', $sptId)->update($data);
+        } else {
+            $data['created_at'] = date('Y-m-d H:i:s');
+            $data['updated_at'] = date('Y-m-d H:i:s');
+            $db->table('spt_km11')->insert($data);
+        }
+
+        logActivity('spt.km11.save', 'spt_km11', "Simpan KM11 Reviu Laporan SPT id={$sptId}");
+        return redirect()->to('/admin/spt/' . $sptId . '/km')->with('success', 'KM-11 Reviu Laporan berhasil disimpan.');
+    }
+
+    // --------------------------------------------------
     // Anggaran Waktu
     // --------------------------------------------------
 

@@ -46,9 +46,21 @@ class SptKmModel
             'required' => true,
             'link'     => true,   // redirect ke modul PKA
         ],
+        'km5' => [
+            'label'    => 'KM-5 — Reviu PKA',
+            'icon'     => 'magnifying-glass-chart',
+            'required' => true,
+            'link'     => false,
+        ],
         'km5b' => [
             'label'    => 'KM-5b — Entry Meeting',
             'icon'     => 'handshake',
+            'required' => true,
+            'link'     => false,
+        ],
+        'independensi' => [
+            'label'    => 'Independensi & Integritas',
+            'icon'     => 'user-shield',
             'required' => true,
             'link'     => false,
         ],
@@ -59,9 +71,15 @@ class SptKmModel
             'link'     => true,   // redirect ke modul Temuan
             'info'     => true,   // hanya informatif
         ],
-        'independensi' => [
-            'label'    => 'Independensi & Integritas',
-            'icon'     => 'user-shield',
+        'km10' => [
+            'label'    => 'KM-10 — Exit Meeting',
+            'icon'     => 'handshake-angle',
+            'required' => true,
+            'link'     => false,
+        ],
+        'km11' => [
+            'label'    => 'KM-11 — Reviu Laporan',
+            'icon'     => 'file-circle-check',
             'required' => true,
             'link'     => false,
         ],
@@ -95,16 +113,33 @@ class SptKmModel
         $km4Done    = $pkaCount > 0;
         $km4Detail  = $km4Done ? "{$pkaCount} prosedur PKA tersedia" : 'Belum ada prosedur PKA';
 
+        // KM-5: Reviu PKA
+        $km5Done    = $this->db->table('spt_km5')->where('spt_id', $sptId)->countAllResults() > 0;
+        $km5Row     = $this->db->table('spt_km5')->where('spt_id', $sptId)->get()->getRowArray();
+        $km5Detail  = $km5Done
+            ? ($km5Row['status'] === 'disetujui' ? 'PKA disetujui Dalnis' : 'PKA dikembalikan untuk revisi')
+            : 'Belum diisi';
+
         // KM-5b: Entry Meeting (spt_km6)
         $km5bDone   = $this->db->table('spt_km6')->where('spt_id', $sptId)->countAllResults() > 0;
-
-        // KM-7: Daftar Temuan (informatif)
-        $temuanCount = $this->db->table('temuan')->where('spt_id', $sptId)->countAllResults();
 
         // Independensi
         $indCount   = $this->db->table('spt_independensi')->where('spt_id', $sptId)->countAllResults();
         $indDone    = $timCount > 0 && $indCount >= $timCount;
         $indDetail  = $timCount > 0 ? "{$indCount}/{$timCount} anggota terisi" : 'Belum ada tim';
+
+        // KM-7: Daftar Temuan (informatif)
+        $temuanCount = $this->db->table('temuan')->where('spt_id', $sptId)->countAllResults();
+
+        // KM-10: Exit Meeting
+        $km10Done   = $this->db->table('spt_km10')->where('spt_id', $sptId)->countAllResults() > 0;
+
+        // KM-11: Reviu Laporan
+        $km11Done   = $this->db->table('spt_km11')->where('spt_id', $sptId)->countAllResults() > 0;
+        $km11Row    = $this->db->table('spt_km11')->where('spt_id', $sptId)->get()->getRowArray();
+        $km11Detail = $km11Done
+            ? ($km11Row['status'] === 'layak' ? 'Laporan dinyatakan layak' : 'Laporan perlu revisi')
+            : 'Belum diisi';
 
         return [
             'km1' => array_merge(self::$kmConfig['km1'], [
@@ -123,17 +158,29 @@ class SptKmModel
                 'complete' => $km4Done,
                 'detail'   => $km4Detail,
             ]),
+            'km5' => array_merge(self::$kmConfig['km5'], [
+                'complete' => $km5Done,
+                'detail'   => $km5Detail,
+            ]),
             'km5b' => array_merge(self::$kmConfig['km5b'], [
                 'complete' => $km5bDone,
                 'detail'   => $km5bDone ? 'Sudah diisi' : 'Belum diisi',
+            ]),
+            'independensi' => array_merge(self::$kmConfig['independensi'], [
+                'complete' => $indDone,
+                'detail'   => $indDetail,
             ]),
             'km7' => array_merge(self::$kmConfig['km7'], [
                 'complete' => true,
                 'detail'   => "{$temuanCount} temuan tercatat",
             ]),
-            'independensi' => array_merge(self::$kmConfig['independensi'], [
-                'complete' => $indDone,
-                'detail'   => $indDetail,
+            'km10' => array_merge(self::$kmConfig['km10'], [
+                'complete' => $km10Done,
+                'detail'   => $km10Done ? 'Sudah diisi' : 'Belum diisi',
+            ]),
+            'km11' => array_merge(self::$kmConfig['km11'], [
+                'complete' => $km11Done,
+                'detail'   => $km11Detail,
             ]),
         ];
     }
