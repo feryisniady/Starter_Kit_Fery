@@ -31,7 +31,7 @@ class PkaController extends BaseController
             'title'   => 'Program Kerja Audit — ' . ($spt['nomor_naskah'] ?: '#' . $sptId),
             'spt'     => $spt,
             'pkaList' => $this->pkaModel->getBySpt($sptId),
-            'sdmList' => $this->sdmModel->getAktif(),
+            'sdmList' => $this->getSdmTim($sptId),
             'stats'   => $this->pkaModel->getStatsBySpt($sptId),
         ]);
     }
@@ -148,5 +148,20 @@ class PkaController extends BaseController
         if ($irbanId === null) return false;
         $spt = $spt ?? $this->sptModel->getDetail($sptId);
         return $spt !== null && (int)$spt['irban_id'] === $irbanId;
+    }
+
+    /**
+     * Ambil SDM yang ada di tim SPT saja (bukan semua SDM aktif).
+     * Dipakai untuk dropdown PIC di form PKA.
+     */
+    private function getSdmTim(int $sptId): array
+    {
+        return \Config\Database::connect()
+            ->table('spt_tim st')
+            ->select('s.id, s.nama, s.nip, st.peran_spt')
+            ->join('sdm s', 's.id = st.sdm_id')
+            ->where('st.spt_id', $sptId)
+            ->orderBy('st.urutan')
+            ->get()->getResultArray();
     }
 }
