@@ -349,6 +349,22 @@ class SptController extends BaseController
             return redirect()->back()->with('error', 'Status SPT tidak bisa di-approve.');
         }
 
+        // Cek role sesuai tahap — approval berjenjang
+        $allowedRoles = [
+            'irban'      => ['irban', 'ka_irban', 'superadmin', 'admin'],
+            'evlap'      => ['evlap', 'subbag_evlap', 'superadmin', 'admin'],
+            'sekretaris' => ['sekretaris', 'superadmin', 'admin'],
+            'inspektur'  => ['inspektur', 'superadmin', 'admin'],
+        ];
+        $canApprove = false;
+        foreach (($allowedRoles[$tahap] ?? []) as $role) {
+            if (hasRole($role)) { $canApprove = true; break; }
+        }
+        if (!$canApprove) {
+            $tahapLabel = ['irban'=>'Kepala Irban','evlap'=>'Subbag Evlap','sekretaris'=>'Sekretaris','inspektur'=>'Inspektur'];
+            return redirect()->back()->with('error', 'Anda tidak berwenang menyetujui tahap ini. Tahap ini hanya bisa disetujui oleh: ' . ($tahapLabel[$tahap] ?? $tahap));
+        }
+
         $catatan = $this->request->getPost('catatan');
 
         $this->approvalModel->approve($id, $tahap, $userId, $catatan);
@@ -368,10 +384,31 @@ class SptController extends BaseController
             return redirect()->back()->with('error', !$spt ? 'SPT tidak ditemukan.' : 'Akses ditolak.');
         }
 
-        $tahap   = $this->sptModel->getNextApprovalTahap($spt['status']);
+        $tahap = $this->sptModel->getNextApprovalTahap($spt['status']);
+
+        if (!$tahap) {
+            return redirect()->back()->with('error', 'Status SPT tidak bisa ditolak.');
+        }
+
+        // Cek role sesuai tahap
+        $allowedRoles = [
+            'irban'      => ['irban', 'ka_irban', 'superadmin', 'admin'],
+            'evlap'      => ['evlap', 'subbag_evlap', 'superadmin', 'admin'],
+            'sekretaris' => ['sekretaris', 'superadmin', 'admin'],
+            'inspektur'  => ['inspektur', 'superadmin', 'admin'],
+        ];
+        $canReject = false;
+        foreach (($allowedRoles[$tahap] ?? []) as $role) {
+            if (hasRole($role)) { $canReject = true; break; }
+        }
+        if (!$canReject) {
+            $tahapLabel = ['irban'=>'Kepala Irban','evlap'=>'Subbag Evlap','sekretaris'=>'Sekretaris','inspektur'=>'Inspektur'];
+            return redirect()->back()->with('error', 'Anda tidak berwenang menolak tahap ini. Tahap ini hanya bisa ditolak oleh: ' . ($tahapLabel[$tahap] ?? $tahap));
+        }
+
         $catatan = $this->request->getPost('catatan') ?: 'Ditolak';
 
-        if ($tahap) $this->approvalModel->reject($id, $tahap, $userId, $catatan);
+        $this->approvalModel->reject($id, $tahap, $userId, $catatan);
         $this->sptModel->update($id, ['status' => 'draft', 'catatan' => $catatan]);
 
         logActivity('spt.reject', 'spt', "Tolak SPT id={$id}, catatan: {$catatan}");

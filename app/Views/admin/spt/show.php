@@ -369,20 +369,51 @@ $kmAllDone  = $kmDoneAll === $kmTotalAll;
 
 <!-- Modal Approve -->
 <div id="modal-approve" class="modal-overlay" style="display:none">
-    <div class="modal-box" style="max-width:420px">
-        <div class="modal-header">
-            <h3>Setujui SPT</h3>
-            <button class="modal-close" onclick="$('#modal-approve').hide()"><i class="fas fa-times"></i></button>
-        </div>
-        <form action="/admin/spt/<?= $spt['id'] ?>/approve" method="POST">
-            <?= csrf_field() ?>
-            <div class="form-group">
-                <label>Catatan (opsional)</label>
-                <textarea name="catatan" class="form-control" rows="3"></textarea>
+    <div class="modal-box" style="max-width:460px;padding:0;overflow:hidden">
+        <!-- Header gradient -->
+        <div style="background:linear-gradient(135deg,#16a34a 0%,#22c55e 100%);padding:20px 24px 16px;position:relative">
+            <button onclick="$('#modal-approve').hide()"
+                    style="position:absolute;top:12px;right:14px;background:rgba(255,255,255,.2);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">
+                <i class="fas fa-times"></i>
+            </button>
+            <div style="display:flex;align-items:center;gap:12px">
+                <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center">
+                    <i class="fas fa-circle-check" style="color:#fff;font-size:20px"></i>
+                </div>
+                <div>
+                    <h3 style="color:#fff;margin:0;font-size:16px;font-weight:700">Setujui SPT</h3>
+                    <p style="color:rgba(255,255,255,.8);margin:2px 0 0;font-size:12px">
+                        <?= esc($spt['nomor_naskah'] ?: 'Draft #'.$spt['id']) ?>
+                    </p>
+                </div>
             </div>
-            <div class="form-actions">
+        </div>
+        <!-- Body -->
+        <form action="/admin/spt/<?= $spt['id'] ?>/approve" method="POST" style="padding:20px 24px">
+            <?= csrf_field() ?>
+            <?php
+            $tahapLabel = ['diajukan'=>'Kepala Irban','acc_irban'=>'Subbag Evlap','acc_evlap'=>'Sekretaris','acc_sekretaris'=>'Inspektur'];
+            $nextApprover = $tahapLabel[$spt['status']] ?? '-';
+            ?>
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:#166534">
+                <i class="fas fa-info-circle"></i>
+                Anda akan menyetujui SPT ini sebagai <strong><?= $nextApprover ?></strong>.
+                Tindakan ini akan mengubah status SPT ke tahap berikutnya.
+            </div>
+            <div class="form-group" style="margin-bottom:16px">
+                <label style="font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;display:block">
+                    <i class="fas fa-comment-dots"></i> Catatan Persetujuan
+                    <span style="font-weight:400;color:#94a3b8">(opsional)</span>
+                </label>
+                <textarea name="catatan" class="form-control" rows="3"
+                          style="border:1px solid #d1fae5;border-radius:8px;background:#f0fdf4;resize:none;font-size:13px"
+                          placeholder="Catatan tambahan atau instruksi khusus..."></textarea>
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end">
                 <button type="button" class="btn btn-secondary" onclick="$('#modal-approve').hide()">Batal</button>
-                <button type="submit" class="btn btn-success"><i class="fas fa-check"></i> Setujui</button>
+                <button type="submit" class="btn btn-success" style="background:#16a34a;border-color:#16a34a;gap:6px">
+                    <i class="fas fa-circle-check"></i> Setujui SPT
+                </button>
             </div>
         </form>
     </div>
@@ -390,20 +421,46 @@ $kmAllDone  = $kmDoneAll === $kmTotalAll;
 
 <!-- Modal Tolak -->
 <div id="modal-reject" class="modal-overlay" style="display:none">
-    <div class="modal-box" style="max-width:420px">
-        <div class="modal-header">
-            <h3>Tolak SPT</h3>
-            <button class="modal-close" onclick="$('#modal-reject').hide()"><i class="fas fa-times"></i></button>
-        </div>
-        <form action="/admin/spt/<?= $spt['id'] ?>/reject" method="POST">
-            <?= csrf_field() ?>
-            <div class="form-group">
-                <label>Alasan Penolakan <span style="color:red">*</span></label>
-                <textarea name="catatan" class="form-control" rows="3" required></textarea>
+    <div class="modal-box" style="max-width:460px;padding:0;overflow:hidden">
+        <!-- Header gradient -->
+        <div style="background:linear-gradient(135deg,#dc2626 0%,#ef4444 100%);padding:20px 24px 16px;position:relative">
+            <button onclick="$('#modal-reject').hide()"
+                    style="position:absolute;top:12px;right:14px;background:rgba(255,255,255,.2);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">
+                <i class="fas fa-times"></i>
+            </button>
+            <div style="display:flex;align-items:center;gap:12px">
+                <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center">
+                    <i class="fas fa-circle-xmark" style="color:#fff;font-size:20px"></i>
+                </div>
+                <div>
+                    <h3 style="color:#fff;margin:0;font-size:16px;font-weight:700">Tolak SPT</h3>
+                    <p style="color:rgba(255,255,255,.8);margin:2px 0 0;font-size:12px">
+                        <?= esc($spt['nomor_naskah'] ?: 'Draft #'.$spt['id']) ?>
+                    </p>
+                </div>
             </div>
-            <div class="form-actions">
+        </div>
+        <!-- Body -->
+        <form action="/admin/spt/<?= $spt['id'] ?>/reject" method="POST" style="padding:20px 24px">
+            <?= csrf_field() ?>
+            <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:#991b1b">
+                <i class="fas fa-triangle-exclamation"></i>
+                SPT akan <strong>dikembalikan ke Draft</strong> dan pengaju akan diminta melakukan perbaikan sesuai catatan.
+            </div>
+            <div class="form-group" style="margin-bottom:16px">
+                <label style="font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;display:block">
+                    <i class="fas fa-comment-dots"></i> Alasan Penolakan
+                    <span style="color:#ef4444">*</span>
+                </label>
+                <textarea name="catatan" class="form-control" rows="4"
+                          style="border:1px solid #fecaca;border-radius:8px;background:#fef2f2;resize:none;font-size:13px"
+                          placeholder="Jelaskan alasan penolakan dan perbaikan yang harus dilakukan..." required></textarea>
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end">
                 <button type="button" class="btn btn-secondary" onclick="$('#modal-reject').hide()">Batal</button>
-                <button type="submit" class="btn btn-danger"><i class="fas fa-times"></i> Tolak</button>
+                <button type="submit" class="btn btn-danger" style="gap:6px">
+                    <i class="fas fa-circle-xmark"></i> Tolak & Kembalikan
+                </button>
             </div>
         </form>
     </div>

@@ -51,8 +51,14 @@
             <div style="font-weight:600;font-size:14px"><?= number_format($currentSetting['total_hp_tahunan']) ?> Hari</div>
         </div>
         <?php if($isAdmin): ?>
-        <div>
-            <a href="/admin/pkpt/setting" class="btn btn-sm btn-outline-secondary" title="Edit Setting PKPT">
+        <div style="display:flex;gap:8px">
+            <button class="btn btn-sm btn-warning" id="btn-edit-header" title="Edit Nomor & Tanggal PKPT"
+                    data-nomor="<?= esc($currentSetting['nomor_pkpt'] ?? '') ?>"
+                    data-tanggal="<?= esc($currentSetting['tanggal_pkpt'] ?? '') ?>"
+                    data-tahun="<?= $tahun ?>">
+                <i class="fas fa-edit"></i> Edit Header
+            </button>
+            <a href="/admin/pkpt/setting" class="btn btn-sm btn-secondary" title="Setting PKPT lengkap">
                 <i class="fas fa-sliders"></i> Setting
             </a>
         </div>
@@ -117,6 +123,52 @@
             </thead>
             <tbody></tbody>
         </table>
+    </div>
+</div>
+
+<!-- Modal Edit Header PKPT -->
+<div id="modal-edit-header" class="modal-overlay" style="display:none">
+    <div class="modal-box" style="max-width:440px;padding:0;overflow:hidden">
+        <div style="background:linear-gradient(135deg,#d97706 0%,#f59e0b 100%);padding:16px 20px 14px;position:relative">
+            <button onclick="$('#modal-edit-header').hide()"
+                    style="position:absolute;top:10px;right:12px;background:rgba(255,255,255,.2);border:none;color:#fff;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center">
+                <i class="fas fa-times"></i>
+            </button>
+            <div style="display:flex;align-items:center;gap:10px">
+                <div style="width:38px;height:38px;border-radius:9px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center">
+                    <i class="fas fa-file-pen" style="color:#fff;font-size:16px"></i>
+                </div>
+                <div>
+                    <h3 style="color:#fff;margin:0;font-size:14px;font-weight:700">Edit Header PKPT</h3>
+                    <p style="color:rgba(255,255,255,.8);margin:2px 0 0;font-size:11px">Nomor SK &amp; Tanggal Penetapan</p>
+                </div>
+            </div>
+        </div>
+        <form id="form-edit-header" action="/admin/pkpt/setting/store" method="POST" style="padding:18px 20px">
+            <?= csrf_field() ?>
+            <input type="hidden" name="tahun" id="eh-tahun" value="<?= $tahun ?>">
+            <input type="hidden" name="total_hp_tahunan" value="0">
+            <input type="hidden" name="tarif_hp" id="eh-tarif" value="<?= $currentSetting['tarif_hp'] ?? 160000 ?>">
+            <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:#92400e">
+                <i class="fas fa-info-circle"></i>
+                Mengubah nomor/tanggal PKPT tidak mengubah data kegiatan. Perubahan akan dicatat dalam log.
+            </div>
+            <div class="form-group">
+                <label style="font-size:12px;font-weight:600;color:#374151">Nomor SK PKPT</label>
+                <input type="text" name="nomor_pkpt" id="eh-nomor" class="form-control"
+                       placeholder="Contoh: 700/SK-PKPT/2025" style="border-radius:8px">
+            </div>
+            <div class="form-group">
+                <label style="font-size:12px;font-weight:600;color:#374151">Tanggal Penetapan</label>
+                <input type="date" name="tanggal_pkpt" id="eh-tanggal" class="form-control" style="border-radius:8px">
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;padding-top:4px">
+                <button type="button" class="btn btn-secondary" onclick="$('#modal-edit-header').hide()">Batal</button>
+                <button type="submit" class="btn btn-warning" style="background:#d97706;border-color:#d97706">
+                    <i class="fas fa-save"></i> Simpan Perubahan
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -205,6 +257,14 @@ $(function() {
 
     $('#btn-buat-pkpt').on('click', function() {
         Modal.open('modal-buat');
+    });
+
+    $('#btn-edit-header').on('click', function() {
+        const btn = $(this);
+        $('#eh-nomor').val(btn.data('nomor'));
+        $('#eh-tanggal').val(btn.data('tanggal'));
+        $('#eh-tahun').val(btn.data('tahun'));
+        $('#modal-edit-header').show();
     });
 
     // ── HP Monitor (admin only) ────────────────────────────────────
