@@ -26,5 +26,8 @@ class DatabaseSeeder extends Seeder
 
         // Referensi kode temuan (89 kode PermenpanRB 41/2011)
         $this->call('KodetemuanSeeder');
+
+        // Test users untuk development (admin, inspektur, dalnis, KT, AT, dst)
+        $this->call('TestUserSeeder');
     }
 }
