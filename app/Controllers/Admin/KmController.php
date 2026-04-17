@@ -141,7 +141,7 @@ class KmController extends BaseController
             'spt'      => $spt,
             'awMap'    => $awMap,
             'timList'  => $timList,
-            'canEdit'  => canEditKmInSpt($sptId, 'km2'),
+            'canEdit'  => ($isAdmin || $isKtDal) && canEditKmInSpt($sptId, 'km2'),
             'isKtDal'  => $isAdmin || $isKtDal,
             'mySdmId'  => $sdmId,
         ]);
@@ -457,14 +457,15 @@ class KmController extends BaseController
             null, 'sdm_id'
         );
 
-        $timList = ($isAdmin || $isKtDal)
-            ? $db->table('spt_tim st')
-                ->select('st.sdm_id, s.nama as sdm_nama, st.peran_spt, st.urutan')
-                ->join('sdm s', 's.id = st.sdm_id')
-                ->where('st.spt_id', $sptId)
-                ->orderBy('st.urutan')
-                ->get()->getResultArray()
-            : [];
+        // KT/Dalnis/Admin: semua tim; AT: hanya baris miliknya sendiri
+        $timQuery = $db->table('spt_tim st')
+            ->select('st.sdm_id, s.nama as sdm_nama, st.peran_spt, st.urutan')
+            ->join('sdm s', 's.id = st.sdm_id')
+            ->where('st.spt_id', $sptId);
+        if (!$isAdmin && !$isKtDal && $sdmId) {
+            $timQuery->where('st.sdm_id', $sdmId);
+        }
+        $timList = $timQuery->orderBy('st.urutan')->get()->getResultArray();
 
         return view('admin/km/independensi', [
             'title'    => 'Pernyataan Independensi & Integritas',
