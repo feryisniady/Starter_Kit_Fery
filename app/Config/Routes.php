@@ -7,6 +7,13 @@ use CodeIgniter\Router\RouteCollection;
  */
 $routes->get('/', 'Auth::login');
 
+//Smart Reviu AI
+$routes->get('reviu', 'Reviu::index');
+$routes->post('reviu/prosesAjax', 'Reviu::prosesAjax');
+$routes->get('reviu/exportPdf/(:num)', 'Reviu::exportPdf/$1');
+$routes->get('reviu/cetak/(:num)', 'Reviu::cetak/$1');
+/*=============================*/
+
 // Guest only (belum login)
 $routes->group('', ['filter' => 'guest'], function($routes) {
 	$routes->get('/login',             'Auth::login');
