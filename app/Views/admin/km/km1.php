@@ -33,7 +33,7 @@
                 <div class="form-group">
                     <label>Tujuan / Nama Satker</label>
                     <input type="text" name="tujuan_satker" class="form-control"
-                           value="<?= old('tujuan_satker', $row['tujuan_satker'] ?? '') ?>"
+                           value="<?= old('tujuan_satker', $row['tujuan_satker'] ?? $spt['area_pengawasan'] ?? '') ?>"
                            placeholder="Dinas Pendidikan">
                 </div>
             </div>
@@ -41,7 +41,7 @@
             <div class="form-group">
                 <label>Uraian Kegiatan Pengawasan</label>
                 <textarea name="kegiatan" class="form-control" rows="3"
-                          placeholder="Audit Ketaatan Pengelolaan Keuangan Daerah..."><?= old('kegiatan', $row['kegiatan'] ?? '') ?></textarea>
+                          placeholder="Audit Ketaatan Pengelolaan Keuangan Daerah..."><?= old('kegiatan', $row['kegiatan'] ?? $spt['tujuan'] ?? '') ?></textarea>
             </div>
 
             <div class="form-row-2">
