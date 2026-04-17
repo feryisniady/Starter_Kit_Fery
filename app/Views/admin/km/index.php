@@ -21,11 +21,99 @@
 <?php endif; ?>
 
 <?php
+// Tentukan peran user dalam SPT ini
+$sptId     = $spt['id'];
+$isAdm     = isAuditAdmin();
+$isDalnis  = isDalnisInSpt($sptId);
+$isKt      = isKtInSpt($sptId);
+$isAt      = isAtInSpt($sptId);
+$isPj      = isPjInSpt($sptId);
+
+// KM yang relevan per peran:
+// Admin / Dalnis / PJ → semua
+// KT → semua kecuali KM-5 dan KM-11 (Dalnis only) — hanya lihat
+// AT → hanya KM-2, KM-3, Independensi
+$atKeys = ['km2', 'km3', 'independensi'];
+
 $requiredItems = array_filter($checklist, fn($c) => $c['required'] ?? true);
 $doneRequired  = count(array_filter($requiredItems, fn($c) => $c['complete']));
 $totalRequired = count($requiredItems);
 $allDone       = $doneRequired === $totalRequired;
 ?>
+
+<?php if ($isAt && !$isAdm && !$isDalnis && !$isKt && !$isPj): ?>
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- TAMPILAN KHUSUS ANGGOTA TIM                                    -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+
+<div style="background:#eff6ff;border-radius:10px;padding:14px 18px;margin-bottom:16px;font-size:13px;color:#1d4ed8;border-left:4px solid #3b82f6">
+    <i class="fas fa-info-circle"></i>
+    Anda login sebagai <strong>Anggota Tim</strong> — tampil hanya dokumen yang perlu Anda isi.
+    Dokumen lain (KM-1, KM-4, KM-5, dll.) dikelola oleh Ketua Tim dan Pengendali Teknis.
+</div>
+
+<?php
+$urlMap = [
+    'km2'          => '/admin/spt/'.$spt['id'].'/km/2',
+    'km3'          => '/admin/spt/'.$spt['id'].'/km/3',
+    'independensi' => '/admin/spt/'.$spt['id'].'/km/independensi',
+];
+?>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+<?php foreach($checklist as $key => $item):
+    if (!in_array($key, $atKeys)) continue;
+    $url  = $urlMap[$key] ?? '#';
+    $done = $item['complete'];
+    $isAuto = $item['auto'] ?? false;
+    $borderColor = $done ? '#22c55e' : '#e2e8f0';
+    $iconBg = $done ? '#dcfce7' : '#f1f5f9';
+    $iconColor = $done ? '#16a34a' : '#94a3b8';
+?>
+<div class="card" style="border-left:4px solid <?= $borderColor ?>;margin:0">
+    <div class="card-body" style="display:flex;align-items:center;gap:14px;padding:14px 16px">
+        <div style="width:42px;height:42px;border-radius:50%;background:<?= $iconBg ?>;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i class="fas fa-<?= esc($item['icon']) ?>" style="color:<?= $iconColor ?>;font-size:17px"></i>
+        </div>
+        <div style="flex:1;min-width:0">
+            <div style="font-weight:600;font-size:13px"><?= esc($item['label']) ?></div>
+            <div style="font-size:12px;color:<?= $done ? '#16a34a' : '#f59e0b' ?>;margin-top:3px">
+                <?php if($done): ?>
+                    <i class="fas fa-check-circle"></i> <?= esc($item['detail']) ?>
+                <?php else: ?>
+                    <i class="fas fa-clock"></i> <?= esc($item['detail']) ?>
+                <?php endif; ?>
+            </div>
+        </div>
+        <a href="<?= $url ?>" class="btn btn-sm <?= $done ? 'btn-secondary' : 'btn-primary' ?>" style="white-space:nowrap;flex-shrink:0">
+            <?= $isAuto ? '<i class="fas fa-eye"></i> Lihat' : ($done ? '<i class="fas fa-edit"></i> Edit' : '<i class="fas fa-plus"></i> Isi') ?>
+        </a>
+    </div>
+</div>
+<?php endforeach; ?>
+</div>
+
+<!-- KKA — Kerja utama AT -->
+<div class="card mt-3" style="border-left:4px solid #6366f1;background:linear-gradient(135deg,#f5f3ff,#eff6ff)">
+    <div class="card-body" style="display:flex;align-items:center;gap:16px;padding:20px">
+        <div style="font-size:32px;color:#6366f1"><i class="fas fa-file-pen"></i></div>
+        <div style="flex:1">
+            <div style="font-weight:700;font-size:15px;color:#1e293b">Kertas Kerja Audit (KKA)</div>
+            <div style="font-size:12px;color:#64748b;margin-top:4px">
+                Ini adalah pekerjaan utama Anda — isi Ikhtisar → Simpulan → Rekomendasi.<br>
+                KKA dibuat otomatis setelah KM-5 (Reviu PKA) disetujui Pengendali Teknis.
+            </div>
+        </div>
+        <a href="/admin/spt/<?= $spt['id'] ?>/kka" class="btn btn-primary">
+            <i class="fas fa-arrow-right"></i> Buka KKA Saya
+        </a>
+    </div>
+</div>
+
+<?php else: ?>
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- TAMPILAN KT / DALNIS / ADMIN / PJ                              -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
 
 <!-- Status Banner -->
 <div class="card mb-3" style="border-left:4px solid <?= $allDone ? '#22c55e' : '#f59e0b' ?>">
@@ -41,6 +129,11 @@ $allDone       = $doneRequired === $totalRequired;
             </div>
             <div style="font-size:13px;color:#64748b;margin-top:2px">
                 <?= $doneRequired ?>/<?= $totalRequired ?> dokumen wajib selesai
+                <?php if ($peranSpt): ?>
+                <span style="margin-left:12px;background:#e0e7ff;color:#4f46e5;padding:2px 8px;border-radius:99px;font-size:11px">
+                    <?= esc($peranSpt) ?>
+                </span>
+                <?php endif; ?>
             </div>
             <div style="margin-top:8px;background:#e2e8f0;border-radius:6px;height:6px;width:240px">
                 <div style="width:<?= $totalRequired > 0 ? round($doneRequired/$totalRequired*100) : 0 ?>%;
@@ -59,22 +152,23 @@ $allDone       = $doneRequired === $totalRequired;
 </div>
 
 <?php
-// URL per item
 $urlMap = [
     'km1'          => '/admin/spt/'.$spt['id'].'/km/1',
     'km2'          => '/admin/spt/'.$spt['id'].'/km/2',
     'km3'          => '/admin/spt/'.$spt['id'].'/km/3',
-    'km4'          => '/admin/spt/'.$spt['id'].'/pka',       // link ke modul PKA
+    'km4'          => '/admin/spt/'.$spt['id'].'/pka',
     'km5'          => '/admin/spt/'.$spt['id'].'/km/5',
     'km5b'         => '/admin/spt/'.$spt['id'].'/km/5b',
     'independensi' => '/admin/spt/'.$spt['id'].'/km/independensi',
-    'km7'          => '/admin/spt/'.$spt['id'].'/temuan',    // link ke modul Temuan
+    'km7'          => '/admin/spt/'.$spt['id'].'/temuan',
     'km10'         => '/admin/spt/'.$spt['id'].'/km/10',
     'km11'         => '/admin/spt/'.$spt['id'].'/km/11',
 ];
+
+// KT tidak bisa edit KM-5 & KM-11 (Dalnis only) — tampilkan tapi disable tombol isi
+$dalnisOnlyKeys = ['km5', 'km11'];
 ?>
 
-<!-- KM Cards -->
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
 <?php foreach($checklist as $key => $item):
     $url      = $urlMap[$key] ?? '#';
@@ -83,30 +177,19 @@ $urlMap = [
     $isAuto   = $item['auto']     ?? false;
     $required = $item['required'] ?? true;
     $done     = $item['complete'];
+    $isDalnisOnly = in_array($key, $dalnisOnlyKeys);
 
-    // Warna border
-    if ($isInfo)        $borderColor = '#6366f1';
-    elseif ($done)      $borderColor = '#22c55e';
-    else                $borderColor = '#e2e8f0';
-
-    // Warna icon bg
-    if ($isInfo)        $iconBg = '#e0e7ff'; $iconColor = '#4f46e5';
-    if ($done)        { $iconBg = '#dcfce7'; $iconColor = '#16a34a'; }
-    if (!$done && !$isInfo) { $iconBg = '#f1f5f9'; $iconColor = '#94a3b8'; }
+    if ($isInfo)        { $borderColor = '#6366f1'; $iconBg = '#e0e7ff'; $iconColor = '#4f46e5'; }
+    elseif ($done)      { $borderColor = '#22c55e'; $iconBg = '#dcfce7'; $iconColor = '#16a34a'; }
+    else                { $borderColor = '#e2e8f0'; $iconBg = '#f1f5f9'; $iconColor = '#94a3b8'; }
 ?>
-<div class="card" style="border-left:4px solid <?= $borderColor ?>;margin:0">
+<div class="card" style="border-left:4px solid <?= $borderColor ?>;margin:0<?= ($isDalnisOnly && $isKt && !$isAdm && !$isDalnis) ? ';opacity:.75' : '' ?>">
     <div class="card-body" style="display:flex;align-items:center;gap:14px;padding:14px 16px">
-
-        <!-- Icon -->
-        <div style="width:42px;height:42px;border-radius:50%;background:<?= $iconBg ?>;
-                    display:flex;align-items:center;justify-content:center;flex-shrink:0">
-            <i class="fas fa-<?= esc($item['icon']) ?>"
-               style="color:<?= $iconColor ?>;font-size:17px"></i>
+        <div style="width:42px;height:42px;border-radius:50%;background:<?= $iconBg ?>;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i class="fas fa-<?= esc($item['icon']) ?>" style="color:<?= $iconColor ?>;font-size:17px"></i>
         </div>
-
-        <!-- Info -->
         <div style="flex:1;min-width:0">
-            <div style="font-weight:600;font-size:13px;display:flex;align-items:center;gap:6px">
+            <div style="font-weight:600;font-size:13px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
                 <?= esc($item['label']) ?>
                 <?php if($isInfo): ?>
                 <span class="badge badge-info" style="font-size:10px;padding:2px 6px">Info</span>
@@ -116,8 +199,8 @@ $urlMap = [
                 <?php if($isAuto): ?>
                 <span class="badge badge-primary" style="font-size:10px;padding:2px 6px">Auto</span>
                 <?php endif; ?>
-                <?php if($isLink): ?>
-                <span class="badge badge-secondary" style="font-size:10px;padding:2px 6px">Modul</span>
+                <?php if($isDalnisOnly): ?>
+                <span class="badge badge-warning" style="font-size:10px;padding:2px 6px">Dalnis</span>
                 <?php endif; ?>
             </div>
             <div style="font-size:12px;color:<?= $done ? '#16a34a' : ($isInfo ? '#6366f1' : '#f59e0b') ?>;margin-top:3px">
@@ -130,23 +213,18 @@ $urlMap = [
                 <?php endif; ?>
             </div>
         </div>
-
-        <!-- Action button -->
         <a href="<?= $url ?>"
            class="btn btn-sm <?= $done ? 'btn-secondary' : ($isInfo ? 'btn-info' : 'btn-primary') ?>"
-           style="white-space:nowrap;flex-shrink:0"
-           <?= $isLink ? 'target="_self"' : '' ?>>
-            <?php if($isLink): ?>
-                <i class="fas fa-external-link-alt"></i> Buka
-            <?php elseif($isAuto): ?>
+           style="white-space:nowrap;flex-shrink:0">
+            <?php if($isLink || $isAuto): ?>
                 <i class="fas fa-eye"></i> Lihat
             <?php elseif($done): ?>
                 <i class="fas fa-edit"></i> Edit
             <?php else: ?>
-                <i class="fas fa-plus"></i> Isi
+                <i class="fas fa-<?= $isDalnisOnly && !$isDalnis && !$isAdm ? 'eye' : 'plus' ?>"></i>
+                <?= $isDalnisOnly && !$isDalnis && !$isAdm ? 'Lihat' : 'Isi' ?>
             <?php endif; ?>
         </a>
-
     </div>
 </div>
 <?php endforeach; ?>
@@ -168,5 +246,7 @@ $urlMap = [
         </a>
     </div>
 </div>
+
+<?php endif; ?>
 
 <?= $this->endSection() ?>
