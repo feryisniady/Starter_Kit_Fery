@@ -479,4 +479,3 @@ if (!function_exists('canViewSptAudit')) {
                hasPermission('spt.manage_all');
     }
 }
-}
