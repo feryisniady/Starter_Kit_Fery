@@ -315,3 +315,168 @@ if (!function_exists('breadcrumb')) {
         return $html;
     }
 }
+
+// ============================================================
+// AUDIT HELPERS — Akses berbasis peran dalam tim SPT
+// ============================================================
+// Kewenangan modul pengawasan (KM, PKA, KKA) TIDAK mengikuti
+// system role, melainkan peran_spt di spt_tim per SPT.
+// Satu user bisa KT di SPT A dan AT di SPT B secara bersamaan.
+// ============================================================
+
+if (!function_exists('getCurrentSdmId')) {
+    /**
+     * Ambil sdm.id milik user yang sedang login.
+     * Return null jika user tidak punya record SDM.
+     */
+    function getCurrentSdmId(): ?int
+    {
+        static $cache = [];
+        $userId = (int) session()->get('user_id');
+        if (!$userId) return null;
+
+        if (!isset($cache[$userId])) {
+            $row = \Config\Database::connect()
+                ->table('sdm')->where('user_id', $userId)->get()->getRowArray();
+            $cache[$userId] = $row ? (int)$row['id'] : null;
+        }
+        return $cache[$userId];
+    }
+}
+
+if (!function_exists('getCurrentSdm')) {
+    /**
+     * Ambil seluruh row sdm milik user yang sedang login.
+     */
+    function getCurrentSdm(): ?array
+    {
+        $userId = (int) session()->get('user_id');
+        if (!$userId) return null;
+        return \Config\Database::connect()
+            ->table('sdm')->where('user_id', $userId)->get()->getRowArray() ?: null;
+    }
+}
+
+if (!function_exists('getPeranInSpt')) {
+    /**
+     * Ambil peran_spt user saat ini dalam SPT tertentu.
+     * Contoh return: 'Ketua Tim', 'Anggota Tim', 'Pengendali Teknis', dll.
+     * Return null jika user tidak ada dalam tim SPT tersebut.
+     */
+    function getPeranInSpt(int $sptId): ?string
+    {
+        $sdmId = getCurrentSdmId();
+        if (!$sdmId) return null;
+
+        $row = \Config\Database::connect()
+            ->table('spt_tim')
+            ->where('spt_id', $sptId)
+            ->where('sdm_id', $sdmId)
+            ->get()->getRowArray();
+
+        return $row ? $row['peran_spt'] : null;
+    }
+}
+
+if (!function_exists('isInSpt')) {
+    /** Apakah user saat ini terdaftar dalam tim SPT ini? */
+    function isInSpt(int $sptId): bool
+    {
+        return getPeranInSpt($sptId) !== null;
+    }
+}
+
+if (!function_exists('isAuditAdmin')) {
+    /**
+     * Admin bypass — boleh akses semua modul pengawasan tanpa batasan peran.
+     */
+    function isAuditAdmin(): bool
+    {
+        return hasRole('superadmin') || hasRole('admin');
+    }
+}
+
+if (!function_exists('isDalnisInSpt')) {
+    /**
+     * Apakah user adalah Pengendali Teknis (Dalnis) dalam SPT ini?
+     * Kewenangan: KM-5 (reviu PKA), KM-11 (reviu laporan), catatan KKA.
+     */
+    function isDalnisInSpt(int $sptId): bool
+    {
+        $peran = getPeranInSpt($sptId);
+        return $peran !== null && str_contains(strtolower($peran), 'pengendali');
+    }
+}
+
+if (!function_exists('isKtInSpt')) {
+    /**
+     * Apakah user adalah Ketua Tim dalam SPT ini?
+     * Kewenangan: KM-1, KM-4, KM-5b, KM-10, lihat semua KKA, compile temuan.
+     */
+    function isKtInSpt(int $sptId): bool
+    {
+        $peran = getPeranInSpt($sptId);
+        return $peran !== null && str_contains(strtolower($peran), 'ketua');
+    }
+}
+
+if (!function_exists('isAtInSpt')) {
+    /**
+     * Apakah user adalah Anggota Tim dalam SPT ini?
+     * Kewenangan: KM-2 (milik sendiri), Independensi (milik sendiri), KKA (milik sendiri).
+     */
+    function isAtInSpt(int $sptId): bool
+    {
+        $peran = getPeranInSpt($sptId);
+        return $peran !== null && str_contains(strtolower($peran), 'anggota');
+    }
+}
+
+if (!function_exists('isPjInSpt')) {
+    /**
+     * Apakah user adalah Penanggung Jawab atau Wakil PJ dalam SPT ini?
+     * Kewenangan: lihat semua (view only).
+     */
+    function isPjInSpt(int $sptId): bool
+    {
+        $peran = strtolower(getPeranInSpt($sptId) ?? '');
+        return str_contains($peran, 'penanggung') || str_contains($peran, 'wakil');
+    }
+}
+
+if (!function_exists('canEditKmInSpt')) {
+    /**
+     * Apakah user boleh mengedit KM tertentu dalam SPT ini?
+     *
+     * @param string $km  'km1','km2','km4','km5','km5b','independensi','km10','km11'
+     */
+    function canEditKmInSpt(int $sptId, string $km): bool
+    {
+        if (isAuditAdmin()) return true;
+
+        return match($km) {
+            'km1','km4','km5b','km10'   => isDalnisInSpt($sptId) || isKtInSpt($sptId),
+            'km5','km11'                => isDalnisInSpt($sptId),
+            'km2','independensi'        => isDalnisInSpt($sptId) || isKtInSpt($sptId) || isAtInSpt($sptId),
+            default                     => isInSpt($sptId),
+        };
+    }
+}
+
+if (!function_exists('canViewSptAudit')) {
+    /**
+     * Apakah user boleh mengakses halaman audit SPT ini sama sekali?
+     * (masuk ke KM / PKA / KKA)
+     */
+    function canViewSptAudit(int $sptId): bool
+    {
+        if (isAuditAdmin()) return true;
+        // Semua anggota tim boleh lihat SPT
+        if (isInSpt($sptId)) return true;
+        // Pejabat lintas-SPT: inspektur, sekretaris, evlap tetap bisa lihat
+        return hasRole('inspektur') || hasRole('sekretaris') ||
+               hasRole('evlap')     || hasRole('subbag_evlap') ||
+               hasPermission('spt.manage_all');
+    }
+}
+}

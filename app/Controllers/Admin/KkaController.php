@@ -5,14 +5,13 @@ namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Models\KkaModel;
 use App\Models\SptModel;
-use App\Models\SdmModel;
 
 /**
  * KkaController — Kertas Kerja Audit
  *
- * Akses:
- *   AT (auditor, anggota tim): hanya bisa lihat & isi KKA miliknya sendiri
- *   KT (ketua tim dalam SPT) + dalnis + admin: bisa lihat semua KKA per SPT
+ * Akses berbasis peran_spt (bukan system role):
+ *   AT (anggota tim SPT): hanya bisa lihat & isi KKA miliknya sendiri
+ *   KT (ketua tim) + Dalnis + Admin: bisa lihat semua KKA per SPT
  *   Dalnis: tambahan bisa input catatan_dalnis
  *
  * Alur sequential per KKA:
@@ -22,13 +21,11 @@ class KkaController extends BaseController
 {
     protected KkaModel $kkaModel;
     protected SptModel $sptModel;
-    protected SdmModel $sdmModel;
 
     public function __construct()
     {
         $this->kkaModel = new KkaModel();
         $this->sptModel = new SptModel();
-        $this->sdmModel = new SdmModel();
     }
 
     // ──────────────────────────────────────────────────────────────────────
@@ -44,29 +41,25 @@ class KkaController extends BaseController
     {
         $spt = $this->sptModel->getDetail($sptId);
         if (!$spt) return redirect()->to('/admin/spt')->with('error', 'SPT tidak ditemukan.');
-
-        $sdm = $this->getCurrentSdm();
+        if (!canViewSptAudit($sptId)) return redirect()->to('/admin/spt')->with('error', 'Akses ditolak.');
 
         // AT biasa → redirect ke KKA sendiri
-        if (!$this->canViewAll($sptId, $sdm)) {
-            if (!$sdm) return redirect()->to('/admin/spt')->with('error', 'Profil SDM Anda belum terdaftar.');
+        if (!$this->canViewAll($sptId)) {
+            $sdmId = getCurrentSdmId();
+            if (!$sdmId) return redirect()->to('/admin/spt')->with('error', 'Profil SDM Anda belum terdaftar.');
 
-            $kka = $this->kkaModel->getByAt($sptId, $sdm['id']);
+            $kka = $this->kkaModel->getByAt($sptId, $sdmId);
             if (!$kka) return redirect()->to('/admin/spt/' . $sptId . '/km')
                 ->with('error', 'KKA Anda belum dibuat. Tunggu Dalnis menyetujui KM-5.');
 
             return redirect()->to('/admin/kka/' . $kka['id']);
         }
 
-        // KT / Dalnis / Admin
-        $kkaList  = $this->kkaModel->getBySpt($sptId);
-        $progress = $this->kkaModel->getProgressBySpt($sptId);
-
         return view('admin/kka/index', [
-            'title'    => 'KKA — ' . ($spt['nomor_naskah'] ?: '#' . $sptId),
-            'spt'      => $spt,
-            'kkaList'  => $kkaList,
-            'progress' => $progress,
+            'title'       => 'KKA — ' . ($spt['nomor_naskah'] ?: '#' . $sptId),
+            'spt'         => $spt,
+            'kkaList'     => $this->kkaModel->getBySpt($sptId),
+            'progress'    => $this->kkaModel->getProgressBySpt($sptId),
             'statusLabel' => KkaModel::$statusLabel,
             'statusColor' => KkaModel::$statusColor,
         ]);
@@ -80,6 +73,7 @@ class KkaController extends BaseController
     {
         $kka = $this->kkaModel->find($kkaId);
         if (!$kka) return redirect()->back()->with('error', 'KKA tidak ditemukan.');
+        if (!canViewSptAudit($kka['spt_id'])) return redirect()->to('/admin/spt')->with('error', 'Akses ditolak.');
 
         if (!$this->canAccessKka($kka)) {
             return redirect()->to('/admin/spt')->with('error', 'Akses ditolak.');
@@ -97,7 +91,7 @@ class KkaController extends BaseController
             'statusLabel' => KkaModel::$statusLabel,
             'statusColor' => KkaModel::$statusColor,
             'canEdit'     => $this->canEditKka($kka),
-            'isDalnis'    => hasRole('dalnis') || hasRole('superadmin') || hasRole('admin'),
+            'isDalnis'    => isAuditAdmin() || isDalnisInSpt($kka['spt_id']),
         ]);
     }
 
@@ -355,12 +349,12 @@ class KkaController extends BaseController
 
     public function saveCatatanDalnis(int $kkaId)
     {
-        if (!hasRole('dalnis') && !hasRole('superadmin') && !hasRole('admin')) {
-            return redirect()->back()->with('error', 'Hanya Dalnis yang dapat menambah catatan.');
-        }
-
         $kka = $this->kkaModel->find($kkaId);
         if (!$kka) return redirect()->back()->with('error', 'KKA tidak ditemukan.');
+
+        if (!isAuditAdmin() && !isDalnisInSpt($kka['spt_id'])) {
+            return redirect()->back()->with('error', 'Hanya Pengendali Teknis (Dalnis) yang dapat menambah catatan.');
+        }
 
         $db = \Config\Database::connect();
         $db->table('kka')->where('id', $kkaId)->update([
@@ -376,63 +370,42 @@ class KkaController extends BaseController
     // Private helpers
     // ──────────────────────────────────────────────────────────────────────
 
-    /** Ambil record SDM milik user yang sedang login */
-    private function getCurrentSdm(): ?array
-    {
-        $userId = session()->get('user_id');
-        return $userId ? $this->sdmModel->where('user_id', $userId)->first() : null;
-    }
-
     /**
-     * Apakah user saat ini boleh melihat SEMUA KKA dalam SPT ini?
-     * Admin / dalnis / evlap / ka_irban / inspektur / sekretaris → ya.
-     * Juga KT dari SPT yang sama (peran_spt berisi 'ketua tim').
+     * Apakah user boleh melihat SEMUA KKA dalam SPT ini?
+     * KT, Dalnis, PJ, Admin, lintas-SPT roles → ya.
+     * AT biasa → tidak (hanya boleh lihat KKA miliknya).
      */
-    private function canViewAll(int $sptId, ?array $sdm): bool
+    private function canViewAll(int $sptId): bool
     {
-        if (hasRole('superadmin') || hasRole('admin')   || hasRole('dalnis')   ||
-            hasRole('evlap')      || hasRole('subbag_evlap') ||
-            hasRole('ka_irban')   || hasRole('inspektur') || hasRole('sekretaris')) {
-            return true;
-        }
-
-        if (!$sdm) return false;
-
-        // Cek peran dalam SPT ini
-        $db     = \Config\Database::connect();
-        $member = $db->table('spt_tim')
-            ->where('spt_id', $sptId)
-            ->where('sdm_id', $sdm['id'])
-            ->get()->getRowArray();
-
-        if (!$member) return false;
-
-        // Ketua Tim bisa lihat semua
-        return str_contains(strtolower($member['peran_spt']), 'ketua');
+        if (isAuditAdmin()) return true;
+        if (isDalnisInSpt($sptId)) return true;
+        if (isKtInSpt($sptId)) return true;
+        if (isPjInSpt($sptId)) return true;
+        return hasRole('inspektur') || hasRole('sekretaris') ||
+               hasRole('evlap')     || hasRole('subbag_evlap') ||
+               hasPermission('spt.manage_all');
     }
 
     /**
-     * Apakah user boleh mengakses KKA ini (lihat)?
-     * Canview all → ya.
-     * Auditor → hanya jika kka.sdm_id == sdm miliknya.
+     * Apakah user boleh mengakses (lihat) KKA ini?
+     * canViewAll → ya. Auditor → hanya jika kka.sdm_id == sdm miliknya.
      */
     private function canAccessKka(array $kka): bool
     {
-        $sdm = $this->getCurrentSdm();
-        if ($this->canViewAll($kka['spt_id'], $sdm)) return true;
-
-        return $sdm && (int)$kka['sdm_id'] === (int)$sdm['id'];
+        if ($this->canViewAll($kka['spt_id'])) return true;
+        $sdmId = getCurrentSdmId();
+        return $sdmId !== null && (int)$kka['sdm_id'] === $sdmId;
     }
 
     /**
-     * Apakah user boleh mengedit KKA ini?
-     * Hanya AT pemilik KKA yang boleh isi; admin/dalnis juga boleh.
+     * Apakah user boleh mengedit (isi) KKA ini?
+     * Admin/Dalnis selalu boleh. AT hanya boleh isi KKA milik sendiri.
      */
     private function canEditKka(array $kka): bool
     {
-        if (hasRole('superadmin') || hasRole('admin')) return true;
-
-        $sdm = $this->getCurrentSdm();
-        return $sdm && (int)$kka['sdm_id'] === (int)$sdm['id'];
+        if (isAuditAdmin()) return true;
+        if (isDalnisInSpt($kka['spt_id'])) return true;
+        $sdmId = getCurrentSdmId();
+        return $sdmId !== null && (int)$kka['sdm_id'] === $sdmId;
     }
 }
