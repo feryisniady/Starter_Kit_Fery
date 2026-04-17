@@ -2,7 +2,22 @@
  *
  * You can write your CSS code here, DO NOT touch the default JavaScript file
  * because it will make it harder for you to update.
- * 
+ *
  */
+
+/* Utility class — Bootstrap-compatible display helper */
+.d-none { display: none !important; }
+.d-flex { display: flex !important; }
+.d-block { display: block !important; }
+.d-inline { display: inline !important; }
+.d-inline-block { display: inline-block !important; }
+
+/* Spacing utilities */
+.mb-1 { margin-bottom: 4px !important; }
+.mb-2 { margin-bottom: 8px !important; }
+.mb-3 { margin-bottom: 16px !important; }
+.mt-1 { margin-top: 4px !important; }
+.mt-2 { margin-top: 8px !important; }
+.mt-3 { margin-top: 16px !important; }
 
 /*# sourceMappingURL=custom.css.map */
