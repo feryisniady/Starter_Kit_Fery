@@ -80,7 +80,7 @@ if (!$isKtDal && empty($displayList)) {
                             <div style="font-weight:600;font-size:13px"><?= esc($t['sdm_nama']) ?></div>
                             <div style="font-size:11px;color:#64748b"><?= esc($t['peran_spt']) ?></div>
                         </div>
-                        <?php if($aw && $aw['kt_verified']): ?>
+                        <?php if($aw && !empty($aw['kt_verified'])): ?>
                         <span class="badge badge-success" style="font-size:11px">
                             <i class="fas fa-check-double"></i> Terverifikasi KT
                         </span>
@@ -212,7 +212,7 @@ if (!$isKtDal && empty($displayList)) {
 
                     </div><!-- end grid -->
 
-                    <?php if($isKtDal && $aw && $canEdit && !$aw['kt_verified']): ?>
+                    <?php if($isKtDal && $aw && $canEdit && empty($aw['kt_verified'])): ?>
                     <div style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end">
                         <form action="/admin/spt/<?= $spt['id'] ?>/km/2/verifikasi" method="POST" style="display:inline">
                             <?= csrf_field() ?>
