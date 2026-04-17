@@ -5,6 +5,7 @@ namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Models\UserModel;
 use App\Models\RoleModel;
+use App\Models\IrbanModel;
 use App\Traits\DatatableTrait;
 
 class UserController extends BaseController
@@ -13,11 +14,13 @@ class UserController extends BaseController
 
     protected $userModel;
     protected $roleModel;
+    protected IrbanModel $irbanModel;
 
     public function __construct()
     {
-        $this->userModel = new UserModel();
-        $this->roleModel = new RoleModel();
+        $this->userModel  = new UserModel();
+        $this->roleModel  = new RoleModel();
+        $this->irbanModel = new IrbanModel();
     }
 
     // List semua user
@@ -99,11 +102,11 @@ class UserController extends BaseController
     // Form tambah user
     public function create()
     {
-        $data = [
-            'title' => 'Tambah User',
-            'roles' => $this->roleModel->findAll(),
-        ];
-        return view('admin/users/create', $data);
+        return view('admin/users/create', [
+            'title'    => 'Tambah User',
+            'roles'    => $this->roleModel->findAll(),
+            'irbanList'=> $this->irbanModel->findAll(),
+        ]);
     }
 
     // Simpan user baru
@@ -117,50 +120,41 @@ class UserController extends BaseController
         ];
 
         $messages = [
-            'name'     => [
-                'required'   => 'Nama wajib diisi.',
-                'min_length' => 'Nama minimal 3 karakter.',
-            ],
-            'email'    => [
-                'required'    => 'Email wajib diisi.',
-                'valid_email' => 'Format email tidak valid.',
-                'is_unique'   => 'Email sudah digunakan.',
-            ],
-            'password' => [
-                'required'   => 'Password wajib diisi.',
-                'min_length' => 'Password minimal 8 karakter.',
-            ],
-            'roles'    => [
-                'required' => 'Pilih minimal 1 role.',
-            ],
+            'name'     => ['required' => 'Nama wajib diisi.', 'min_length' => 'Nama minimal 3 karakter.'],
+            'email'    => ['required' => 'Email wajib diisi.', 'valid_email' => 'Format email tidak valid.', 'is_unique' => 'Email sudah digunakan.'],
+            'password' => ['required' => 'Password wajib diisi.', 'min_length' => 'Password minimal 8 karakter.'],
+            'roles'    => ['required' => 'Pilih minimal 1 role.'],
         ];
 
         if (!$this->validate($rules, $messages)) {
-            // Gabungkan semua pesan error menjadi list dengan baris baru (<br>)
-            $errorString = implode('<br>', $this->validator->getErrors());
-            
             return redirect()->back()->withInput()
-                ->with('error', $errorString); // Kita gunakan key 'error' agar ditangkap layout
+                ->with('error', implode('<br>', $this->validator->getErrors()));
         }
 
-        $newData = [
-            'name'   => $this->request->getPost('name'),
-            'email'  => $this->request->getPost('email'),
-            'status' => $this->request->getPost('status') ?? 'active',
-        ];
+        $name   = $this->request->getPost('name');
+        $email  = $this->request->getPost('email');
+        $status = $this->request->getPost('status') ?? 'active';
 
-        $userId = $this->userModel->insert(array_merge($newData, [
+        $userId = $this->userModel->insert([
+            'name'     => $name,
+            'email'    => $email,
+            'status'   => $status,
             'password' => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
-        ]));
-
-        $roleIds = $this->request->getPost('roles') ?? [];
-        $this->userModel->syncRoles($userId, $roleIds);
-
-        logActivity('user.create', 'user', "Tambah user baru: {$newData['name']} ({$newData['email']})", null, null, [
-            'after' => $newData,
         ]);
 
-        return redirect()->to('/admin/users')->with('success', 'User berhasil ditambahkan!');
+        $this->userModel->syncRoles($userId, $this->request->getPost('roles') ?? []);
+
+        // Auto-create SDM record (bisa dilengkapi NIP/jabatan nanti)
+        $this->syncSdm($userId, $name, [
+            'nip'                => $this->request->getPost('nip'),
+            'jabatan_fungsional' => $this->request->getPost('jabatan_fungsional'),
+            'jabatan_struktural' => $this->request->getPost('jabatan_struktural'),
+            'pangkat_golongan'   => $this->request->getPost('pangkat_golongan'),
+            'irban_id'           => $this->request->getPost('irban_id') ?: null,
+        ]);
+
+        logActivity('user.create', 'user', "Tambah user baru: {$name} ({$email})");
+        return redirect()->to('/admin/users')->with('success', 'User berhasil ditambahkan dan data SDM otomatis terdaftar.');
     }
 
     // Form edit user
@@ -171,13 +165,17 @@ class UserController extends BaseController
             throw new \CodeIgniter\Exceptions\PageNotFoundException("User tidak ditemukan.");
         }
 
-        $data = [
-            'title'      => 'Edit User',
-            'user'       => $user,
-            'roles'      => $this->roleModel->findAll(),
-            'userRoles'  => array_column($this->userModel->getUserRoles($id), 'id'),
-        ];
-        return view('admin/users/edit', $data);
+        $db  = \Config\Database::connect();
+        $sdm = $db->table('sdm')->where('user_id', $id)->get()->getRowArray();
+
+        return view('admin/users/edit', [
+            'title'     => 'Edit User',
+            'user'      => $user,
+            'sdm'       => $sdm,
+            'roles'     => $this->roleModel->findAll(),
+            'userRoles' => array_column($this->userModel->getUserRoles($id), 'id'),
+            'irbanList' => $this->irbanModel->findAll(),
+        ]);
     }
 
     // Update user
@@ -191,34 +189,21 @@ class UserController extends BaseController
         ];
 
         $messages = [
-            'name'  => [
-                'required'   => 'Nama wajib diisi.',
-                'min_length' => 'Nama minimal 3 karakter.',
-            ],
-            'email' => [
-                'required'    => 'Email wajib diisi.',
-                'valid_email' => 'Format email tidak valid.',
-                'is_unique'   => 'Email sudah digunakan.',
-            ],
-            'roles' => [
-                'required' => 'Pilih minimal 1 role.',
-            ],
+            'name'  => ['required' => 'Nama wajib diisi.', 'min_length' => 'Nama minimal 3 karakter.'],
+            'email' => ['required' => 'Email wajib diisi.', 'valid_email' => 'Format email tidak valid.', 'is_unique' => 'Email sudah digunakan.'],
+            'roles' => ['required' => 'Pilih minimal 1 role.'],
         ];
 
         if (!$this->validate($rules, $messages)) {
-            // Gabungkan semua pesan error menjadi list dengan baris baru (<br>)
-            $errorString = implode('<br>', $this->validator->getErrors());
-            
             return redirect()->back()->withInput()
-                ->with('error', $errorString); // Kita gunakan key 'error' agar ditangkap layout
+                ->with('error', implode('<br>', $this->validator->getErrors()));
         }
 
-        $dataUpdate = [
-            'name'   => $this->request->getPost('name'),
-            'email'  => $this->request->getPost('email'),
-            'status' => $this->request->getPost('status'),
-        ];
+        $name   = $this->request->getPost('name');
+        $email  = $this->request->getPost('email');
+        $status = $this->request->getPost('status');
 
+        $dataUpdate = ['name' => $name, 'email' => $email, 'status' => $status];
         $password = $this->request->getPost('password');
         if (!empty($password)) {
             if (strlen($password) < 8) {
@@ -228,15 +213,56 @@ class UserController extends BaseController
         }
 
         $this->userModel->update($id, $dataUpdate);
-        $roleIds = $this->request->getPost('roles') ?? [];
-        $this->userModel->syncRoles($id, $roleIds);
+        $this->userModel->syncRoles($id, $this->request->getPost('roles') ?? []);
 
-        logActivity('user.update', 'user', "Update user ID:{$id} — {$dataUpdate['name']}", null, null, [
-            'before' => ['name' => $oldUser['name'], 'email' => $oldUser['email'], 'status' => $oldUser['status']],
-            'after'  => ['name' => $dataUpdate['name'], 'email' => $dataUpdate['email'], 'status' => $dataUpdate['status']],
+        // Sync SDM record (buat jika belum ada, update jika sudah)
+        $this->syncSdm($id, $name, [
+            'nip'                => $this->request->getPost('nip'),
+            'jabatan_fungsional' => $this->request->getPost('jabatan_fungsional'),
+            'jabatan_struktural' => $this->request->getPost('jabatan_struktural'),
+            'pangkat_golongan'   => $this->request->getPost('pangkat_golongan'),
+            'irban_id'           => $this->request->getPost('irban_id') ?: null,
         ]);
 
+        logActivity('user.update', 'user', "Update user ID:{$id} — {$name}");
         return redirect()->to('/admin/users')->with('success', 'User berhasil diupdate!');
+    }
+
+    // ===================================================
+    // HELPER — Sync SDM
+    // ===================================================
+
+    /**
+     * Buat atau update record SDM yang terhubung ke user ini.
+     * Dipanggil otomatis saat store() dan update().
+     */
+    private function syncSdm(int $userId, string $nama, array $kepegawaian = []): void
+    {
+        $db  = \Config\Database::connect();
+        $now = date('Y-m-d H:i:s');
+
+        $existing = $db->table('sdm')->where('user_id', $userId)->get()->getRowArray();
+
+        $data = array_filter([
+            'nip'                => $kepegawaian['nip']                ?: null,
+            'jabatan_fungsional' => $kepegawaian['jabatan_fungsional'] ?: null,
+            'jabatan_struktural' => $kepegawaian['jabatan_struktural'] ?: null,
+            'pangkat_golongan'   => $kepegawaian['pangkat_golongan']   ?: null,
+            'irban_id'           => $kepegawaian['irban_id']           ?: null,
+        ], fn($v) => $v !== null);
+
+        if ($existing) {
+            // Selalu update nama agar sinkron dengan users.name
+            $db->table('sdm')->where('user_id', $userId)->update(array_merge(
+                ['nama' => $nama, 'updated_at' => $now],
+                $data
+            ));
+        } else {
+            $db->table('sdm')->insert(array_merge(
+                ['user_id' => $userId, 'nama' => $nama, 'aktif' => 1, 'created_at' => $now, 'updated_at' => $now],
+                $data
+            ));
+        }
     }
 
     // Hapus user
