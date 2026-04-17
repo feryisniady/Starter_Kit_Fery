@@ -80,18 +80,34 @@ class KkaController extends BaseController
         }
 
         $spt = $this->sptModel->getDetail($kka['spt_id']);
+        $db  = \Config\Database::connect();
+
+        // PKA procedures untuk SPT ini (sumber ikhtisar AT)
+        $pkaList = $db->table('pka p')
+            ->select('p.*, s.nama as pic_nama')
+            ->join('sdm s', 's.id = p.pic_sdm_id', 'left')
+            ->where('p.spt_id', $kka['spt_id'])
+            ->orderBy('p.nomor_urut')
+            ->get()->getResultArray();
+
+        // Lookup kode temuan (untuk dropdown simpulan)
+        $kodeTemuanList = $db->table('kode_temuan')
+            ->orderBy('kode')
+            ->get()->getResultArray();
 
         return view('admin/kka/show', [
-            'title'       => 'KKA — ' . $kka['nama'],
-            'kka'         => $kka,
-            'spt'         => $spt,
-            'ikhtisar'    => $this->kkaModel->getIkhtisarByKka($kkaId),
-            'simpulan'    => $this->kkaModel->getSimpulanByKka($kkaId),
-            'rekomendasi' => $this->kkaModel->getRekomendasiByKka($kkaId),
-            'statusLabel' => KkaModel::$statusLabel,
-            'statusColor' => KkaModel::$statusColor,
-            'canEdit'     => $this->canEditKka($kka),
-            'isDalnis'    => isAuditAdmin() || isDalnisInSpt($kka['spt_id']),
+            'title'           => 'KKA — ' . $kka['nama'],
+            'kka'             => $kka,
+            'spt'             => $spt,
+            'ikhtisar'        => $this->kkaModel->getIkhtisarByKka($kkaId),
+            'simpulan'        => $this->kkaModel->getSimpulanByKka($kkaId),
+            'rekomendasi'     => $this->kkaModel->getRekomendasiByKka($kkaId),
+            'pkaList'         => $pkaList,
+            'kodeTemuanList'  => $kodeTemuanList,
+            'statusLabel'     => KkaModel::$statusLabel,
+            'statusColor'     => KkaModel::$statusColor,
+            'canEdit'         => $this->canEditKka($kka),
+            'isDalnis'        => isAuditAdmin() || isDalnisInSpt($kka['spt_id']),
         ]);
     }
 
@@ -111,6 +127,7 @@ class KkaController extends BaseController
 
         $post = $this->request->getPost();
         $this->kkaModel->saveIkhtisar($kkaId, [
+            'pka_id'          => $post['pka_id']          ? (int)$post['pka_id'] : null,
             'program_kerja'   => $post['program_kerja']   ?? null,
             'langkah_audit'   => $post['langkah_audit']   ?? null,
             'hasil_observasi' => $post['hasil_observasi'] ?? null,
@@ -133,6 +150,7 @@ class KkaController extends BaseController
 
         $post = $this->request->getPost();
         $this->kkaModel->updateIkhtisar($id, [
+            'pka_id'          => $post['pka_id']          ? (int)$post['pka_id'] : null,
             'program_kerja'   => $post['program_kerja']   ?? null,
             'langkah_audit'   => $post['langkah_audit']   ?? null,
             'hasil_observasi' => $post['hasil_observasi'] ?? null,
@@ -200,6 +218,8 @@ class KkaController extends BaseController
             'sebab'            => $post['sebab']            ?? null,
             'akibat'           => $post['akibat']           ?? null,
             'rekomendasi_awal' => $post['rekomendasi_awal'] ?? null,
+            'kode_temuan_id'   => $post['kode_temuan_id']   ? (int)$post['kode_temuan_id'] : null,
+            'nilai_financial'  => $post['nilai_financial']  ? (int)$post['nilai_financial'] : null,
         ]);
 
         logActivity('kka.simpulan.store', 'kka_simpulan', "Tambah simpulan kka_id={$kkaId}");
@@ -223,6 +243,8 @@ class KkaController extends BaseController
             'sebab'            => $post['sebab']            ?? null,
             'akibat'           => $post['akibat']           ?? null,
             'rekomendasi_awal' => $post['rekomendasi_awal'] ?? null,
+            'kode_temuan_id'   => $post['kode_temuan_id']   ? (int)$post['kode_temuan_id'] : null,
+            'nilai_financial'  => $post['nilai_financial']  ? (int)$post['nilai_financial'] : null,
         ]);
 
         logActivity('kka.simpulan.update', 'kka_simpulan', "Update simpulan id={$id}");
@@ -278,10 +300,12 @@ class KkaController extends BaseController
 
         $post = $this->request->getPost();
         $this->kkaModel->saveRekomendasi($kkaId, [
-            'uraian_rekomendasi'      => $post['uraian_rekomendasi']      ?? null,
-            'pihak_bertanggung_jawab' => $post['pihak_bertanggung_jawab'] ?? null,
-            'target_penyelesaian'     => $post['target_penyelesaian']     ?: null,
-            'tanggapan_auditi'        => $post['tanggapan_auditi']        ?? null,
+            'uraian_rekomendasi'           => $post['uraian_rekomendasi']           ?? null,
+            'pihak_bertanggung_jawab'      => $post['pihak_bertanggung_jawab']      ?? null,
+            'target_penyelesaian'          => $post['target_penyelesaian']          ?: null,
+            'tanggapan_auditi'             => $post['tanggapan_auditi']             ?? null,
+            'kode_rekomendasi'             => $post['kode_rekomendasi']             ?: null,
+            'nilai_rekomendasi_financial'  => $post['nilai_rekomendasi_financial']  ? (int)$post['nilai_rekomendasi_financial'] : null,
         ]);
 
         logActivity('kka.rekomendasi.store', 'kka_rekomendasi', "Tambah rekomendasi kka_id={$kkaId}");
@@ -300,10 +324,12 @@ class KkaController extends BaseController
 
         $post = $this->request->getPost();
         $this->kkaModel->updateRekomendasi($id, [
-            'uraian_rekomendasi'      => $post['uraian_rekomendasi']      ?? null,
-            'pihak_bertanggung_jawab' => $post['pihak_bertanggung_jawab'] ?? null,
-            'target_penyelesaian'     => $post['target_penyelesaian']     ?: null,
-            'tanggapan_auditi'        => $post['tanggapan_auditi']        ?? null,
+            'uraian_rekomendasi'           => $post['uraian_rekomendasi']           ?? null,
+            'pihak_bertanggung_jawab'      => $post['pihak_bertanggung_jawab']      ?? null,
+            'target_penyelesaian'          => $post['target_penyelesaian']          ?: null,
+            'tanggapan_auditi'             => $post['tanggapan_auditi']             ?? null,
+            'kode_rekomendasi'             => $post['kode_rekomendasi']             ?: null,
+            'nilai_rekomendasi_financial'  => $post['nilai_rekomendasi_financial']  ? (int)$post['nilai_rekomendasi_financial'] : null,
         ]);
 
         logActivity('kka.rekomendasi.update', 'kka_rekomendasi', "Update rekomendasi id={$id}");

@@ -169,9 +169,11 @@ class KkaModel
 
     public function getIkhtisarByKka(int $kkaId): array
     {
-        return $this->db->table('kka_ikhtisar')
-            ->where('kka_id', $kkaId)
-            ->orderBy('nomor_urut')
+        return $this->db->table('kka_ikhtisar ki')
+            ->select('ki.*, p.nomor_urut as pka_nomor, p.uraian_prosedur as pka_prosedur, p.rencana_waktu as pka_rencana_waktu')
+            ->join('pka p', 'p.id = ki.pka_id', 'left')
+            ->where('ki.kka_id', $kkaId)
+            ->orderBy('ki.nomor_urut')
             ->get()->getResultArray();
     }
 
@@ -213,9 +215,11 @@ class KkaModel
 
     public function getSimpulanByKka(int $kkaId): array
     {
-        return $this->db->table('kka_simpulan')
-            ->where('kka_id', $kkaId)
-            ->orderBy('nomor_urut')
+        return $this->db->table('kka_simpulan ks')
+            ->select('ks.*, kt.kode as kode_temuan_kode, kt.uraian as kode_temuan_uraian, kt.jenis as kode_temuan_jenis')
+            ->join('kode_temuan kt', 'kt.id = ks.kode_temuan_id', 'left')
+            ->where('ks.kka_id', $kkaId)
+            ->orderBy('ks.nomor_urut')
             ->get()->getResultArray();
     }
 
