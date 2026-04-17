@@ -32,8 +32,8 @@ $isPj      = isPjInSpt($sptId);
 // KM yang relevan per peran:
 // Admin / Dalnis / PJ → semua
 // KT → semua kecuali KM-5 dan KM-11 (Dalnis only) — hanya lihat
-// AT → hanya KM-2, KM-3, Independensi
-$atKeys = ['km2', 'km3', 'independensi'];
+// AT → hanya Independensi (KM-2 diisi KT, KM-3 auto dari SPT)
+$atKeys = ['independensi'];
 
 $requiredItems = array_filter($checklist, fn($c) => $c['required'] ?? true);
 $doneRequired  = count(array_filter($requiredItems, fn($c) => $c['complete']));
@@ -48,19 +48,18 @@ $allDone       = $doneRequired === $totalRequired;
 
 <div style="background:#eff6ff;border-radius:10px;padding:14px 18px;margin-bottom:16px;font-size:13px;color:#1d4ed8;border-left:4px solid #3b82f6">
     <i class="fas fa-info-circle"></i>
-    Anda login sebagai <strong>Anggota Tim</strong> — tampil hanya dokumen yang perlu Anda isi.
-    Dokumen lain (KM-1, KM-4, KM-5, dll.) dikelola oleh Ketua Tim dan Pengendali Teknis.
+    Anda login sebagai <strong>Anggota Tim</strong>.
+    Tugas Anda: isi Pernyataan Independensi, lalu kerjakan KKA.
+    Anggaran Waktu dan dokumen lain dikelola oleh Ketua Tim.
 </div>
 
 <?php
 $urlMap = [
-    'km2'          => '/admin/spt/'.$spt['id'].'/km/2',
-    'km3'          => '/admin/spt/'.$spt['id'].'/km/3',
     'independensi' => '/admin/spt/'.$spt['id'].'/km/independensi',
 ];
 ?>
 
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+<div style="display:flex;flex-direction:column;gap:12px">
 <?php foreach($checklist as $key => $item):
     if (!in_array($key, $atKeys)) continue;
     $url  = $urlMap[$key] ?? '#';
