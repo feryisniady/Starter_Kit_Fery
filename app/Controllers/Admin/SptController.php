@@ -470,7 +470,7 @@ class SptController extends BaseController
     }
 
     // ===================================================
-    // GENERATE WORD (programmatic — tanpa template file)
+    // GENERATE WORD — format resmi Inspektorat Daerah Kab. Sampang
     // ===================================================
 
     public function downloadWord(int $id)
@@ -483,7 +483,9 @@ class SptController extends BaseController
         $phpWord->setDefaultFontName('Times New Roman');
         $phpWord->setDefaultFontSize(12);
 
-        $cm = fn(float $v) => \PhpOffice\PhpWord\Shared\Converter::cmToTwip($v);
+        $cm  = fn(float $v): int => (int) \PhpOffice\PhpWord\Shared\Converter::cmToTwip($v);
+        $jcC = ['alignment' => \PhpOffice\PhpWord\SimpleType\Jc::CENTER];
+        $jcL = ['alignment' => \PhpOffice\PhpWord\SimpleType\Jc::LEFT];
 
         $section = $phpWord->addSection([
             'marginTop'    => $cm(2.5),
@@ -492,140 +494,210 @@ class SptController extends BaseController
             'marginRight'  => $cm(2.5),
         ]);
 
-        $center  = ['alignment' => \PhpOffice\PhpWord\SimpleType\Jc::CENTER];
-        $bold    = ['bold' => true];
-        $boldBig = ['bold' => true, 'size' => 14];
-        $small   = ['size' => 10];
-
-        // ── KOP SURAT ───────────────────────────────────────
-        $section->addText(
-            'PEMERINTAH KABUPATEN SAMPANG',
-            ['bold' => true, 'size' => 13],
-            $center
-        );
-        $section->addText(
-            'INSPEKTORAT DAERAH',
-            ['bold' => true, 'size' => 15, 'allCaps' => true],
-            $center
-        );
-        $section->addText(
-            'Jl. Syamsul Arifin No.1 Sampang — Telp (0323) 323456',
-            $small,
-            $center
-        );
-        $section->addTextBreak(0);
-
-        // Garis bawah KOP
-        $phpWord->addParagraphStyle('hrStyle', ['borderBottomColor' => '000000', 'borderBottomSize' => 12, 'spaceAfter' => 0]);
-        $section->addText('', null, 'hrStyle');
-        $section->addTextBreak(1);
-
-        // ── JUDUL ───────────────────────────────────────────
-        $section->addText('SURAT PERINTAH TUGAS', $boldBig, $center);
-        $section->addText(
-            'Nomor : ' . ($spt['nomor_naskah'] ?: '....................................'),
-            $bold,
-            $center
-        );
-        $section->addTextBreak(1);
-
-        // ── DASAR ───────────────────────────────────────────
-        $section->addText('Dasar :', $bold);
-        $section->addListItem($spt['dasar_1'] ?? '', 0, null, null, ['spaceAfter' => 60]);
-        if (!empty($spt['dasar_2'])) {
-            $section->addListItem($spt['dasar_2'], 0, null, null, ['spaceAfter' => 60]);
-        }
-        $section->addTextBreak(1);
-
-        // ── MENUGASKAN ──────────────────────────────────────
-        $section->addText('MENUGASKAN :', $bold);
-        $section->addTextBreak(0);
-        $section->addText('Kepada :');
-        $section->addTextBreak(0);
-
-        // ── TABEL TIM ───────────────────────────────────────
-        $tblStyle = [
-            'borderColor' => '000000',
-            'borderSize'  => 6,
-            'cellMargin'  => 80,
+        // ── Named styles ─────────────────────────────────────
+        $noBorder = [
+            'borderTopSize' => 0,    'borderTopColor'    => 'FFFFFF',
+            'borderBottomSize' => 0, 'borderBottomColor' => 'FFFFFF',
+            'borderLeftSize' => 0,   'borderLeftColor'   => 'FFFFFF',
+            'borderRightSize' => 0,  'borderRightColor'  => 'FFFFFF',
         ];
-        $table = $section->addTable($tblStyle);
 
-        // Header row
-        $hBg = ['bgColor' => 'E2E8F0'];
-        $hFont = ['bold' => true, 'size' => 10];
-        $table->addRow(400);
-        $table->addCell($cm(1.2), $hBg)->addText('No',         $hFont, $center);
-        $table->addCell($cm(6.5), $hBg)->addText('Nama / NIP',  $hFont);
-        $table->addCell($cm(4.5), $hBg)->addText('Peran / Jabatan', $hFont);
-        $table->addCell($cm(2.0), $hBg)->addText('HP Desk',    $hFont, $center);
-        $table->addCell($cm(2.0), $hBg)->addText('HP Field',   $hFont, $center);
+        $phpWord->addTableStyle('noBorder', [
+            'borderTopSize' => 0,    'borderTopColor'    => 'FFFFFF',
+            'borderBottomSize' => 0, 'borderBottomColor' => 'FFFFFF',
+            'borderLeftSize' => 0,   'borderLeftColor'   => 'FFFFFF',
+            'borderRightSize' => 0,  'borderRightColor'  => 'FFFFFF',
+        ]);
 
-        $tim = $spt['tim'] ?? [];
-        foreach ($tim as $i => $t) {
-            $table->addRow();
-            $table->addCell($cm(1.2))->addText((string)($i + 1), ['size' => 10], $center);
+        $phpWord->addTableStyle('timBorder', [
+            'borderSize'  => 6,
+            'borderColor' => '000000',
+            'cellMargin'  => 100,
+        ]);
 
-            $nameCell = $table->addCell($cm(6.5));
-            $nameCell->addText($t['sdm_nama'] ?? '', ['bold' => true, 'size' => 10]);
-            if (!empty($t['sdm_nip'])) {
-                $nameCell->addText('NIP. ' . $t['sdm_nip'], ['size' => 9, 'color' => '64748B']);
-            }
+        $phpWord->addParagraphStyle('hrThick', [
+            'borderBottomSize'  => 18,
+            'borderBottomColor' => '000000',
+            'spaceBefore'       => 80,
+            'spaceAfter'        => 0,
+        ]);
+        $phpWord->addParagraphStyle('hrThin', [
+            'borderBottomSize'  => 4,
+            'borderBottomColor' => '000000',
+            'spaceBefore'       => 20,
+            'spaceAfter'        => 160,
+        ]);
 
-            $table->addCell($cm(4.5))->addText($t['peran_spt'] ?? '', ['size' => 10]);
-            $table->addCell($cm(2.0))->addText((string)($t['hp_desk'] ?? 0),  ['size' => 10], $center);
-            $table->addCell($cm(2.0))->addText((string)($t['hp_field'] ?? 0), ['size' => 10], $center);
+        // ── KOP ──────────────────────────────────────────────
+        // Usable width = 21 - 3.0 - 2.5 = 15.5 cm
+        $logoPath = FCPATH . 'assets/images/logo-sampang.png';
+        $hasLogo  = is_file($logoPath);
+
+        $kopTbl = $section->addTable('noBorder');
+        $kopTbl->addRow($cm(3.0));
+
+        if ($hasLogo) {
+            $lc = $kopTbl->addCell($cm(2.5), $noBorder + ['valign' => 'center']);
+            $lc->addImage($logoPath, [
+                'width'     => 65,
+                'height'    => 65,
+                'alignment' => \PhpOffice\PhpWord\SimpleType\Jc::CENTER,
+            ]);
+            $tc = $kopTbl->addCell($cm(13.0), $noBorder + ['valign' => 'center']);
+        } else {
+            $tc = $kopTbl->addCell($cm(15.5), $noBorder + ['valign' => 'center']);
         }
-        $section->addTextBreak(1);
+        $tc->addText('PEMERINTAH KABUPATEN SAMPANG', ['bold' => true, 'size' => 11], $jcC);
+        $tc->addText('INSPEKTORAT DAERAH', ['bold' => true, 'size' => 14, 'allCaps' => true], $jcC);
+        $tc->addText('Jl. Syamsul Arifin No. 1 Sampang  Telp/Fax (0323) 323456', ['size' => 9], $jcC);
+        $tc->addText('Email : inspektorat@sampangkab.go.id', ['size' => 9], $jcC);
 
-        // ── KETENTUAN ───────────────────────────────────────
-        $left1 = ['indent' => 1];
-        $section->addText('Untuk melaksanakan tugas :', $bold);
+        $section->addText('', null, 'hrThick');
+        $section->addText('', null, 'hrThin');
 
-        $section->addText('1. Tujuan      : ' . ($spt['tujuan'] ?? ''), null, $left1);
+        // ── JUDUL ────────────────────────────────────────────
+        $section->addText('SURAT PERINTAH', ['bold' => true, 'size' => 14], $jcC);
         $section->addText(
-            '2. Waktu       : ' .
-            ($spt['tanggal_mulai']    ? tgl_indo($spt['tanggal_mulai'])    : '...') .
-            ' s.d. ' .
-            ($spt['tanggal_selesai'] ? tgl_indo($spt['tanggal_selesai']) : '...'),
-            null,
-            $left1
+            'NOMOR : ' . ($spt['nomor_naskah'] ?: '....................................'),
+            ['size' => 12],
+            $jcC
         );
-        if (!empty($spt['tembusan'])) {
-            $section->addText('3. Tembusan    : ' . $spt['tembusan'], null, $left1);
+        $section->addTextBreak(1);
+
+        // ── DASAR (borderless 3-col: label | : | isi) ────────
+        $dtbl = $section->addTable('noBorder');
+        $dtbl->addRow();
+        $dtbl->addCell($cm(1.8), $noBorder)->addText('Dasar', ['size' => 12], $jcL);
+        $dtbl->addCell($cm(0.3), $noBorder)->addText(':', ['size' => 12], $jcL);
+        $dtbl->addCell($cm(13.4), $noBorder)->addText('1.  ' . ($spt['dasar_1'] ?? ''), ['size' => 12]);
+        if (!empty($spt['dasar_2'])) {
+            $dtbl->addRow();
+            $dtbl->addCell($cm(1.8), $noBorder)->addText('');
+            $dtbl->addCell($cm(0.3), $noBorder)->addText('');
+            $dtbl->addCell($cm(13.4), $noBorder)->addText('2.  ' . $spt['dasar_2'], ['size' => 12]);
         }
         $section->addTextBreak(1);
 
-        // ── TANDA TANGAN ────────────────────────────────────
-        $tanggalNaskah = $spt['tanggal_naskah']
-            ? 'Sampang, ' . tgl_indo($spt['tanggal_naskah'])
-            : 'Sampang, ..............................';
+        // ── MEMERINTAHKAN ────────────────────────────────────
+        $section->addText('MEMERINTAHKAN :', ['bold' => true, 'underline' => 'single', 'size' => 12], $jcC);
+        $section->addTextBreak(0);
 
-        $ttdTable = $section->addTable(['cellMarginTop' => 0, 'cellMarginBottom' => 0]);
-        $ttdTable->addRow();
-        $ttdTable->addCell($cm(10))->addText('');   // spacer kiri
-        $ttdRight = $ttdTable->addCell($cm(6.5));
-        $ttdRight->addText($tanggalNaskah, null, $center);
-        $ttdRight->addText($spt['penandatangan_jabatan'] ?? 'Inspektur Daerah', null, $center);
-        $ttdRight->addTextBreak(3);
-        $ttdRight->addText($spt['penandatangan_nama'] ?? '', $bold, $center);
-        $ttdRight->addText('NIP. ' . ($spt['penandatangan_nip'] ?? ''), null, $center);
+        // ── TABEL TIM ─────────────────────────────────────────
+        // Col widths: No=1.2 | Nama=5.0 | Jabatan=3.8 | Desk=2.75 | Field=2.75 → total=15.5cm
+        $hFont = ['bold' => true, 'size' => 11];
+        $hBg   = ['bgColor' => 'D9D9D9'];
 
-        // ── SIMPAN ──────────────────────────────────────────
+        $timTbl = $section->addTable('timBorder');
+
+        // Header row 1: No(rowspan 2) | Nama(rowspan 2) | Jabatan(rowspan 2) | Jumlah Hari(colspan 2)
+        $timTbl->addRow(400);
+        $timTbl->addCell($cm(1.2),  $hBg + ['vMerge' => 'restart'])->addText('No',              $hFont, $jcC);
+        $timTbl->addCell($cm(5.0),  $hBg + ['vMerge' => 'restart'])->addText('Nama / NIP',      $hFont, $jcC);
+        $timTbl->addCell($cm(3.8),  $hBg + ['vMerge' => 'restart'])->addText('Jabatan / Peran', $hFont, $jcC);
+        $timTbl->addCell($cm(5.5),  $hBg + ['gridSpan' => 2])->addText('Jumlah Hari',           $hFont, $jcC);
+
+        // Header row 2: vMerge continues | On Desk | On Field
+        $timTbl->addRow(360);
+        $timTbl->addCell($cm(1.2),  $hBg + ['vMerge' => 'continue'])->addText('');
+        $timTbl->addCell($cm(5.0),  $hBg + ['vMerge' => 'continue'])->addText('');
+        $timTbl->addCell($cm(3.8),  $hBg + ['vMerge' => 'continue'])->addText('');
+        $timTbl->addCell($cm(2.75), $hBg)->addText('On Desk',  $hFont, $jcC);
+        $timTbl->addCell($cm(2.75), $hBg)->addText('On Field', $hFont, $jcC);
+
+        $fNorm = ['size' => 11];
+        $fSub  = ['size' => 9, 'color' => '555555'];
+        foreach (($spt['tim'] ?? []) as $idx => $t) {
+            $timTbl->addRow();
+            $timTbl->addCell($cm(1.2))->addText((string)($idx + 1), $fNorm, $jcC);
+            $nc = $timTbl->addCell($cm(5.0));
+            $nc->addText($t['sdm_nama'] ?? '', ['bold' => true, 'size' => 11]);
+            if (!empty($t['nip'])) $nc->addText('NIP. ' . $t['nip'], $fSub);
+            if (!empty($t['pangkat_golongan'])) $nc->addText($t['pangkat_golongan'], $fSub);
+            $timTbl->addCell($cm(3.8))->addText($t['peran_spt'] ?? '', $fNorm);
+            $timTbl->addCell($cm(2.75))->addText((string)($t['hp_desk']  ?? 0), $fNorm, $jcC);
+            $timTbl->addCell($cm(2.75))->addText((string)($t['hp_field'] ?? 0), $fNorm, $jcC);
+        }
+        $section->addTextBreak(1);
+
+        // ── UNTUK (borderless 3-col) ──────────────────────────
+        $tglMulai   = $spt['tanggal_mulai']   ? tgl_indo($spt['tanggal_mulai'])   : '...';
+        $tglSelesai = $spt['tanggal_selesai'] ? tgl_indo($spt['tanggal_selesai']) : '...';
+
+        $utbl = $section->addTable('noBorder');
+        $utbl->addRow();
+        $utbl->addCell($cm(1.8), $noBorder)->addText('Untuk', ['size' => 12], $jcL);
+        $utbl->addCell($cm(0.3), $noBorder)->addText(':', ['size' => 12], $jcL);
+        $utbl->addCell($cm(13.4), $noBorder)->addText($spt['tujuan'] ?? '', ['size' => 12]);
+        $utbl->addRow();
+        $utbl->addCell($cm(1.8), $noBorder)->addText('Waktu', ['size' => 12], $jcL);
+        $utbl->addCell($cm(0.3), $noBorder)->addText(':', ['size' => 12], $jcL);
+        $utbl->addCell($cm(13.4), $noBorder)->addText($tglMulai . ' s.d. ' . $tglSelesai, ['size' => 12]);
+        $section->addTextBreak(1);
+
+        // ── PENUTUP ───────────────────────────────────────────
+        $section->addText(
+            'Demikian Surat Perintah ini dibuat untuk dapat dilaksanakan dengan penuh rasa tanggung jawab.',
+            ['size' => 12]
+        );
+        $section->addTextBreak(1);
+
+        // ── TANDA TANGAN (kanan) ──────────────────────────────
+        $tglNaskah   = $spt['tanggal_naskah']         ? tgl_indo($spt['tanggal_naskah']) : '...';
+        $jabatan     = $spt['penandatangan_jabatan']  ?? 'Inspektur Daerah';
+        $namaPenanda = $spt['penandatangan_nama']     ?? '';
+        $pangkat     = $spt['penandatangan_pangkat']  ?? '';
+        $nip         = $spt['penandatangan_nip']      ?? '';
+
+        $ttdTbl = $section->addTable('noBorder');
+        $ttdTbl->addRow();
+        $ttdTbl->addCell($cm(8.0), $noBorder)->addText('');
+        $sig = $ttdTbl->addCell($cm(7.5), $noBorder);
+        $sig->addText('Ditetapkan di  : Sampang',        ['size' => 12], $jcC);
+        $sig->addText('Pada tanggal    : ' . $tglNaskah, ['size' => 12], $jcC);
+        $sig->addTextBreak(1);
+        $sig->addText($jabatan . ',',                    ['size' => 12], $jcC);
+        $sig->addTextBreak(3);
+        $sig->addText($namaPenanda, ['bold' => true, 'underline' => 'single', 'size' => 12], $jcC);
+        if ($pangkat) $sig->addText($pangkat,            ['size' => 11], $jcC);
+        $sig->addText('NIP. ' . $nip,                   ['size' => 12], $jcC);
+
+        // ── TEMBUSAN ──────────────────────────────────────────
+        if (!empty($spt['tembusan'])) {
+            $section->addTextBreak(2);
+            $section->addText('Tembusan :', ['size' => 12]);
+            foreach (preg_split('/\r?\n/', trim($spt['tembusan'])) as $idx => $line) {
+                if (trim($line)) {
+                    $section->addText(($idx + 1) . '. ' . trim($line), ['size' => 11]);
+                }
+            }
+        }
+
+        // ── FOOTER ────────────────────────────────────────────
+        $footer = $section->addFooter();
+        $footer->addText(
+            '"BERANI JUJUR ITU HEBAT — Tolak Gratifikasi, Tegakkan Integritas"',
+            ['bold' => true, 'italic' => true, 'size' => 9, 'color' => '8B0000'],
+            $jcC
+        );
+        $footer->addText(
+            'Dokumen ini ditandatangani secara elektronik melalui sistem BSrE BSSN dan sah tanpa tanda tangan basah.',
+            ['size' => 8, 'color' => '666666'],
+            $jcC
+        );
+
+        // ── SIMPAN & UNDUH ────────────────────────────────────
         if (!is_dir(WRITEPATH . 'uploads')) {
             mkdir(WRITEPATH . 'uploads', 0775, true);
         }
 
-        $slug       = preg_replace('/[^A-Za-z0-9_\-]/', '_', $spt['nomor_naskah'] ?: (string)$id);
-        $filename   = 'SPT_' . $slug . '.docx';
-        $outputPath = WRITEPATH . 'uploads/' . $filename;
+        $slug     = preg_replace('/[^A-Za-z0-9_\-]/', '_', $spt['nomor_naskah'] ?: (string)$id);
+        $filename = 'SPT_' . $slug . '.docx';
+        $path     = WRITEPATH . 'uploads/' . $filename;
 
-        $writer = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'Word2007');
-        $writer->save($outputPath);
-
+        \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'Word2007')->save($path);
         $this->sptModel->update($id, ['file_word' => 'writable/uploads/' . $filename]);
 
-        return $this->response->download($outputPath, null)->setFileName($filename);
+        return $this->response->download($path, null)->setFileName($filename);
     }
 
     // ===================================================
