@@ -207,7 +207,7 @@ class NhpModel
 
     public function getAllSimpulanBySpt(int $sptId): array
     {
-        return $this->db->table('kka_simpulan ks')
+        $rows = $this->db->table('kka_simpulan ks')
             ->select('ks.id, ks.kka_id, ks.nomor_urut,
                       ks.kondisi, ks.kriteria, ks.sebab, ks.akibat, ks.rekomendasi_awal,
                       ks.kode_temuan_id, ks.nilai_financial, ks.status,
@@ -221,9 +221,19 @@ class NhpModel
             ->join('spt_tim st', 'st.spt_id = k.spt_id AND st.sdm_id = k.sdm_id', 'left')
             ->join('kode_temuan kt', 'kt.id = ks.kode_temuan_id', 'left')
             ->where('k.spt_id', $sptId)
-            ->groupBy('ks.id')
-            ->orderBy('COALESCE(st.urutan, 9999), k.sdm_id, ks.nomor_urut')
+            ->orderBy('k.sdm_id, ks.nomor_urut')
             ->get()->getResultArray();
+
+        // Deduplikasi di PHP — mencegah duplicate rows jika spt_tim memiliki entri ganda
+        $seen = [];
+        $result = [];
+        foreach ($rows as $row) {
+            if (!isset($seen[$row['id']])) {
+                $seen[$row['id']] = true;
+                $result[] = $row;
+            }
+        }
+        return $result;
     }
 
     /** Simpulan yang belum dimasukkan ke NHP manapun */
