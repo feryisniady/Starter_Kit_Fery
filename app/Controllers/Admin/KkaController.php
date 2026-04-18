@@ -147,20 +147,24 @@ class KkaController extends BaseController
         $isKt = isAuditAdmin() || isKtInSpt($kka['spt_id']) || isDalnisInSpt($kka['spt_id']);
         $isAt = !$isKt && $this->canAccessKka($kka);
 
+        $statusKka  = $kka['status_kka'] ?? 'draft';
+        $kkaApproved= $statusKka === 'approved';
+        $canEdit    = $this->canEditKka($kka)
+                      && in_array($kka['status'], ['draft','ikhtisar_selesai','simpulan_selesai'])
+                      && !$kkaApproved;
+
         return view('admin/kka/show', [
             'title'            => 'KKA — ' . $kka['nama'],
             'kka'              => $kka,
             'spt'              => $spt,
-            'ikhtisar'         => $this->kkaModel->getIkhtisarByKka($kkaId),
-            'simpulan'         => $this->kkaModel->getSimpulanByKka($kkaId),
-            'rekomendasi'      => $this->kkaModel->getRekomendasiByKka($kkaId),
+            'prosedurData'     => $this->kkaModel->getProsedurData($kkaId, $pkaList),
             'pkaList'          => $pkaList,
             'kodeTemuanList'   => $kodeTemuanList,
             'statusLabel'      => KkaModel::$statusLabel,
             'statusColor'      => KkaModel::$statusColor,
             'statusKkaLabel'   => KkaModel::$statusKkaLabel,
             'statusKkaColor'   => KkaModel::$statusKkaColor,
-            'canEdit'          => $this->canEditKka($kka),
+            'canEdit'          => $canEdit,
             'isDalnis'         => isAuditAdmin() || isDalnisInSpt($kka['spt_id']),
             'isKt'             => $isKt,
             'isAt'             => $isAt,
@@ -168,7 +172,50 @@ class KkaController extends BaseController
     }
 
     // ──────────────────────────────────────────────────────────────────────
-    // Ikhtisar CRUD
+    // Unified save per prosedur (alur baru)
+    // ──────────────────────────────────────────────────────────────────────
+
+    public function saveProsedur(int $kkaId)
+    {
+        $kka = $this->kkaModel->find($kkaId);
+        if (!$kka || !$this->canEditKka($kka)) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+        if (!in_array($kka['status'], ['draft', 'ikhtisar_selesai', 'simpulan_selesai'])) {
+            return redirect()->back()->with('error', 'KKA sudah selesai, tidak bisa diedit.');
+        }
+        if (($kka['status_kka'] ?? 'draft') === 'approved') {
+            return redirect()->back()->with('error', 'KKA sudah disetujui KT, tidak bisa diedit.');
+        }
+
+        $this->kkaModel->saveProsedurUnified($kkaId, $this->request->getPost());
+        logActivity('kka.prosedur.save', 'kka', "Save prosedur unified kka_id={$kkaId}");
+        return redirect()->to('/admin/kka/' . $kkaId)->with('success', 'Prosedur berhasil disimpan.');
+    }
+
+    /** AT menyelesaikan KKA (draft → selesai) */
+    public function selesaikanKka(int $kkaId)
+    {
+        $kka = $this->kkaModel->find($kkaId);
+        if (!$kka || !$this->canEditKka($kka)) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+
+        $jumlahIkh = count($this->kkaModel->getIkhtisarByKka($kkaId));
+        if ($jumlahIkh === 0) {
+            return redirect()->back()->with('error', 'Isi minimal 1 prosedur sebelum menyelesaikan KKA.');
+        }
+
+        if ($this->kkaModel->selesaikanKka($kkaId)) {
+            logActivity('kka.selesai', 'kka', "KKA selesai kka_id={$kkaId}");
+            return redirect()->to('/admin/kka/' . $kkaId)->with('success', 'KKA selesai. Silakan kirim ke Ketua Tim.');
+        }
+
+        return redirect()->back()->with('error', 'Gagal memperbarui status KKA.');
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // Ikhtisar CRUD (lama — tetap berjalan untuk data existing)
     // ──────────────────────────────────────────────────────────────────────
 
     public function storeIkhtisar(int $kkaId)
