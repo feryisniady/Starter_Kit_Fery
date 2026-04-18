@@ -208,16 +208,21 @@ class NhpModel
     public function getAllSimpulanBySpt(int $sptId): array
     {
         return $this->db->table('kka_simpulan ks')
-            ->select('ks.*, k.sdm_id, k.id as kka_id, k.status as kka_status,
-                      s.nama as at_nama, s.nip as at_nip, st.peran_spt,
+            ->select('ks.id, ks.kka_id, ks.nomor_urut,
+                      ks.kondisi, ks.kriteria, ks.sebab, ks.akibat, ks.rekomendasi_awal,
+                      ks.kode_temuan_id, ks.nilai_financial, ks.status,
+                      ks.created_at, ks.updated_at,
+                      k.id as kka_header_id, k.sdm_id, k.status as kka_status,
+                      s.nama as at_nama, s.nip as at_nip,
+                      st.peran_spt, st.urutan as st_urutan,
                       kt.kode as kode_temuan_kode, kt.uraian as kode_temuan_uraian, kt.jenis as kode_temuan_jenis')
             ->join('kka k', 'k.id = ks.kka_id')
             ->join('sdm s', 's.id = k.sdm_id')
             ->join('spt_tim st', 'st.spt_id = k.spt_id AND st.sdm_id = k.sdm_id', 'left')
             ->join('kode_temuan kt', 'kt.id = ks.kode_temuan_id', 'left')
             ->where('k.spt_id', $sptId)
-            ->orderBy('st.urutan')
-            ->orderBy('ks.nomor_urut')
+            ->groupBy('ks.id')
+            ->orderBy('COALESCE(st.urutan, 9999), k.sdm_id, ks.nomor_urut')
             ->get()->getResultArray();
     }
 
@@ -229,7 +234,7 @@ class NhpModel
             ->select('ni.kka_simpulan_id')
             ->join('nhp n', 'n.id = ni.nhp_id')
             ->where('n.spt_id', $sptId)
-            ->whereNotNull('ni.kka_simpulan_id')
+            ->where('ni.kka_simpulan_id IS NOT NULL')
             ->get()->getResultArray();
         $usedSet = array_column($usedIds, 'kka_simpulan_id');
 
