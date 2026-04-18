@@ -148,10 +148,37 @@ $(function() {
 function viewKegiatan(id) {
     $.get('/admin/pkpt/kegiatan/view/' + id, res => {
         if (!res.success) return;
-        const d = res.data;
+        const d  = res.data;
         const rc = {rendah:'#16a34a', sedang:'#d97706', tinggi:'#dc2626'};
+        const sc = {draft:'secondary',diajukan:'info',acc_irban:'primary',acc_evlap:'primary',acc_sekretaris:'primary',terbit:'success'};
+        const sl = {draft:'Draft',diajukan:'Diajukan',acc_irban:'ACC Irban',acc_evlap:'ACC Evlap',acc_sekretaris:'ACC Sekretaris',terbit:'Terbit'};
+
         $('#dk-title').text(d.area_pengawasan + ' — ' + d.jenis_pengawasan);
         $('#dk-kode').text(d.kode_kegiatan);
+
+        // SPT list block
+        let sptHtml = '';
+        if (d.spts && d.spts.length > 0) {
+            sptHtml = `<div style="margin-top:14px;padding-top:12px;border-top:1px solid #f1f5f9">
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:8px">
+                    <i class="fas fa-file-signature"></i> SPT yang Sudah Ada (${d.spts.length} Tim)
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">`;
+            d.spts.forEach(s => {
+                const nama    = s.nama_tim || ('SPT #' + s.id);
+                const noNaskah = s.nomor_naskah || '— belum ada nomor';
+                const badge   = `<span class="badge badge-${sc[s.status]||'secondary'}" style="font-size:10px">${sl[s.status]||s.status}</span>`;
+                sptHtml += `<div style="display:flex;align-items:center;gap:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:7px 10px;font-size:12px">
+                    <i class="fas fa-users" style="color:#6366f1;flex-shrink:0"></i>
+                    <span style="font-weight:600;flex:1">${nama}</span>
+                    <span style="color:#64748b;font-size:11px">${noNaskah}</span>
+                    ${badge}
+                    <a href="/admin/spt/${s.id}" class="btn btn-xs btn-primary" style="white-space:nowrap">Buka</a>
+                </div>`;
+            });
+            sptHtml += `</div></div>`;
+        }
+
         $('#dk-body').html(`
             <table style="width:100%;border-collapse:collapse;font-size:13px">
                 <tr style="border-bottom:1px solid #f1f5f9"><th style="padding:7px 10px;color:#64748b;font-weight:500;width:130px;white-space:nowrap">Kode</th><td style="padding:7px 10px"><span class="badge badge-primary">${d.kode_kegiatan}</span></td></tr>
@@ -163,9 +190,13 @@ function viewKegiatan(id) {
                 <tr style="border-bottom:1px solid #f1f5f9"><th style="padding:7px 10px;color:#64748b;font-weight:500">Ruang Lingkup</th><td style="padding:7px 10px;font-size:12px">${d.ruang_lingkup || '—'}</td></tr>
                 <tr><th style="padding:7px 10px;color:#64748b;font-weight:500">Jml Laporan</th><td style="padding:7px 10px">${d.jumlah_laporan || 1}</td></tr>
             </table>
+            ${sptHtml}
             <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;padding-top:10px;border-top:1px solid #f1f5f9">
                 <a href="/admin/pkpt/kegiatan/edit/${d.id}" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i> Edit</a>
-                <a href="/admin/spt/create/${d.id}" class="btn btn-sm btn-success"><i class="fas fa-file-signature"></i> Buat SPT</a>
+                <a href="/admin/spt/create/${d.id}" class="btn btn-sm btn-success">
+                    <i class="fas fa-${d.spts && d.spts.length > 0 ? 'users-between-lines' : 'file-signature'}"></i>
+                    ${d.spts && d.spts.length > 0 ? 'Buat Tim Baru' : 'Buat SPT'}
+                </a>
             </div>
         `);
         $('#modal-detail-kegiatan').show();

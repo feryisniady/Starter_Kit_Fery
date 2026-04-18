@@ -10,24 +10,24 @@ use CodeIgniter\Database\BaseConnection;
  * Satu KKA header per AT (sdm) per SPT.
  * Auto-dibuat saat Dalnis menyetujui KM-5.
  *
- * Alur sequential per KKA:
- *   draft → ikhtisar_selesai → simpulan_selesai → selesai
+ * Alur baru (disederhanakan): draft → selesai
+ * (ikhtisar_selesai & simpulan_selesai dipertahankan untuk backward-compat data lama)
  */
 class KkaModel
 {
     protected BaseConnection $db;
 
     public static array $statusLabel = [
-        'draft'             => 'Draft',
-        'ikhtisar_selesai'  => 'Ikhtisar Selesai',
-        'simpulan_selesai'  => 'Simpulan Selesai',
+        'draft'             => 'Sedang Diisi',
+        'ikhtisar_selesai'  => 'Sedang Diisi',
+        'simpulan_selesai'  => 'Sedang Diisi',
         'selesai'           => 'Selesai',
     ];
 
     public static array $statusColor = [
         'draft'             => 'secondary',
-        'ikhtisar_selesai'  => 'info',
-        'simpulan_selesai'  => 'warning',
+        'ikhtisar_selesai'  => 'secondary',
+        'simpulan_selesai'  => 'secondary',
         'selesai'           => 'success',
     ];
 
@@ -134,48 +134,138 @@ class KkaModel
     // ──────────────────────────────────────────────────────────────────────
 
     /**
-     * Tandai semua ikhtisar selesai → pindahkan kka ke status ikhtisar_selesai
+     * Selesaikan KKA langsung: draft → selesai (alur baru yang disederhanakan).
+     * Menggantikan alur 3-tahap lama.
      */
-    public function selesaikanIkhtisar(int $kkaId): bool
+    public function selesaikanKka(int $kkaId): bool
     {
         $kka = $this->db->table('kka')->where('id', $kkaId)->get()->getRowArray();
-        if (!$kka || $kka['status'] !== 'draft') return false;
-
-        $this->db->table('kka')->where('id', $kkaId)->update([
-            'status'     => 'ikhtisar_selesai',
-            'updated_at' => date('Y-m-d H:i:s'),
-        ]);
-        return true;
-    }
-
-    /**
-     * Tandai simpulan selesai → pindahkan kka ke status simpulan_selesai
-     */
-    public function selesaikanSimpulan(int $kkaId): bool
-    {
-        $kka = $this->db->table('kka')->where('id', $kkaId)->get()->getRowArray();
-        if (!$kka || $kka['status'] !== 'ikhtisar_selesai') return false;
-
-        $this->db->table('kka')->where('id', $kkaId)->update([
-            'status'     => 'simpulan_selesai',
-            'updated_at' => date('Y-m-d H:i:s'),
-        ]);
-        return true;
-    }
-
-    /**
-     * Tandai rekomendasi selesai → kka selesai penuh
-     */
-    public function selesaikanRekomendasi(int $kkaId): bool
-    {
-        $kka = $this->db->table('kka')->where('id', $kkaId)->get()->getRowArray();
-        if (!$kka || $kka['status'] !== 'simpulan_selesai') return false;
+        if (!$kka || $kka['status'] === 'selesai') return false;
 
         $this->db->table('kka')->where('id', $kkaId)->update([
             'status'     => 'selesai',
             'updated_at' => date('Y-m-d H:i:s'),
         ]);
         return true;
+    }
+
+    // Backward-compat stubs (lama, tidak dipakai di UI baru)
+    public function selesaikanIkhtisar(int $kkaId): bool   { return $this->selesaikanKka($kkaId); }
+    public function selesaikanSimpulan(int $kkaId): bool   { return $this->selesaikanKka($kkaId); }
+    public function selesaikanRekomendasi(int $kkaId): bool{ return $this->selesaikanKka($kkaId); }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // Unified save per prosedur PKA (alur baru)
+    // ──────────────────────────────────────────────────────────────────────
+
+    /**
+     * Simpan satu prosedur PKA secara unified: ikhtisar + simpulan (opsional) sekaligus.
+     * Gunakan upsert berdasarkan (kka_id, pka_id).
+     */
+    public function saveProsedurUnified(int $kkaId, array $data): void
+    {
+        $now   = date('Y-m-d H:i:s');
+        $pkaId = !empty($data['pka_id']) ? (int)$data['pka_id'] : null;
+
+        // ── Upsert kka_ikhtisar ────────────────────────────────────────────
+        if ($pkaId) {
+            $existIkh = $this->db->table('kka_ikhtisar')
+                ->where('kka_id', $kkaId)->where('pka_id', $pkaId)
+                ->get()->getRowArray();
+        } else {
+            $existIkh = null;
+        }
+
+        $ikhFields = [
+            'hasil_observasi' => $data['hasil_observasi'] ?? null,
+            'updated_at'      => $now,
+        ];
+
+        if ($existIkh) {
+            $this->db->table('kka_ikhtisar')->where('id', $existIkh['id'])->update($ikhFields);
+        } else {
+            $next = $this->db->table('kka_ikhtisar')->where('kka_id', $kkaId)->countAllResults() + 1;
+            $this->db->table('kka_ikhtisar')->insert(array_merge($ikhFields, [
+                'kka_id'     => $kkaId,
+                'pka_id'     => $pkaId,
+                'nomor_urut' => $next,
+                'created_at' => $now,
+            ]));
+        }
+
+        // ── Upsert atau hapus kka_simpulan ────────────────────────────────
+        $adaTemuan = !empty($data['ada_temuan']);
+
+        if ($pkaId) {
+            $existSp = $this->db->table('kka_simpulan')
+                ->where('kka_id', $kkaId)->where('pka_id', $pkaId)
+                ->get()->getRowArray();
+        } else {
+            $existSp = null;
+        }
+
+        if ($adaTemuan) {
+            $spFields = [
+                'kondisi'          => $data['kondisi']          ?? null,
+                'kriteria'         => $data['kriteria']         ?? null,
+                'sebab'            => $data['sebab']            ?? null,
+                'akibat'           => $data['akibat']           ?? null,
+                'rekomendasi_awal' => $data['rekomendasi_awal'] ?? null,
+                'kode_temuan_id'   => !empty($data['kode_temuan_id'])  ? (int)$data['kode_temuan_id']  : null,
+                'nilai_financial'  => !empty($data['nilai_financial']) ? (int)$data['nilai_financial'] : null,
+                'updated_at'       => $now,
+            ];
+            if ($existSp) {
+                $this->db->table('kka_simpulan')->where('id', $existSp['id'])->update($spFields);
+            } else {
+                $next = $this->db->table('kka_simpulan')->where('kka_id', $kkaId)->countAllResults() + 1;
+                $this->db->table('kka_simpulan')->insert(array_merge($spFields, [
+                    'kka_id'     => $kkaId,
+                    'pka_id'     => $pkaId,
+                    'nomor_urut' => $next,
+                    'created_at' => $now,
+                ]));
+            }
+        } elseif ($existSp) {
+            // Hapus simpulan jika checkbox temuan di-uncheck
+            $this->db->table('kka_simpulan')->where('id', $existSp['id'])->delete();
+        }
+    }
+
+    /**
+     * Data per-prosedur PKA untuk view baru (ikhtisar + simpulan digabung per pka_id).
+     */
+    public function getProsedurData(int $kkaId, array $pkaList): array
+    {
+        // Index ikhtisar by pka_id
+        $ikhRows = $this->db->table('kka_ikhtisar')
+            ->where('kka_id', $kkaId)->get()->getResultArray();
+        $ikhByPka = [];
+        foreach ($ikhRows as $r) {
+            if ($r['pka_id']) $ikhByPka[(int)$r['pka_id']] = $r;
+        }
+
+        // Index simpulan by pka_id
+        $spRows = $this->db->table('kka_simpulan')
+            ->select('ks.*, kt.kode as kode_temuan_kode')
+            ->from('kka_simpulan ks')
+            ->join('kode_temuan kt', 'kt.id = ks.kode_temuan_id', 'left')
+            ->where('ks.kka_id', $kkaId)->get()->getResultArray();
+        $spByPka = [];
+        foreach ($spRows as $r) {
+            if (!empty($r['pka_id'])) $spByPka[(int)$r['pka_id']] = $r;
+        }
+
+        $result = [];
+        foreach ($pkaList as $pka) {
+            $id = (int)$pka['id'];
+            $result[] = [
+                'pka'      => $pka,
+                'ikhtisar' => $ikhByPka[$id] ?? null,
+                'simpulan' => $spByPka[$id]  ?? null,
+            ];
+        }
+        return $result;
     }
 
     // ──────────────────────────────────────────────────────────────────────

@@ -448,11 +448,28 @@ if (!function_exists('canEditKmInSpt')) {
     /**
      * Apakah user boleh mengedit KM tertentu dalam SPT ini?
      *
-     * @param string $km  'km1','km2','km4','km5','km5b','independensi','km10','km11'
+     * Aturan status SPT:
+     *  - KM Fase 1 (persiapan): hanya bisa diedit saat SPT masih draft atau setelah terbit
+     *    (diajukan/acc_* = sedang approval → lock)
+     *  - KM Fase 2 & 3 (pelaksanaan & pelaporan): bebas diedit kapanpun (SPT terbit)
+     *
+     * @param string $km  'km1','km2','km4','km5','km5b','independensi','km7','km9','km10','km11'
      */
     function canEditKmInSpt(int $sptId, string $km): bool
     {
         if (isAuditAdmin()) return true;
+
+        // Cek status SPT untuk KM Fase 1
+        $fase1Items = ['km1','km2','km4','km5','km5b','independensi'];
+        if (in_array($km, $fase1Items)) {
+            $db  = \Config\Database::connect();
+            $spt = $db->table('spt')->select('status')->where('id', $sptId)->get()->getRowArray();
+            $statusSpt = $spt['status'] ?? 'draft';
+            // Kunci saat SPT sedang dalam proses approval
+            if (in_array($statusSpt, ['diajukan','acc_irban','acc_evlap','acc_sekretaris'])) {
+                return false;
+            }
+        }
 
         return match($km) {
             'km1','km4','km5b','km10'   => isDalnisInSpt($sptId) || isKtInSpt($sptId),
@@ -460,6 +477,20 @@ if (!function_exists('canEditKmInSpt')) {
             'km2','independensi'        => isDalnisInSpt($sptId) || isKtInSpt($sptId) || isAtInSpt($sptId),
             default                     => isInSpt($sptId),
         };
+    }
+}
+
+if (!function_exists('isSptLocked')) {
+    /**
+     * Apakah SPT sedang dalam proses approval (tidak bisa diedit kontennya)?
+     * true  = diajukan / acc_irban / acc_evlap / acc_sekretaris
+     * false = draft atau terbit
+     */
+    function isSptLocked(int $sptId): bool
+    {
+        $db  = \Config\Database::connect();
+        $spt = $db->table('spt')->select('status')->where('id', $sptId)->get()->getRowArray();
+        return in_array($spt['status'] ?? 'draft', ['diajukan','acc_irban','acc_evlap','acc_sekretaris']);
     }
 }
 

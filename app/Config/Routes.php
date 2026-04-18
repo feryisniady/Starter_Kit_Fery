@@ -261,6 +261,10 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	$routes->post('kka/rekomendasi/(:num)/delete',        'Admin\KkaController::deleteRekomendasi/$1');
 	$routes->post('kka/(:num)/rekomendasi/selesai',       'Admin\KkaController::selesaiRekomendasi/$1');
 
+	// Unified save per prosedur (alur baru)
+	$routes->post('kka/(:num)/prosedur/save',             'Admin\KkaController::saveProsedur/$1');
+	$routes->post('kka/(:num)/selesaikan',                'Admin\KkaController::selesaikanKka/$1');
+
 	// Submit / Review KKA (AT → KT)
 	$routes->post('kka/(:num)/submit',                    'Admin\KkaController::submitKka/$1');
 	$routes->post('kka/(:num)/approve',                   'Admin\KkaController::approveKka/$1');

@@ -16,6 +16,11 @@
 <?php if(session()->getFlashdata('error')): ?>
 <div class="alert-error-inline mb-3"><i class="fas fa-circle-exclamation"></i> <?= session()->getFlashdata('error') ?></div>
 <?php endif; ?>
+<?php if(!$canEdit): ?>
+<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#92400e">
+    <i class="fas fa-lock"></i> <strong>SPT sedang dalam proses persetujuan.</strong> Data tidak dapat diubah.
+</div>
+<?php endif; ?>
 
 <?php
 $cekFields = [
@@ -84,7 +89,7 @@ if ($row) {
 
             <div class="card">
                 <div class="card-body">
-                    <button type="submit" class="btn btn-primary w-100">
+                    <button type="submit" class="btn btn-primary w-100" <?= !$canEdit ? 'disabled' : '' ?>>
                         <i class="fas fa-save"></i> Simpan KM4
                     </button>
                 </div>

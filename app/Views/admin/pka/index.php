@@ -71,6 +71,7 @@
                     </span>
                 </td>
                 <td>
+                    <?php if ($canEdit): ?>
                     <button class="btn btn-xs btn-<?= $row['status'] === 'selesai' ? 'warning' : 'success' ?> btn-selesai"
                             data-id="<?= $row['id'] ?>" title="Toggle selesai">
                         <i class="fas fa-<?= $row['status'] === 'selesai' ? 'undo' : 'check' ?>"></i>
@@ -86,6 +87,9 @@
                     <button class="btn btn-xs btn-danger btn-del-pka" data-id="<?= $row['id'] ?>">
                         <i class="fas fa-trash"></i>
                     </button>
+                    <?php else: ?>
+                    <span style="color:#94a3b8;font-size:12px"><i class="fas fa-lock"></i></span>
+                    <?php endif; ?>
                 </td>
             </tr>
             <?php endforeach; ?>
@@ -95,6 +99,7 @@
 </div>
 
 <!-- Form Tambah -->
+<?php if ($canEdit): ?>
 <div class="card">
     <div class="card-header"><h3 class="card-title"><i class="fas fa-plus"></i> Tambah Prosedur</h3></div>
     <div class="card-body">
@@ -129,8 +134,10 @@
         </form>
     </div>
 </div>
+<?php endif; ?>
 
 <!-- Modal Edit PKA -->
+<?php if ($canEdit): ?>
 <div id="modal-edit-pka" class="modal-overlay" style="display:none">
     <div class="modal-box" style="max-width:540px">
         <div class="modal-header">
@@ -170,6 +177,7 @@
         </form>
     </div>
 </div>
+<?php endif; ?>
 
 <?= $this->endSection() ?>
 <?= $this->section('scripts') ?>
