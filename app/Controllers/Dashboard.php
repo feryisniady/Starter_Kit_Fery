@@ -12,6 +12,11 @@ class Dashboard extends BaseController
 {
     public function index()
     {
+        // Auditi users get their own dashboard
+        if (hasRole('auditi')) {
+            return redirect()->to('/admin/auditi/dashboard');
+        }
+
         $activityModel    = new ActivityLogModel();
         $userModel        = new UserModel();
         $roleModel        = new RoleModel();
