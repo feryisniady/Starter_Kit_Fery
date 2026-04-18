@@ -7,6 +7,14 @@
         <p>SPT: <?= esc($spt['nomor_naskah'] ?: '#'.$spt['id']) ?> — <?= esc($spt['irban_nama'] ?? '') ?></p>
     </div>
     <div class="page-actions">
+        <?php if (isset($canViewAll) && $canViewAll): ?>
+        <a href="/admin/spt/<?= $spt['id'] ?>/kka/compiled" class="btn btn-info">
+            <i class="fas fa-layer-group"></i> Rekapitulasi Simpulan
+        </a>
+        <a href="/admin/spt/<?= $spt['id'] ?>/nhp" class="btn btn-warning">
+            <i class="fas fa-paper-plane"></i> NHP
+        </a>
+        <?php endif; ?>
         <a href="/admin/spt/<?= $spt['id'] ?>/km" class="btn btn-secondary">
             <i class="fas fa-arrow-left"></i> Kembali ke KM
         </a>

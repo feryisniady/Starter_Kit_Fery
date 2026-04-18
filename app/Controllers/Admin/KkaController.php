@@ -4,6 +4,7 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\KkaModel;
+use App\Models\NhpModel;
 use App\Models\SptModel;
 
 /**
@@ -20,11 +21,13 @@ use App\Models\SptModel;
 class KkaController extends BaseController
 {
     protected KkaModel $kkaModel;
+    protected NhpModel $nhpModel;
     protected SptModel $sptModel;
 
     public function __construct()
     {
         $this->kkaModel = new KkaModel();
+        $this->nhpModel = new NhpModel();
         $this->sptModel = new SptModel();
     }
 
@@ -58,6 +61,50 @@ class KkaController extends BaseController
         return view('admin/kka/index', [
             'title'       => 'KKA — ' . ($spt['nomor_naskah'] ?: '#' . $sptId),
             'spt'         => $spt,
+            'kkaList'     => $this->kkaModel->getBySpt($sptId),
+            'progress'    => $this->kkaModel->getProgressBySpt($sptId),
+            'statusLabel' => KkaModel::$statusLabel,
+            'statusColor' => KkaModel::$statusColor,
+            'canViewAll'  => true,
+        ]);
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // KT Compiled View — semua simpulan AT per SPT
+    // ──────────────────────────────────────────────────────────────────────
+
+    /**
+     * Rekapitulasi semua simpulan AT untuk KT / Dalnis.
+     * Hanya dapat diakses oleh KT, Dalnis, PJ, dan Admin.
+     */
+    public function compiled(int $sptId)
+    {
+        $spt = $this->sptModel->getDetail($sptId);
+        if (!$spt) return redirect()->to('/admin/spt')->with('error', 'SPT tidak ditemukan.');
+        if (!$this->canViewAll($sptId)) return redirect()->to('/admin/spt')->with('error', 'Akses ditolak.');
+
+        $allSimpulan = $this->nhpModel->getAllSimpulanBySpt($sptId);
+
+        // Hitung statistik
+        $totalNilai = 0;
+        $byJenis    = [];
+        foreach ($allSimpulan as $s) {
+            $totalNilai += (int)($s['nilai_financial'] ?? 0);
+            $jenis = $s['kode_temuan_jenis'] ?? 'lainnya';
+            if (!isset($byJenis[$jenis])) $byJenis[$jenis] = ['count' => 0, 'nilai' => 0];
+            $byJenis[$jenis]['count']++;
+            $byJenis[$jenis]['nilai'] += (int)($s['nilai_financial'] ?? 0);
+        }
+
+        $nhpList = $this->nhpModel->getBySpt($sptId);
+
+        return view('admin/kka/compiled', [
+            'title'       => 'Rekapitulasi Simpulan KKA — ' . ($spt['nomor_naskah'] ?: '#' . $sptId),
+            'spt'         => $spt,
+            'allSimpulan' => $allSimpulan,
+            'nhpList'     => $nhpList,
+            'totalNilai'  => $totalNilai,
+            'byJenis'     => $byJenis,
             'kkaList'     => $this->kkaModel->getBySpt($sptId),
             'progress'    => $this->kkaModel->getProgressBySpt($sptId),
             'statusLabel' => KkaModel::$statusLabel,

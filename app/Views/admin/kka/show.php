@@ -103,89 +103,162 @@ $canEditRekomendasi = $canEdit && $kka['status'] === 'simpulan_selesai';
 <?php endif; ?>
 
 <!-- ═══════════════════════════════════════════════════════ -->
-<!-- TAHAP 1 — IKHTISAR                                     -->
+<!-- TAHAP 1 — IKHTISAR (berbasis Prosedur PKA)             -->
 <!-- ═══════════════════════════════════════════════════════ -->
+<?php
+// Group ikhtisar yang sudah ada berdasarkan pka_id
+$ikhtisarByPka  = [];
+$ikhtisarBebas  = [];
+foreach ($ikhtisar as $ikh) {
+    if ($ikh['pka_id']) $ikhtisarByPka[$ikh['pka_id']][] = $ikh;
+    else                $ikhtisarBebas[] = $ikh;
+}
+$totalIkhtisar = count($ikhtisar);
+?>
 <div class="card mb-3">
     <div class="card-header" style="background:<?= $stageStatus['ikhtisar'] ? 'linear-gradient(135deg,#059669,#10b981)' : 'linear-gradient(135deg,#2563eb,#3b82f6)' ?>;color:#fff">
-        <h3 class="card-title" style="color:#fff">
-            <i class="fas fa-pen"></i> Tahap 1 — Ikhtisar
-        </h3>
+        <h3 class="card-title" style="color:#fff"><i class="fas fa-pen"></i> Tahap 1 — Ikhtisar</h3>
         <?php if ($stageStatus['ikhtisar']): ?>
-        <span style="margin-left:auto;background:rgba(255,255,255,.2);padding:3px 10px;border-radius:99px;font-size:12px">
-            <i class="fas fa-check"></i> Selesai
-        </span>
+        <span style="margin-left:auto;background:rgba(255,255,255,.2);padding:3px 10px;border-radius:99px;font-size:12px"><i class="fas fa-check"></i> Selesai</span>
         <?php endif; ?>
     </div>
     <div class="card-body">
 
-        <?php if (empty($ikhtisar)): ?>
-        <div style="text-align:center;padding:24px;color:#94a3b8">
-            <i class="fas fa-inbox" style="font-size:28px;display:block;margin-bottom:8px"></i>
-            Belum ada item ikhtisar. Klik "+ Tambah" untuk memulai.
+        <?php if (empty($pkaList)): ?>
+        <div style="background:#fef3c7;border-radius:8px;padding:12px 16px;font-size:12px;color:#92400e;margin-bottom:12px">
+            <i class="fas fa-triangle-exclamation"></i> PKA (Program Kerja Audit) belum dibuat oleh Ketua Tim.
+            Anda masih bisa tambah observasi bebas di bawah.
         </div>
         <?php else: ?>
-        <?php foreach ($ikhtisar as $idx => $ikh): ?>
-        <div class="mb-3" style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
-            <div style="background:#f8fafc;padding:10px 16px;display:flex;justify-content:space-between;align-items:center">
-                <strong style="font-size:13px;color:#1e293b">Item #<?= $ikh['nomor_urut'] ?></strong>
+
+        <!-- Prosedur PKA sebagai sumber ikhtisar -->
+        <?php foreach ($pkaList as $pka): ?>
+        <div style="border:1px solid #e0f2fe;border-radius:8px;margin-bottom:12px;overflow:hidden">
+            <!-- Header PKA -->
+            <div style="background:#f0f9ff;padding:10px 16px;display:flex;align-items:center;gap:10px">
+                <div style="background:#0ea5e9;color:#fff;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">
+                    <?= $pka['nomor_urut'] ?>
+                </div>
+                <div style="flex:1;min-width:0">
+                    <div style="font-weight:600;font-size:13px;color:#0c4a6e"><?= esc($pka['uraian_prosedur']) ?></div>
+                    <div style="font-size:11px;color:#64748b">
+                        Rencana: <?= $pka['rencana_waktu'] ?? '—' ?> JP
+                        <?php if ($pka['pic_nama']): ?> &nbsp;|&nbsp; PIC: <?= esc($pka['pic_nama']) ?><?php endif; ?>
+                    </div>
+                </div>
                 <?php if ($canEditIkhtisar): ?>
-                <div style="display:flex;gap:6px">
-                    <button class="btn btn-xs btn-outline-primary" onclick="toggleEditIkhtisar(<?= $ikh['id'] ?>)">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <form action="/admin/kka/ikhtisar/<?= $ikh['id'] ?>/delete" method="POST" style="display:inline"
-                          onsubmit="return confirm('Hapus item ini?')">
+                <button class="btn btn-xs btn-outline-primary" onclick="toggleAddIkh(<?= $pka['id'] ?>)">
+                    <i class="fas fa-plus"></i> Tambah Hasil
+                </button>
+                <?php endif; ?>
+            </div>
+
+            <!-- Existing ikhtisar untuk PKA ini -->
+            <?php foreach ($ikhtisarByPka[$pka['id']] ?? [] as $ikh): ?>
+            <div style="padding:12px 16px;border-top:1px solid #e0f2fe">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+                    <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                        <div>
+                            <div style="font-size:10px;font-weight:600;color:#64748b;margin-bottom:2px">HASIL OBSERVASI</div>
+                            <div style="font-size:13px;white-space:pre-line"><?= esc($ikh['hasil_observasi'] ?: '—') ?></div>
+                        </div>
+                        <div>
+                            <div style="font-size:10px;font-weight:600;color:#64748b;margin-bottom:2px">SIMPULAN</div>
+                            <div style="font-size:13px;white-space:pre-line"><?= esc($ikh['simpulan'] ?: '—') ?></div>
+                        </div>
+                    </div>
+                    <?php if ($canEditIkhtisar): ?>
+                    <div style="display:flex;gap:4px;flex-shrink:0">
+                        <button class="btn btn-xs btn-outline-primary" onclick="toggleEditIkhtisar(<?= $ikh['id'] ?>)"><i class="fas fa-edit"></i></button>
+                        <form action="/admin/kka/ikhtisar/<?= $ikh['id'] ?>/delete" method="POST" style="display:inline" onsubmit="return confirm('Hapus?')">
+                            <?= csrf_field() ?><button type="submit" class="btn btn-xs btn-outline-danger"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </div>
+                    <?php endif; ?>
+                </div>
+                <!-- Edit inline -->
+                <?php if ($canEditIkhtisar): ?>
+                <div id="edit-ikh-<?= $ikh['id'] ?>" style="display:none;margin-top:10px;padding:12px;background:#fffbeb;border-radius:6px">
+                    <form action="/admin/kka/ikhtisar/<?= $ikh['id'] ?>/update" method="POST">
                         <?= csrf_field() ?>
-                        <button type="submit" class="btn btn-xs btn-outline-danger"><i class="fas fa-trash"></i></button>
+                        <input type="hidden" name="pka_id" value="<?= $ikh['pka_id'] ?>">
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                            <div class="form-group"><label class="form-label">Hasil Observasi</label>
+                                <textarea name="hasil_observasi" class="form-control" rows="3"><?= esc($ikh['hasil_observasi']) ?></textarea></div>
+                            <div class="form-group"><label class="form-label">Simpulan</label>
+                                <textarea name="simpulan" class="form-control" rows="3"><?= esc($ikh['simpulan']) ?></textarea></div>
+                        </div>
+                        <div style="display:flex;gap:6px;margin-top:6px">
+                            <button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-save"></i> Simpan</button>
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="toggleEditIkhtisar(<?= $ikh['id'] ?>)">Batal</button>
+                        </div>
                     </form>
                 </div>
                 <?php endif; ?>
             </div>
-            <!-- View Mode -->
-            <div id="view-ikh-<?= $ikh['id'] ?>" style="padding:14px 16px">
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                    <div>
-                        <div style="font-size:11px;font-weight:600;color:#64748b;margin-bottom:3px">PROGRAM KERJA / PROSEDUR</div>
-                        <div style="font-size:13px;white-space:pre-line"><?= esc($ikh['program_kerja'] ?: '—') ?></div>
-                    </div>
-                    <div>
-                        <div style="font-size:11px;font-weight:600;color:#64748b;margin-bottom:3px">LANGKAH AUDIT</div>
-                        <div style="font-size:13px;white-space:pre-line"><?= esc($ikh['langkah_audit'] ?: '—') ?></div>
-                    </div>
-                    <div>
-                        <div style="font-size:11px;font-weight:600;color:#64748b;margin-bottom:3px">HASIL OBSERVASI</div>
-                        <div style="font-size:13px;white-space:pre-line"><?= esc($ikh['hasil_observasi'] ?: '—') ?></div>
-                    </div>
-                    <div>
-                        <div style="font-size:11px;font-weight:600;color:#64748b;margin-bottom:3px">SIMPULAN IKHTISAR</div>
-                        <div style="font-size:13px;white-space:pre-line"><?= esc($ikh['simpulan'] ?: '—') ?></div>
-                    </div>
-                </div>
-            </div>
-            <!-- Edit Mode -->
+            <?php endforeach; ?>
+
+            <?php if (empty($ikhtisarByPka[$pka['id']])): ?>
+            <div style="padding:8px 16px;font-size:11px;color:#94a3b8;border-top:1px solid #e0f2fe">Belum ada hasil observasi untuk prosedur ini.</div>
+            <?php endif; ?>
+
+            <!-- Form tambah ikhtisar untuk PKA ini -->
             <?php if ($canEditIkhtisar): ?>
-            <div id="edit-ikh-<?= $ikh['id'] ?>" style="display:none;padding:14px 16px;background:#fffbeb;border-top:1px solid #fde68a">
+            <div id="add-ikh-<?= $pka['id'] ?>" class="d-none" style="padding:12px 16px;background:#eff6ff;border-top:1px solid #bae6fd">
+                <form action="/admin/kka/<?= $kka['id'] ?>/ikhtisar/store" method="POST">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="pka_id" value="<?= $pka['id'] ?>">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                        <div class="form-group"><label class="form-label">Hasil Observasi <span class="req">*</span></label>
+                            <textarea name="hasil_observasi" class="form-control" rows="3" placeholder="Fakta yang ditemukan di lapangan..." required></textarea></div>
+                        <div class="form-group"><label class="form-label">Simpulan Ikhtisar</label>
+                            <textarea name="simpulan" class="form-control" rows="3" placeholder="Simpulan dari observasi ini..."></textarea></div>
+                    </div>
+                    <div style="display:flex;gap:6px;margin-top:6px">
+                        <button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-plus"></i> Tambahkan</button>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="toggleAddIkh(<?= $pka['id'] ?>)">Batal</button>
+                    </div>
+                </form>
+            </div>
+            <?php endif; ?>
+        </div>
+        <?php endforeach; ?>
+        <?php endif; // end pkaList ?>
+
+        <!-- Observasi Bebas (tidak terikat prosedur PKA) -->
+        <?php foreach ($ikhtisarBebas as $ikh): ?>
+        <div style="border:1px solid #e2e8f0;border-radius:8px;margin-bottom:10px;overflow:hidden">
+            <div style="background:#f8fafc;padding:8px 16px;display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:12px;color:#64748b"><i class="fas fa-pen-to-square"></i> Observasi Tambahan #<?= $ikh['nomor_urut'] ?></span>
+                <?php if ($canEditIkhtisar): ?>
+                <div style="display:flex;gap:4px">
+                    <button class="btn btn-xs btn-outline-primary" onclick="toggleEditIkhtisar(<?= $ikh['id'] ?>)"><i class="fas fa-edit"></i></button>
+                    <form action="/admin/kka/ikhtisar/<?= $ikh['id'] ?>/delete" method="POST" style="display:inline" onsubmit="return confirm('Hapus?')">
+                        <?= csrf_field() ?><button type="submit" class="btn btn-xs btn-outline-danger"><i class="fas fa-trash"></i></button>
+                    </form>
+                </div>
+                <?php endif; ?>
+            </div>
+            <div style="padding:12px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div><div style="font-size:10px;font-weight:600;color:#64748b;margin-bottom:2px">PROGRAM KERJA</div>
+                    <div style="font-size:13px;white-space:pre-line"><?= esc($ikh['program_kerja'] ?: '—') ?></div></div>
+                <div><div style="font-size:10px;font-weight:600;color:#64748b;margin-bottom:2px">HASIL OBSERVASI</div>
+                    <div style="font-size:13px;white-space:pre-line"><?= esc($ikh['hasil_observasi'] ?: '—') ?></div></div>
+            </div>
+            <?php if ($canEditIkhtisar): ?>
+            <div id="edit-ikh-<?= $ikh['id'] ?>" style="display:none;padding:12px 16px;background:#fffbeb">
                 <form action="/admin/kka/ikhtisar/<?= $ikh['id'] ?>/update" method="POST">
                     <?= csrf_field() ?>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                        <div class="form-group">
-                            <label class="form-label">Program Kerja / Prosedur</label>
-                            <textarea name="program_kerja" class="form-control" rows="3"><?= esc($ikh['program_kerja']) ?></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Langkah Audit</label>
-                            <textarea name="langkah_audit" class="form-control" rows="3"><?= esc($ikh['langkah_audit']) ?></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Hasil Observasi</label>
-                            <textarea name="hasil_observasi" class="form-control" rows="3"><?= esc($ikh['hasil_observasi']) ?></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Simpulan Ikhtisar</label>
-                            <textarea name="simpulan" class="form-control" rows="3"><?= esc($ikh['simpulan']) ?></textarea>
-                        </div>
+                    <input type="hidden" name="pka_id" value="">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                        <div class="form-group"><label class="form-label">Program Kerja</label>
+                            <textarea name="program_kerja" class="form-control" rows="2"><?= esc($ikh['program_kerja']) ?></textarea></div>
+                        <div class="form-group"><label class="form-label">Hasil Observasi</label>
+                            <textarea name="hasil_observasi" class="form-control" rows="2"><?= esc($ikh['hasil_observasi']) ?></textarea></div>
+                        <div class="form-group"><label class="form-label">Simpulan</label>
+                            <textarea name="simpulan" class="form-control" rows="2"><?= esc($ikh['simpulan']) ?></textarea></div>
                     </div>
-                    <div style="display:flex;gap:8px;margin-top:8px">
+                    <div style="display:flex;gap:6px;margin-top:6px">
                         <button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-save"></i> Simpan</button>
                         <button type="button" class="btn btn-sm btn-secondary" onclick="toggleEditIkhtisar(<?= $ikh['id'] ?>)">Batal</button>
                     </div>
@@ -194,50 +267,37 @@ $canEditRekomendasi = $canEdit && $kka['status'] === 'simpulan_selesai';
             <?php endif; ?>
         </div>
         <?php endforeach; ?>
-        <?php endif; ?>
 
-        <!-- Tambah Ikhtisar -->
+        <!-- Tambah Observasi Bebas -->
         <?php if ($canEditIkhtisar): ?>
-        <button class="btn btn-outline-primary btn-sm mb-2" onclick="document.getElementById('form-add-ikhtisar').classList.toggle('d-none')">
-            <i class="fas fa-plus"></i> Tambah Item Ikhtisar
+        <button class="btn btn-outline-secondary btn-sm mt-1" onclick="document.getElementById('form-add-bebas').classList.toggle('d-none')">
+            <i class="fas fa-plus"></i> Tambah Observasi Bebas
         </button>
-        <div id="form-add-ikhtisar" class="d-none" style="border:1px dashed #93c5fd;border-radius:8px;padding:16px;background:#eff6ff;margin-top:8px">
+        <div id="form-add-bebas" class="d-none" style="border:1px dashed #94a3b8;border-radius:8px;padding:14px;background:#f8fafc;margin-top:8px">
             <form action="/admin/kka/<?= $kka['id'] ?>/ikhtisar/store" method="POST">
                 <?= csrf_field() ?>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                    <div class="form-group">
-                        <label class="form-label">Program Kerja / Prosedur <span class="text-danger">*</span></label>
-                        <textarea name="program_kerja" class="form-control" rows="3" placeholder="Uraian prosedur/program kerja yang dilaksanakan..." required></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Langkah Audit</label>
-                        <textarea name="langkah_audit" class="form-control" rows="3" placeholder="Langkah-langkah pengujian yang dilakukan..."></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Hasil Observasi <span class="text-danger">*</span></label>
-                        <textarea name="hasil_observasi" class="form-control" rows="3" placeholder="Fakta/temuan yang ditemukan di lapangan..." required></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Simpulan Ikhtisar</label>
-                        <textarea name="simpulan" class="form-control" rows="3" placeholder="Simpulan dari ikhtisar ini..."></textarea>
-                    </div>
+                <input type="hidden" name="pka_id" value="">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                    <div class="form-group"><label class="form-label">Program Kerja / Prosedur</label>
+                        <textarea name="program_kerja" class="form-control" rows="2" placeholder="Uraian kegiatan..."></textarea></div>
+                    <div class="form-group"><label class="form-label">Hasil Observasi <span class="req">*</span></label>
+                        <textarea name="hasil_observasi" class="form-control" rows="2" placeholder="Fakta di lapangan..." required></textarea></div>
+                    <div class="form-group"><label class="form-label">Simpulan</label>
+                        <textarea name="simpulan" class="form-control" rows="2"></textarea></div>
                 </div>
-                <div style="display:flex;gap:8px;margin-top:8px">
+                <div style="display:flex;gap:6px;margin-top:6px">
                     <button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-plus"></i> Tambahkan</button>
-                    <button type="button" class="btn btn-sm btn-secondary" onclick="document.getElementById('form-add-ikhtisar').classList.add('d-none')">Batal</button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="document.getElementById('form-add-bebas').classList.add('d-none')">Batal</button>
                 </div>
             </form>
         </div>
 
-        <!-- Tombol Selesaikan Ikhtisar -->
-        <?php if (!empty($ikhtisar)): ?>
+        <?php if ($totalIkhtisar > 0): ?>
         <div style="margin-top:16px;padding-top:16px;border-top:1px dashed #e2e8f0;text-align:right">
             <form action="/admin/kka/<?= $kka['id'] ?>/ikhtisar/selesai" method="POST"
-                  onsubmit="return confirm('Tandai ikhtisar sebagai selesai?\n\nSetelah ini Anda tidak bisa mengubah ikhtisar lagi.')">
+                  onsubmit="return confirm('Tandai ikhtisar selesai? Ikhtisar tidak bisa diubah lagi.')">
                 <?= csrf_field() ?>
-                <button type="submit" class="btn btn-success">
-                    <i class="fas fa-check-circle"></i> Selesaikan Ikhtisar — Lanjut ke Simpulan
-                </button>
+                <button type="submit" class="btn btn-success"><i class="fas fa-check-circle"></i> Selesaikan Ikhtisar</button>
             </form>
         </div>
         <?php endif; ?>
@@ -275,28 +335,38 @@ $canEditRekomendasi = $canEdit && $kka['status'] === 'simpulan_selesai';
         <?php foreach ($simpulan as $s): ?>
         <div class="mb-3" style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
             <div style="background:#fffbeb;padding:10px 16px;display:flex;justify-content:space-between;align-items:center">
-                <strong style="font-size:13px;color:#1e293b">Simpulan #<?= $s['nomor_urut'] ?></strong>
+                <div>
+                    <strong style="font-size:13px;color:#1e293b">Temuan #<?= $s['nomor_urut'] ?></strong>
+                    <?php if ($s['kode_temuan_kode']): ?>
+                    <span class="badge badge-warning" style="margin-left:6px;font-size:10px"><?= esc($s['kode_temuan_kode']) ?></span>
+                    <?php endif; ?>
+                    <?php if ($s['nilai_financial']): ?>
+                    <span style="margin-left:6px;font-size:11px;color:#dc2626">Rp <?= number_format($s['nilai_financial'],0,',','.') ?></span>
+                    <?php endif; ?>
+                </div>
                 <?php if ($canEditSimpulan): ?>
                 <div style="display:flex;gap:6px">
-                    <button class="btn btn-xs btn-outline-primary" onclick="toggleEditSimpulan(<?= $s['id'] ?>)">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <form action="/admin/kka/simpulan/<?= $s['id'] ?>/delete" method="POST" style="display:inline"
-                          onsubmit="return confirm('Hapus simpulan ini?')">
-                        <?= csrf_field() ?>
-                        <button type="submit" class="btn btn-xs btn-outline-danger"><i class="fas fa-trash"></i></button>
+                    <button class="btn btn-xs btn-outline-primary" onclick="toggleEditSimpulan(<?= $s['id'] ?>)"><i class="fas fa-edit"></i></button>
+                    <form action="/admin/kka/simpulan/<?= $s['id'] ?>/delete" method="POST" style="display:inline" onsubmit="return confirm('Hapus?')">
+                        <?= csrf_field() ?><button type="submit" class="btn btn-xs btn-outline-danger"><i class="fas fa-trash"></i></button>
                     </form>
                 </div>
                 <?php endif; ?>
             </div>
             <div id="view-sp-<?= $s['id'] ?>" style="padding:14px 16px">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                    <?php foreach (['kondisi'=>'Kondisi','kriteria'=>'Kriteria','sebab'=>'Sebab','akibat'=>'Akibat','rekomendasi_awal'=>'Rekomendasi Awal'] as $field => $label): ?>
+                    <?php foreach (['kondisi'=>'Kondisi/Temuan','kriteria'=>'Kriteria','sebab'=>'Sebab','akibat'=>'Akibat','rekomendasi_awal'=>'Rekomendasi Awal'] as $field => $label): ?>
                     <div>
                         <div style="font-size:11px;font-weight:600;color:#64748b;margin-bottom:3px"><?= strtoupper($label) ?></div>
                         <div style="font-size:13px;white-space:pre-line"><?= esc($s[$field] ?: '—') ?></div>
                     </div>
                     <?php endforeach; ?>
+                    <?php if ($s['kode_temuan_uraian']): ?>
+                    <div>
+                        <div style="font-size:11px;font-weight:600;color:#64748b;margin-bottom:3px">KODE TEMUAN</div>
+                        <div style="font-size:13px"><?= esc($s['kode_temuan_kode']) ?> — <?= esc($s['kode_temuan_uraian']) ?></div>
+                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
             <?php if ($canEditSimpulan): ?>
@@ -304,12 +374,21 @@ $canEditRekomendasi = $canEdit && $kka['status'] === 'simpulan_selesai';
                 <form action="/admin/kka/simpulan/<?= $s['id'] ?>/update" method="POST">
                     <?= csrf_field() ?>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                        <?php foreach (['kondisi'=>'Kondisi','kriteria'=>'Kriteria','sebab'=>'Sebab','akibat'=>'Akibat','rekomendasi_awal'=>'Rekomendasi Awal'] as $field => $label): ?>
-                        <div class="form-group">
-                            <label class="form-label"><?= $label ?></label>
-                            <textarea name="<?= $field ?>" class="form-control" rows="3"><?= esc($s[$field]) ?></textarea>
-                        </div>
+                        <?php foreach (['kondisi'=>'Kondisi/Temuan','kriteria'=>'Kriteria','sebab'=>'Sebab','akibat'=>'Akibat','rekomendasi_awal'=>'Rekomendasi Awal'] as $field => $label): ?>
+                        <div class="form-group"><label class="form-label"><?= $label ?></label>
+                            <textarea name="<?= $field ?>" class="form-control" rows="3"><?= esc($s[$field]) ?></textarea></div>
                         <?php endforeach; ?>
+                        <div class="form-group"><label class="form-label">Kode Temuan</label>
+                            <select name="kode_temuan_id" class="form-control">
+                                <option value="">— Pilih —</option>
+                                <?php foreach ($kodeTemuanList as $kt): ?>
+                                <option value="<?= $kt['id'] ?>" <?= $s['kode_temuan_id'] == $kt['id'] ? 'selected' : '' ?>>
+                                    <?= esc($kt['kode']) ?> | <?= esc(mb_strimwidth($kt['uraian'],0,60,'...')) ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select></div>
+                        <div class="form-group"><label class="form-label">Nilai Financial (Rp)</label>
+                            <input type="number" name="nilai_financial" class="form-control" value="<?= $s['nilai_financial'] ?>" placeholder="0 jika tidak ada"></div>
                     </div>
                     <div style="display:flex;gap:8px;margin-top:8px">
                         <button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-save"></i> Simpan</button>
@@ -330,12 +409,19 @@ $canEditRekomendasi = $canEdit && $kka['status'] === 'simpulan_selesai';
             <form action="/admin/kka/<?= $kka['id'] ?>/simpulan/store" method="POST">
                 <?= csrf_field() ?>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                    <?php foreach (['kondisi'=>['Kondisi','Fakta/kondisi yang ditemukan...'],'kriteria'=>['Kriteria','Standar/aturan yang berlaku...'],'sebab'=>['Sebab','Penyebab terjadinya kondisi...'],'akibat'=>['Akibat','Dampak yang ditimbulkan...'],'rekomendasi_awal'=>['Rekomendasi Awal','Saran perbaikan awal...']] as $field => [$label, $ph]): ?>
-                    <div class="form-group">
-                        <label class="form-label"><?= $label ?></label>
-                        <textarea name="<?= $field ?>" class="form-control" rows="3" placeholder="<?= $ph ?>"></textarea>
-                    </div>
+                    <?php foreach (['kondisi'=>['Kondisi/Temuan','Fakta/kondisi yang ditemukan...'],'kriteria'=>['Kriteria','Standar/aturan yang berlaku...'],'sebab'=>['Sebab','Penyebab terjadinya kondisi...'],'akibat'=>['Akibat','Dampak yang ditimbulkan...'],'rekomendasi_awal'=>['Rekomendasi Awal','Saran perbaikan awal...']] as $field => [$label, $ph]): ?>
+                    <div class="form-group"><label class="form-label"><?= $label ?></label>
+                        <textarea name="<?= $field ?>" class="form-control" rows="3" placeholder="<?= $ph ?>"></textarea></div>
                     <?php endforeach; ?>
+                    <div class="form-group"><label class="form-label">Kode Temuan</label>
+                        <select name="kode_temuan_id" class="form-control">
+                            <option value="">— Pilih Kode Temuan —</option>
+                            <?php foreach ($kodeTemuanList as $kt): ?>
+                            <option value="<?= $kt['id'] ?>"><?= esc($kt['kode']) ?> | <?= esc(mb_strimwidth($kt['uraian'],0,60,'...')) ?></option>
+                            <?php endforeach; ?>
+                        </select></div>
+                    <div class="form-group"><label class="form-label">Nilai Financial (Rp)</label>
+                        <input type="number" name="nilai_financial" class="form-control" placeholder="Kosongkan jika tidak ada"></div>
                 </div>
                 <div style="display:flex;gap:8px;margin-top:8px">
                     <button type="submit" class="btn btn-sm btn-warning"><i class="fas fa-plus"></i> Tambahkan</button>
@@ -464,22 +550,18 @@ $canEditRekomendasi = $canEdit && $kka['status'] === 'simpulan_selesai';
             <form action="/admin/kka/<?= $kka['id'] ?>/rekomendasi/store" method="POST">
                 <?= csrf_field() ?>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                    <div class="form-group">
-                        <label class="form-label">Uraian Rekomendasi <span class="text-danger">*</span></label>
-                        <textarea name="uraian_rekomendasi" class="form-control" rows="3" placeholder="Tindak lanjut yang direkomendasikan..." required></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Pihak Bertanggung Jawab</label>
-                        <input type="text" name="pihak_bertanggung_jawab" class="form-control" placeholder="Nama/jabatan...">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Target Penyelesaian</label>
-                        <input type="date" name="target_penyelesaian" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Tanggapan Auditi</label>
-                        <textarea name="tanggapan_auditi" class="form-control" rows="3" placeholder="Tanggapan dari pihak auditi..."></textarea>
-                    </div>
+                    <div class="form-group"><label class="form-label">Uraian Rekomendasi <span class="req">*</span></label>
+                        <textarea name="uraian_rekomendasi" class="form-control" rows="3" placeholder="Tindak lanjut yang direkomendasikan..." required></textarea></div>
+                    <div class="form-group"><label class="form-label">Kode Rekomendasi</label>
+                        <input type="text" name="kode_rekomendasi" class="form-control" placeholder="Contoh: 01"></div>
+                    <div class="form-group"><label class="form-label">Nilai Rekomendasi (Rp)</label>
+                        <input type="number" name="nilai_rekomendasi_financial" class="form-control" placeholder="Kosongkan jika tidak ada"></div>
+                    <div class="form-group"><label class="form-label">Pihak Bertanggung Jawab</label>
+                        <input type="text" name="pihak_bertanggung_jawab" class="form-control" placeholder="Nama/jabatan..."></div>
+                    <div class="form-group"><label class="form-label">Target Penyelesaian</label>
+                        <input type="date" name="target_penyelesaian" class="form-control"></div>
+                    <div class="form-group"><label class="form-label">Tanggapan Auditi</label>
+                        <textarea name="tanggapan_auditi" class="form-control" rows="3" placeholder="Tanggapan dari pihak auditi..."></textarea></div>
                 </div>
                 <div style="display:flex;gap:8px;margin-top:8px">
                     <button type="submit" class="btn btn-sm btn-primary" style="background:#7c3aed;border-color:#7c3aed"><i class="fas fa-plus"></i> Tambahkan</button>
@@ -513,6 +595,10 @@ $canEditRekomendasi = $canEdit && $kka['status'] === 'simpulan_selesai';
 <?php endif; ?>
 
 <script>
+function toggleAddIkh(pkaId) {
+    var el = document.getElementById('add-ikh-'+pkaId);
+    if (el) el.classList.toggle('d-none');
+}
 function toggleEditIkhtisar(id) {
     document.getElementById('view-ikh-'+id).style.display === 'none'
         ? (document.getElementById('view-ikh-'+id).style.display='', document.getElementById('edit-ikh-'+id).style.display='none')
