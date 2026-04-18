@@ -18,6 +18,7 @@ class SptModel extends Model
     public static array $statusLabel = [
         'draft'           => 'Draft',
         'diajukan'        => 'Diajukan',
+        'ditolak'         => 'Ditolak',
         'acc_irban'       => 'ACC Irban',
         'acc_evlap'       => 'ACC Evlap',
         'acc_sekretaris'  => 'ACC Sekretaris',
@@ -27,6 +28,7 @@ class SptModel extends Model
     public static array $statusColor = [
         'draft'           => 'secondary',
         'diajukan'        => 'info',
+        'ditolak'         => 'danger',
         'acc_irban'       => 'primary',
         'acc_evlap'       => 'warning',
         'acc_sekretaris'  => 'purple',

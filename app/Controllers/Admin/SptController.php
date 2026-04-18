@@ -447,10 +447,30 @@ class SptController extends BaseController
         $catatan = $this->request->getPost('catatan') ?: 'Ditolak';
 
         $this->approvalModel->reject($id, $tahap, $userId, $catatan);
-        $this->sptModel->update($id, ['status' => 'draft', 'catatan' => $catatan]);
+        $this->sptModel->update($id, ['status' => 'ditolak', 'catatan' => $catatan]);
 
         logActivity('spt.reject', 'spt', "Tolak SPT id={$id}, catatan: {$catatan}");
-        return redirect()->to('/admin/spt/' . $id)->with('error', 'SPT ditolak dan dikembalikan ke draft.');
+        return redirect()->to('/admin/spt/' . $id)->with('error', 'SPT ditolak. Silakan revisi sesuai catatan dan ajukan kembali.');
+    }
+
+    // ===================================================
+    // REVISI — kembalikan SPT ditolak ke draft
+    // ===================================================
+
+    public function revisi(int $id)
+    {
+        $spt = $this->sptModel->getDetail($id);
+        if (!$spt || !$this->canAccessSpt($spt)) {
+            return redirect()->to('/admin/spt')->with('error', 'Akses ditolak.');
+        }
+        if ($spt['status'] !== 'ditolak') {
+            return redirect()->to('/admin/spt/' . $id)->with('error', 'SPT tidak dalam status ditolak.');
+        }
+
+        $this->sptModel->update($id, ['status' => 'draft', 'catatan' => null]);
+        logActivity('spt.revisi', 'spt', "Revisi SPT id={$id}");
+        return redirect()->to('/admin/spt/' . $id . '/edit')
+            ->with('success', 'SPT dikembalikan ke Draft. Silakan perbaiki dan ajukan kembali.');
     }
 
     // ===================================================

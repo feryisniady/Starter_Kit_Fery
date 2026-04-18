@@ -26,6 +26,15 @@
                 <i class="fas fa-paper-plane"></i> Ajukan
             </button>
         <?php endif; ?>
+        <?php if($spt['status'] === 'ditolak'): ?>
+            <form action="/admin/spt/<?= $spt['id'] ?>/revisi" method="POST" style="display:inline"
+                  onsubmit="return confirm('Mulai revisi SPT? Status akan kembali ke Draft dan Anda bisa edit.')">
+                <?= csrf_field() ?>
+                <button type="submit" class="btn btn-warning">
+                    <i class="fas fa-rotate-left"></i> Revisi SPT
+                </button>
+            </form>
+        <?php endif; ?>
         <?php if(in_array($spt['status'], ['diajukan','acc_irban','acc_evlap','acc_sekretaris'])): ?>
             <button class="btn btn-success" onclick="$('#modal-approve').show()">
                 <i class="fas fa-check"></i> Approve
@@ -49,7 +58,31 @@
 <div class="alert-error-inline mb-3"><i class="fas fa-circle-exclamation"></i> <?= session()->getFlashdata('error') ?></div>
 <?php endif; ?>
 
-<?php if (in_array($spt['status'], ['diajukan','acc_irban','acc_evlap','acc_sekretaris'])): ?>
+<?php if ($spt['status'] === 'ditolak'): ?>
+<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:16px 20px;margin-bottom:16px">
+    <div style="display:flex;align-items:flex-start;gap:12px">
+        <div style="width:40px;height:40px;border-radius:50%;background:#fee2e2;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i class="fas fa-circle-xmark" style="color:#dc2626;font-size:18px"></i>
+        </div>
+        <div style="flex:1">
+            <div style="font-weight:700;color:#991b1b;font-size:14px;margin-bottom:4px">
+                SPT Ditolak — Perlu Perbaikan
+            </div>
+            <?php if(!empty($spt['catatan'])): ?>
+            <div style="background:#fff;border:1px solid #fca5a5;border-radius:6px;padding:10px 14px;margin-top:8px;font-size:13px;color:#7f1d1d;line-height:1.6">
+                <i class="fas fa-comment-dots" style="color:#dc2626;margin-right:4px"></i>
+                <strong>Catatan Penolakan:</strong><br>
+                <?= nl2br(esc($spt['catatan'])) ?>
+            </div>
+            <?php endif; ?>
+            <div style="margin-top:10px;font-size:12px;color:#991b1b">
+                <i class="fas fa-info-circle"></i>
+                Klik <strong>"Revisi SPT"</strong> di kanan atas untuk memperbaiki dan mengajukan ulang.
+            </div>
+        </div>
+    </div>
+</div>
+<?php elseif (in_array($spt['status'], ['diajukan','acc_irban','acc_evlap','acc_sekretaris'])): ?>
 <div style="background:#fffbeb;border:1px solid #fbbf24;border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;font-size:13px;color:#92400e">
     <i class="fas fa-lock" style="font-size:16px;flex-shrink:0"></i>
     <div>
@@ -463,7 +496,7 @@ $kmAllDone  = $kmDoneAll === $kmTotalAll;
             <?= csrf_field() ?>
             <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:#991b1b">
                 <i class="fas fa-triangle-exclamation"></i>
-                SPT akan <strong>dikembalikan ke Draft</strong> dan pengaju akan diminta melakukan perbaikan sesuai catatan.
+                SPT akan berstatus <strong>Ditolak</strong>. Pengaju akan melihat catatan penolakan dan bisa memperbaiki dengan klik "Revisi SPT".
             </div>
             <div class="form-group" style="margin-bottom:16px">
                 <label style="font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;display:block">

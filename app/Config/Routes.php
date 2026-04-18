@@ -160,6 +160,7 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	$routes->post('spt/(:num)/ajukan',          'Admin\SptController::ajukan/$1');
 	$routes->post('spt/(:num)/approve',         'Admin\SptController::approve/$1');
 	$routes->post('spt/(:num)/reject',          'Admin\SptController::reject/$1');
+	$routes->post('spt/(:num)/revisi',          'Admin\SptController::revisi/$1');
 	$routes->get('spt/(:num)/word',             'Admin\SptController::downloadWord/$1');
 
 	// =====================================================================
