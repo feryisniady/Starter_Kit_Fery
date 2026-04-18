@@ -185,10 +185,11 @@
             <tbody>
             <?php
             $no = 1;
-            $prevAt = null;
+            $prevSdmId = null;
             foreach ($allSimpulan as $s):
-                $isNewAt = $s['at_nama'] !== $prevAt;
-                $prevAt  = $s['at_nama'];
+                $isNewAt = $s['sdm_id'] !== $prevSdmId;
+                $prevSdmId = $s['sdm_id'];
+                $kkaId = $s['kka_header_id'] ?? $s['kka_id'];
             ?>
             <?php if ($isNewAt): ?>
             <tr style="background:#f1f5f9">
@@ -203,7 +204,7 @@
                         ?>
                         <span class="badge badge-<?= $kkaStatusColor[$ks] ?? 'secondary' ?>" style="font-size:10px"><?= $kkaStatusLabel[$ks] ?? $ks ?></span>
                     </span>
-                    <a href="/admin/kka/<?= $s['kka_id'] ?>" class="btn btn-xs btn-secondary" style="margin-left:8px;font-size:10px">
+                    <a href="/admin/kka/<?= $kkaId ?>" class="btn btn-xs btn-secondary" style="margin-left:8px;font-size:10px">
                         <i class="fas fa-eye"></i> Buka KKA
                     </a>
                 </td>
@@ -212,7 +213,7 @@
             <tr style="border-bottom:1px solid #f1f5f9" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
                 <td style="padding:10px 12px;font-size:12px;color:#94a3b8;text-align:center"><?= $no++ ?></td>
                 <td style="padding:10px 12px">
-                    <span style="font-size:11px;color:#94a3b8">AT-<?= esc($s['at_nip'] ?: $s['kka_id']) ?></span>
+                    <span style="font-size:11px;color:#94a3b8">AT-<?= esc($s['at_nip'] ?: $kkaId) ?></span>
                 </td>
                 <td style="padding:10px 12px;max-width:250px">
                     <div style="font-size:13px;color:#1e293b;line-height:1.4">
@@ -247,7 +248,7 @@
                     <?= $s['nilai_financial'] ? 'Rp ' . number_format((int)$s['nilai_financial'], 0, ',', '.') : '—' ?>
                 </td>
                 <td style="padding:10px 12px;text-align:center;white-space:nowrap">
-                    <a href="/admin/kka/<?= $s['kka_id'] ?>" class="btn btn-xs btn-secondary" title="Lihat KKA">
+                    <a href="/admin/kka/<?= $kkaId ?>" class="btn btn-xs btn-secondary" title="Lihat KKA">
                         <i class="fas fa-eye"></i>
                     </a>
                 </td>
