@@ -30,7 +30,7 @@ class Reviu extends Controller
 
 
         // 1. Inisialisasi Global
-        $apiKey = trim("AIzaSyA-QzmXKgcFTudTVXiztu8olpHk-50pFI8"); 
+        $apiKey = trim("AIzaSyBAIx9t-IisLhXX-Hml222I7DZkPRmPtrc"); 
         $model = new ReviuModel();
         $file = $this->request->getFile('dokumen');
         $idKriteria = $this->request->getPost('id_kriteria');
