@@ -19,6 +19,11 @@
 <?php if(session()->getFlashdata('error')): ?>
 <div class="alert-error-inline mb-3"><i class="fas fa-circle-exclamation"></i> <?= session()->getFlashdata('error') ?></div>
 <?php endif; ?>
+<?php if(!$canEdit): ?>
+<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#92400e">
+    <i class="fas fa-lock"></i> <strong>SPT sedang dalam proses persetujuan.</strong> Data tidak dapat diubah.
+</div>
+<?php endif; ?>
 
 <div style="display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:start">
 
@@ -97,7 +102,7 @@
 
                 <div class="form-actions">
                     <a href="/admin/spt/<?= $spt['id'] ?>/km" class="btn btn-secondary">Batal</a>
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn btn-primary" <?= !$canEdit ? 'disabled' : '' ?>>
                         <i class="fas fa-save"></i> Simpan KM-5
                     </button>
                 </div>

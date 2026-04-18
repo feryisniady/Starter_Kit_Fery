@@ -49,6 +49,21 @@
 <div class="alert-error-inline mb-3"><i class="fas fa-circle-exclamation"></i> <?= session()->getFlashdata('error') ?></div>
 <?php endif; ?>
 
+<?php if (in_array($spt['status'], ['diajukan','acc_irban','acc_evlap','acc_sekretaris'])): ?>
+<div style="background:#fffbeb;border:1px solid #fbbf24;border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;font-size:13px;color:#92400e">
+    <i class="fas fa-lock" style="font-size:16px;flex-shrink:0"></i>
+    <div>
+        <strong>SPT sedang dalam proses persetujuan</strong> — konten tidak dapat diedit sampai SPT terbit atau dikembalikan.
+        <?php
+        $progLabel = ['diajukan'=>'Menunggu Ka. Irban','acc_irban'=>'Menunggu Subbag Evlap','acc_evlap'=>'Menunggu Sekretaris','acc_sekretaris'=>'Menunggu Inspektur'];
+        ?>
+        <span style="margin-left:6px;background:#fef3c7;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600">
+            <?= $progLabel[$spt['status']] ?? $spt['status'] ?>
+        </span>
+    </div>
+</div>
+<?php endif; ?>
+
 <div style="display:grid;grid-template-columns:2fr 1fr;gap:24px;align-items:flex-start">
 
     <!-- Detail SPT -->
@@ -216,10 +231,13 @@ $kmAllDone  = $kmDoneAll === $kmTotalAll;
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:24px">
 
     <!-- PKA -->
+    <?php $sptLocked = in_array($spt['status'], ['diajukan','acc_irban','acc_evlap','acc_sekretaris']); ?>
     <div class="card">
         <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
             <h3 class="card-title" style="margin:0"><i class="fas fa-list-check"></i> Program Kerja Audit</h3>
-            <a href="/admin/spt/<?= $spt['id'] ?>/pka" class="btn btn-xs btn-primary">Kelola PKA</a>
+            <a href="/admin/spt/<?= $spt['id'] ?>/pka" class="btn btn-xs btn-<?= $sptLocked ? 'secondary' : 'primary' ?>">
+                <?= $sptLocked ? 'Lihat PKA' : 'Kelola PKA' ?>
+            </a>
         </div>
         <div class="card-body">
             <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center">
@@ -249,7 +267,7 @@ $kmAllDone  = $kmDoneAll === $kmTotalAll;
     <div class="card">
         <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
             <h3 class="card-title" style="margin:0"><i class="fas fa-exclamation-triangle"></i> Temuan Audit</h3>
-            <a href="/admin/spt/<?= $spt['id'] ?>/temuan" class="btn btn-xs btn-primary">Kelola Temuan</a>
+            <a href="/admin/spt/<?= $spt['id'] ?>/temuan" class="btn btn-xs btn-secondary">Lihat Temuan</a>
         </div>
         <div class="card-body">
             <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center">

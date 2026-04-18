@@ -19,6 +19,11 @@
 <?php if(session()->getFlashdata('success')): ?>
 <div class="alert-success-inline mb-3"><i class="fas fa-check-circle"></i> <?= session()->getFlashdata('success') ?></div>
 <?php endif; ?>
+<?php if(!$canEdit): ?>
+<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#92400e">
+    <i class="fas fa-lock"></i> <strong>SPT sedang dalam proses persetujuan.</strong> Data tidak dapat diubah.
+</div>
+<?php endif; ?>
 
 <?php
 // Tentukan daftar anggota yang ditampilkan:

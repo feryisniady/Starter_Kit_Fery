@@ -16,6 +16,11 @@
 <?php if(session()->getFlashdata('error')): ?>
 <div class="alert-error-inline mb-3"><i class="fas fa-circle-exclamation"></i> <?= session()->getFlashdata('error') ?></div>
 <?php endif; ?>
+<?php if(!$canEdit): ?>
+<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#92400e">
+    <i class="fas fa-lock"></i> <strong>SPT sedang dalam proses persetujuan.</strong> Data tidak dapat diubah.
+</div>
+<?php endif; ?>
 
 <div class="card" style="max-width:720px">
     <div class="card-header"><h3 class="card-title"><i class="fas fa-id-card"></i> Kartu Penugasan (KM1)</h3></div>
@@ -84,7 +89,7 @@
 
             <div class="form-actions">
                 <a href="/admin/spt/<?= $spt['id'] ?>/km" class="btn btn-secondary">Batal</a>
-                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Simpan KM1</button>
+                <button type="submit" class="btn btn-primary" <?= !$canEdit ? 'disabled' : '' ?>><i class="fas fa-save"></i> Simpan KM1</button>
             </div>
         </form>
     </div>
