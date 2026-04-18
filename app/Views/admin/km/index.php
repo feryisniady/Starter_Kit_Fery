@@ -159,7 +159,8 @@ $urlMap = [
     'km5'          => '/admin/spt/'.$spt['id'].'/km/5',
     'km5b'         => '/admin/spt/'.$spt['id'].'/km/5b',
     'independensi' => '/admin/spt/'.$spt['id'].'/km/independensi',
-    'km7'          => '/admin/spt/'.$spt['id'].'/temuan',
+    'km7'          => '/admin/spt/'.$spt['id'].'/kka',
+    'km9'          => '/admin/spt/'.$spt['id'].'/nhp',
     'km10'         => '/admin/spt/'.$spt['id'].'/km/10',
     'km11'         => '/admin/spt/'.$spt['id'].'/km/11',
 ];

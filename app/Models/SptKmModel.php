@@ -65,11 +65,17 @@ class SptKmModel
             'link'     => false,
         ],
         'km7' => [
-            'label'    => 'KM-7 — Daftar Temuan',
-            'icon'     => 'triangle-exclamation',
+            'label'    => 'KM-7 — KKA (Kertas Kerja Audit)',
+            'icon'     => 'file-pen',
             'required' => false,
-            'link'     => true,   // redirect ke modul Temuan
-            'info'     => true,   // hanya informatif
+            'link'     => true,
+            'info'     => true,
+        ],
+        'km9' => [
+            'label'    => 'KM-9 — NHP (Notisi Hasil Pemeriksaan)',
+            'icon'     => 'paper-plane',
+            'required' => false,
+            'link'     => true,
         ],
         'km10' => [
             'label'    => 'KM-10 — Exit Meeting',
@@ -128,8 +134,14 @@ class SptKmModel
         $indDone    = $timCount > 0 && $indCount >= $timCount;
         $indDetail  = $timCount > 0 ? "{$indCount}/{$timCount} anggota terisi" : 'Belum ada tim';
 
-        // KM-7: Daftar Temuan (informatif)
-        $temuanCount = $this->db->table('temuan')->where('spt_id', $sptId)->countAllResults();
+        // KM-7: KKA (informatif)
+        $kkaCount = $this->db->table('kka')->where('spt_id', $sptId)->countAllResults();
+
+        // KM-9: NHP
+        $nhpTotal    = $this->db->table('nhp')->where('spt_id', $sptId)->countAllResults();
+        $nhpTerkirim = $this->db->table('nhp')->where('spt_id', $sptId)->whereIn('status', ['terkirim','ditanggapi','selesai'])->countAllResults();
+        $nhpSelesai  = $this->db->table('nhp')->where('spt_id', $sptId)->where('status', 'selesai')->countAllResults();
+        $km9Done     = $nhpTotal > 0;
 
         // KM-10: Exit Meeting
         $km10Done   = $this->db->table('spt_km10')->where('spt_id', $sptId)->countAllResults() > 0;
@@ -172,7 +184,13 @@ class SptKmModel
             ]),
             'km7' => array_merge(self::$kmConfig['km7'], [
                 'complete' => true,
-                'detail'   => "{$temuanCount} temuan tercatat",
+                'detail'   => "{$kkaCount} KKA aktif",
+            ]),
+            'km9' => array_merge(self::$kmConfig['km9'], [
+                'complete' => $km9Done,
+                'detail'   => $km9Done
+                    ? "{$nhpTotal} NHP ({$nhpTerkirim} terkirim, {$nhpSelesai} selesai)"
+                    : 'Belum ada NHP',
             ]),
             'km10' => array_merge(self::$kmConfig['km10'], [
                 'complete' => $km10Done,
