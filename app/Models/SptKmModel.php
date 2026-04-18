@@ -15,58 +15,67 @@ class SptKmModel
 
     // ──────────────────────────────────────────────────────────────
     // Label & config per item KM
-    // required = wajib lengkap sebelum SPT dapat diajukan
-    // info     = hanya informatif, tidak memblokir ajukan
-    // link     = tidak punya form sendiri, redirect ke modul lain
+    // phase    = 1:Persiapan (syarat SPT terbit), 2:Pelaksanaan, 3:Pelaporan
+    // required = wajib lengkap dalam fase-nya
+    // info     = hanya informatif, tidak memblokir
+    // link     = redirect ke modul lain
     // ──────────────────────────────────────────────────────────────
 
     public static array $kmConfig = [
         'km1' => [
             'label'    => 'KM-1 — Peta Pengawasan',
             'icon'     => 'map',
+            'phase'    => 1,
             'required' => true,
             'link'     => false,
         ],
         'km2' => [
             'label'    => 'KM-2 — Anggaran Waktu',
             'icon'     => 'calendar-days',
+            'phase'    => 1,
             'required' => true,
             'link'     => false,
         ],
         'km3' => [
             'label'    => 'KM-3 — Dokumen SPT',
             'icon'     => 'file-contract',
+            'phase'    => 1,
             'required' => true,
             'link'     => false,
-            'auto'     => true,   // prefill otomatis dari data SPT
+            'auto'     => true,
         ],
         'km4' => [
             'label'    => 'KM-4 — PKA (Program Kerja Audit)',
             'icon'     => 'clipboard-list',
+            'phase'    => 1,
             'required' => true,
-            'link'     => true,   // redirect ke modul PKA
+            'link'     => true,
         ],
         'km5' => [
             'label'    => 'KM-5 — Reviu PKA',
             'icon'     => 'magnifying-glass-chart',
+            'phase'    => 1,
             'required' => true,
             'link'     => false,
         ],
         'km5b' => [
             'label'    => 'KM-5b — Entry Meeting',
             'icon'     => 'handshake',
+            'phase'    => 1,
             'required' => true,
             'link'     => false,
         ],
         'independensi' => [
             'label'    => 'Independensi & Integritas',
             'icon'     => 'user-shield',
+            'phase'    => 1,
             'required' => true,
             'link'     => false,
         ],
         'km7' => [
             'label'    => 'KM-7 — KKA (Kertas Kerja Audit)',
             'icon'     => 'file-pen',
+            'phase'    => 2,
             'required' => false,
             'link'     => true,
             'info'     => true,
@@ -74,18 +83,21 @@ class SptKmModel
         'km9' => [
             'label'    => 'KM-9 — NHP (Notisi Hasil Pemeriksaan)',
             'icon'     => 'paper-plane',
+            'phase'    => 2,
             'required' => false,
             'link'     => true,
         ],
         'km10' => [
             'label'    => 'KM-10 — Exit Meeting',
             'icon'     => 'handshake-angle',
+            'phase'    => 3,
             'required' => true,
             'link'     => false,
         ],
         'km11' => [
             'label'    => 'KM-11 — Reviu Laporan',
             'icon'     => 'file-circle-check',
+            'phase'    => 3,
             'required' => true,
             'link'     => false,
         ],
@@ -207,12 +219,37 @@ class SptKmModel
     // Helpers
     // ──────────────────────────────────────────────────────────────
 
+    /** Cek semua item required (semua fase) — untuk keperluan internal */
     public function isComplete(int $sptId): bool
     {
         foreach ($this->getChecklist($sptId) as $item) {
             if (($item['required'] ?? true) && !$item['complete']) return false;
         }
         return true;
+    }
+
+    /** Hanya Fase 1 — syarat SPT dapat diajukan */
+    public function isPhase1Complete(int $sptId): bool
+    {
+        foreach ($this->getChecklist($sptId) as $item) {
+            if (($item['phase'] ?? 1) !== 1) continue;
+            if (($item['required'] ?? true) && !$item['complete']) return false;
+        }
+        return true;
+    }
+
+    /** Item Fase 1 yang belum selesai */
+    public function getMissingPhase1Labels(int $sptId): array
+    {
+        return array_map(
+            fn($item) => $item['label'],
+            array_filter(
+                $this->getChecklist($sptId),
+                fn($item) => ($item['phase'] ?? 1) === 1
+                          && ($item['required'] ?? true)
+                          && !$item['complete']
+            )
+        );
     }
 
     public function getMissingLabels(int $sptId): array

@@ -126,29 +126,82 @@ $hpBarColor = $hpPct >= 90 ? '#ef4444' : ($hpPct >= 70 ? '#f59e0b' : '#22c55e');
                                    value="<?= old('jumlah_laporan', $row['jumlah_laporan'] ?? 1) ?>" min="1">
                         </div>
                     </div>
+                    <?php
+                    // Generate opsi minggu per bulan (tahun PKPT ± 1 tahun)
+                    $bulanSingkat = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+                    $weekDefs = [
+                        'Mg-I'  => [1,  7],
+                        'Mg-II' => [8,  14],
+                        'Mg-III'=> [15, 21],
+                        'Mg-IV' => [22, 28],
+                    ];
+                    $weekOptions = [];
+                    for ($y = $pkpt['tahun'] - 1; $y <= $pkpt['tahun'] + 1; $y++) {
+                        for ($m = 1; $m <= 12; $m++) {
+                            $lastDay = (int) date('t', mktime(0,0,0,$m,1,$y));
+                            foreach ($weekDefs as $wk => [$wStart, $wEnd]) {
+                                $actualEnd = min($wEnd, $lastDay);
+                                $weekOptions[] = [
+                                    'label' => $wk . ' ' . $bulanSingkat[$m-1] . ' ' . $y,
+                                    'start' => sprintf('%04d-%02d-%02d', $y, $m, $wStart),
+                                    'end'   => sprintf('%04d-%02d-%02d', $y, $m, $actualEnd),
+                                ];
+                            }
+                            if ($lastDay >= 29) {
+                                $weekOptions[] = [
+                                    'label' => 'Mg-V ' . $bulanSingkat[$m-1] . ' ' . $y,
+                                    'start' => sprintf('%04d-%02d-29', $y, $m),
+                                    'end'   => sprintf('%04d-%02d-%02d', $y, $m, $lastDay),
+                                ];
+                            }
+                        }
+                    }
+                    $curRmp = old('jadwal_rmp', $row['jadwal_rmp'] ?? '');
+                    $curRpl = old('jadwal_rpl', $row['jadwal_rpl'] ?? '');
+                    ?>
                     <div class="form-row-2">
                         <div class="form-group">
-                            <label>Jadwal RMP</label>
-                            <input type="text" name="jadwal_rmp" class="form-control"
-                                   placeholder="Mg-II Jan 2025"
-                                   value="<?= old('jadwal_rmp', $row['jadwal_rmp'] ?? '') ?>">
+                            <label>Jadwal RMP <small style="color:#94a3b8;font-weight:400">(Rencana Mulai Penugasan)</small></label>
+                            <select name="jadwal_rmp" id="sel-rmp" class="form-control" onchange="onRmpChange(this)">
+                                <option value="">— Pilih Minggu —</option>
+                                <?php foreach ($weekOptions as $wo): ?>
+                                <option value="<?= $wo['label'] ?>"
+                                        data-start="<?= $wo['start'] ?>"
+                                        data-end="<?= $wo['end'] ?>"
+                                        <?= $curRmp === $wo['label'] ? 'selected' : '' ?>>
+                                    <?= $wo['label'] ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                         <div class="form-group">
-                            <label>Jadwal RPL</label>
-                            <input type="text" name="jadwal_rpl" class="form-control"
-                                   placeholder="Mg-III Jan 2025"
-                                   value="<?= old('jadwal_rpl', $row['jadwal_rpl'] ?? '') ?>">
+                            <label>Jadwal RPL <small style="color:#94a3b8;font-weight:400">(Rencana Pelaksanaan Lapangan)</small></label>
+                            <select name="jadwal_rpl" id="sel-rpl" class="form-control" onchange="onRplChange(this)">
+                                <option value="">— Pilih Minggu —</option>
+                                <?php foreach ($weekOptions as $wo): ?>
+                                <option value="<?= $wo['label'] ?>"
+                                        data-start="<?= $wo['start'] ?>"
+                                        data-end="<?= $wo['end'] ?>"
+                                        <?= $curRpl === $wo['label'] ? 'selected' : '' ?>>
+                                    <?= $wo['label'] ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                     </div>
                     <div class="form-row-2">
                         <div class="form-group">
-                            <label>Tanggal Mulai</label>
-                            <input type="date" name="tanggal_mulai" class="form-control"
+                            <label>Tanggal Mulai
+                                <small style="color:#6366f1;font-size:10px"><i class="fas fa-bolt"></i> Auto dari RMP</small>
+                            </label>
+                            <input type="date" name="tanggal_mulai" id="inp-mulai" class="form-control"
                                    value="<?= old('tanggal_mulai', $row['tanggal_mulai'] ?? '') ?>">
                         </div>
                         <div class="form-group">
-                            <label>Tanggal Selesai</label>
-                            <input type="date" name="tanggal_selesai" class="form-control"
+                            <label>Tanggal Selesai
+                                <small style="color:#6366f1;font-size:10px"><i class="fas fa-bolt"></i> Auto dari RPL</small>
+                            </label>
+                            <input type="date" name="tanggal_selesai" id="inp-selesai" class="form-control"
                                    value="<?= old('tanggal_selesai', $row['tanggal_selesai'] ?? '') ?>">
                         </div>
                     </div>
@@ -344,5 +397,19 @@ function updateSisaHp(sel) {
 }
 
 $(document).ready(hitungTotal);
+
+function onRmpChange(sel) {
+    const opt = sel.options[sel.selectedIndex];
+    if (opt && opt.dataset.start) {
+        document.getElementById('inp-mulai').value = opt.dataset.start;
+    }
+}
+
+function onRplChange(sel) {
+    const opt = sel.options[sel.selectedIndex];
+    if (opt && opt.dataset.end) {
+        document.getElementById('inp-selesai').value = opt.dataset.end;
+    }
+}
 </script>
 <?= $this->endSection() ?>
