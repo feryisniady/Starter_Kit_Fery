@@ -260,71 +260,33 @@ $kmAllDone  = $kmDoneAll === $kmTotalAll;
     </div>
 </div>
 
-<!-- Ringkasan PKA & Temuan -->
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:24px">
-
-    <!-- PKA -->
-    <?php $sptLocked = in_array($spt['status'], ['diajukan','acc_irban','acc_evlap','acc_sekretaris']); ?>
-    <div class="card">
-        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
-            <h3 class="card-title" style="margin:0"><i class="fas fa-list-check"></i> Program Kerja Audit</h3>
-            <a href="/admin/spt/<?= $spt['id'] ?>/pka" class="btn btn-xs btn-<?= $sptLocked ? 'secondary' : 'primary' ?>">
-                <?= $sptLocked ? 'Lihat PKA' : 'Kelola PKA' ?>
-            </a>
-        </div>
-        <div class="card-body">
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center">
-                <div>
-                    <div style="font-size:24px;font-weight:700;color:#6366f1"><?= $pkaStats['total'] ?></div>
-                    <div style="font-size:11px;color:#64748b">Total Prosedur</div>
-                </div>
-                <div>
-                    <div style="font-size:24px;font-weight:700;color:#22c55e"><?= $pkaStats['selesai'] ?></div>
-                    <div style="font-size:11px;color:#64748b">Selesai</div>
-                </div>
-                <div>
-                    <div style="font-size:24px;font-weight:700;color:#f59e0b"><?= $pkaStats['belum'] ?></div>
-                    <div style="font-size:11px;color:#64748b">Belum</div>
-                </div>
-            </div>
-            <?php if($pkaStats['total'] > 0): ?>
-            <div style="margin-top:12px;background:#f1f5f9;border-radius:8px;height:8px;overflow:hidden">
-                <div style="width:<?= $pkaStats['total'] > 0 ? round($pkaStats['selesai']/$pkaStats['total']*100) : 0 ?>%;
-                            height:100%;background:#22c55e;border-radius:8px"></div>
-            </div>
-            <?php endif; ?>
-        </div>
+<!-- Temuan -->
+<div class="card" style="margin-top:24px">
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+        <h3 class="card-title" style="margin:0"><i class="fas fa-exclamation-triangle"></i> Temuan Audit</h3>
+        <a href="/admin/spt/<?= $spt['id'] ?>/temuan" class="btn btn-xs btn-secondary">Lihat Temuan</a>
     </div>
-
-    <!-- Temuan -->
-    <div class="card">
-        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
-            <h3 class="card-title" style="margin:0"><i class="fas fa-exclamation-triangle"></i> Temuan Audit</h3>
-            <a href="/admin/spt/<?= $spt['id'] ?>/temuan" class="btn btn-xs btn-secondary">Lihat Temuan</a>
-        </div>
-        <div class="card-body">
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center">
-                <div>
-                    <div style="font-size:24px;font-weight:700;color:#6366f1"><?= $temuanSummary['total'] ?></div>
-                    <div style="font-size:11px;color:#64748b">Total Temuan</div>
-                </div>
-                <div>
-                    <div style="font-size:24px;font-weight:700;color:#ef4444"><?= $temuanSummary['buka'] ?></div>
-                    <div style="font-size:11px;color:#64748b">Terbuka</div>
-                </div>
-                <div>
-                    <div style="font-size:24px;font-weight:700;color:#22c55e"><?= $temuanSummary['tutup'] ?></div>
-                    <div style="font-size:11px;color:#64748b">Tertutup</div>
-                </div>
+    <div class="card-body">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center">
+            <div>
+                <div style="font-size:24px;font-weight:700;color:#6366f1"><?= $temuanSummary['total'] ?></div>
+                <div style="font-size:11px;color:#64748b">Total Temuan</div>
             </div>
-            <?php if($temuanSummary['total_nilai'] > 0): ?>
-            <div style="margin-top:12px;text-align:center;font-size:13px;color:#475569">
-                Total nilai: <strong>Rp <?= number_format($temuanSummary['total_nilai'], 0, ',', '.') ?></strong>
+            <div>
+                <div style="font-size:24px;font-weight:700;color:#ef4444"><?= $temuanSummary['buka'] ?></div>
+                <div style="font-size:11px;color:#64748b">Terbuka</div>
             </div>
-            <?php endif; ?>
+            <div>
+                <div style="font-size:24px;font-weight:700;color:#22c55e"><?= $temuanSummary['tutup'] ?></div>
+                <div style="font-size:11px;color:#64748b">Tertutup</div>
+            </div>
         </div>
+        <?php if($temuanSummary['total_nilai'] > 0): ?>
+        <div style="margin-top:12px;text-align:center;font-size:13px;color:#475569">
+            Total nilai: <strong>Rp <?= number_format($temuanSummary['total_nilai'], 0, ',', '.') ?></strong>
+        </div>
+        <?php endif; ?>
     </div>
-
 </div>
 
 <!-- Modal Ajukan -->

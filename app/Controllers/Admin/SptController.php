@@ -11,7 +11,6 @@ use App\Models\PkptModel;
 use App\Models\PkptSettingModel;
 use App\Models\SdmModel;
 use App\Models\IrbanModel;
-use App\Models\PkaModel;
 use App\Models\TemuanModel;
 use App\Models\SptKmModel;
 use App\Traits\DatatableTrait;
@@ -21,7 +20,6 @@ class SptController extends BaseController
     use DatatableTrait;
     protected SptModel          $sptModel;
     protected SptTimModel       $timModel;
-    protected PkaModel          $pkaModel;
     protected TemuanModel       $temuanModel;
     protected SptKmModel        $kmModel;
     protected SptApprovalModel  $approvalModel;
@@ -41,7 +39,6 @@ class SptController extends BaseController
         $this->settingModel  = new PkptSettingModel();
         $this->sdmModel      = new SdmModel();
         $this->irbanModel    = new IrbanModel();
-        $this->pkaModel      = new PkaModel();
         $this->temuanModel   = new TemuanModel();
         $this->kmModel       = new SptKmModel();
     }
@@ -264,7 +261,6 @@ class SptController extends BaseController
             'spt'           => $spt,
             'statusLabel'   => SptModel::$statusLabel,
             'statusColor'   => SptModel::$statusColor,
-            'pkaStats'      => $this->pkaModel->getStatsBySpt($id),
             'temuanSummary' => $this->temuanModel->getSummaryBySpt($id),
             'kmChecklist'   => $this->kmModel->getChecklist($id),
         ]);
