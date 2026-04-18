@@ -9,7 +9,7 @@ class SptModel extends Model
     protected $table         = 'spt';
     protected $primaryKey    = 'id';
     protected $allowedFields = [
-        'pkpt_kegiatan_id', 'nomor_naskah', 'tanggal_naskah',
+        'pkpt_kegiatan_id', 'nama_tim', 'nomor_naskah', 'tanggal_naskah',
         'dasar_1', 'dasar_2', 'tujuan', 'tanggal_mulai', 'tanggal_selesai',
         'tembusan', 'penandatangan_id', 'status', 'file_word', 'catatan', 'created_by',
     ];

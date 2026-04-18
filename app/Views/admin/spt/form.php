@@ -17,6 +17,75 @@
 <div class="alert-error-inline mb-3"><i class="fas fa-circle-exclamation"></i> <?= session()->getFlashdata('error') ?></div>
 <?php endif; ?>
 
+<?php
+$existingSpts  = $existingSpts  ?? [];
+$hpAllocated   = $hpAllocated   ?? [];
+$suggestedNama = $suggestedNama ?? null;
+$isMultiTim    = !empty($existingSpts);
+$statusLabel   = \App\Models\SptModel::$statusLabel;
+$statusColor   = \App\Models\SptModel::$statusColor;
+?>
+
+<?php if ($isMultiTim): ?>
+<div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:14px 18px;margin-bottom:20px">
+    <div style="font-weight:700;color:#92400e;margin-bottom:10px;font-size:13px">
+        <i class="fas fa-users-between-lines"></i>
+        Kegiatan ini sudah memiliki <?= count($existingSpts) ?> SPT — Anda sedang membuat Tim Baru
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+        <?php foreach ($existingSpts as $es): ?>
+        <a href="/admin/spt/<?= $es['id'] ?>" target="_blank"
+           style="display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:5px 10px;font-size:12px;color:#1e293b;text-decoration:none">
+            <i class="fas fa-file-signature" style="color:#6366f1"></i>
+            <strong><?= esc($es['nama_tim'] ?: 'SPT #'.$es['id']) ?></strong>
+            <span class="badge badge-<?= $statusColor[$es['status']] ?? 'secondary' ?>" style="font-size:10px">
+                <?= $statusLabel[$es['status']] ?? $es['status'] ?>
+            </span>
+        </a>
+        <?php endforeach; ?>
+    </div>
+    <?php if (!empty($hpAllocated)): ?>
+    <div style="font-size:11px;color:#92400e;font-weight:600;margin-bottom:6px">
+        <i class="fas fa-clock"></i> HP per anggota — Budget PKPT vs sudah dialokasikan
+    </div>
+    <?php
+    $pkptTim = \Config\Database::connect()
+        ->table('pkpt_tim pt')
+        ->select('pt.sdm_id, pt.peran, pt.hp_total, s.nama as sdm_nama')
+        ->join('sdm s', 's.id = pt.sdm_id')
+        ->where('pt.pkpt_kegiatan_id', $kegiatan['id'])
+        ->orderBy('pt.urutan')
+        ->get()->getResultArray();
+    ?>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">
+        <?php foreach ($pkptTim as $pt):
+            $sdmId    = $pt['sdm_id'];
+            $budget   = (int)$pt['hp_total'];
+            $terpakai = (int)($hpAllocated[$sdmId] ?? 0);
+            $sisa     = max(0, $budget - $terpakai);
+            $pct      = $budget > 0 ? min(100, round($terpakai / $budget * 100)) : 0;
+            $color    = $sisa <= 0 ? '#ef4444' : ($pct >= 70 ? '#f59e0b' : '#22c55e');
+        ?>
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:6px 10px;min-width:130px;font-size:11px">
+            <div style="font-weight:600;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px">
+                <?= esc($pt['sdm_nama']) ?>
+            </div>
+            <div style="color:#64748b;margin:2px 0">Budget: <strong><?= $budget ?> HP</strong></div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+                <div style="flex:1;height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden">
+                    <div style="height:100%;width:<?= $pct ?>%;background:<?= $color ?>;border-radius:3px"></div>
+                </div>
+                <span style="color:<?= $color ?>;font-weight:700;white-space:nowrap">
+                    <?= $sisa ?> sisa
+                </span>
+            </div>
+        </div>
+        <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+</div>
+<?php endif; ?>
+
 <form action="<?= $spt ? '/admin/spt/'.$spt['id'].'/update' : '/admin/spt/store/'.$kegiatan['id'] ?>" method="POST">
     <?= csrf_field() ?>
 
@@ -27,6 +96,13 @@
             <div class="card mb-3">
                 <div class="card-header"><h3 class="card-title"><i class="fas fa-file-signature"></i> Data Surat Perintah</h3></div>
                 <div class="card-body">
+                    <div class="form-group">
+                        <label>Label Tim <span style="font-size:11px;color:#94a3b8">(opsional — isi jika satu kegiatan dibagi beberapa tim)</span></label>
+                        <input type="text" name="nama_tim" class="form-control"
+                               placeholder="cth: Tim A, Tim I, Tim Desa Makmur"
+                               value="<?= old('nama_tim', $suggestedNama ?? ($spt['nama_tim'] ?? '')) ?>"
+                               maxlength="50">
+                    </div>
                     <div class="form-row-2">
                         <div class="form-group">
                             <label>Nomor Naskah (SRIKANDI)</label>

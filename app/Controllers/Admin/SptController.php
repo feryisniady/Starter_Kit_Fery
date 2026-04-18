@@ -90,7 +90,7 @@ class SptController extends BaseController
 
         // Query data
         $q = $db->table('spt s')
-            ->select('s.id, s.nomor_naskah, s.tanggal_mulai, s.tujuan, s.status, pk.kode_kegiatan, i.nama as irban_nama')
+            ->select('s.id, s.nomor_naskah, s.nama_tim, s.tanggal_mulai, s.tujuan, s.status, pk.kode_kegiatan, i.nama as irban_nama')
             ->join('pkpt_kegiatan pk', 'pk.id = s.pkpt_kegiatan_id')
             ->join('pkpt p', 'p.id = pk.pkpt_id')
             ->join('irban i', 'i.id = p.irban_id')
@@ -119,9 +119,13 @@ class SptController extends BaseController
             if ($r['status'] === 'terbit') {
                 $actions .= ' <a href="/admin/spt/' . $r['id'] . '/word" class="btn btn-xs btn-success"><i class="fas fa-file-word"></i></a>';
             }
+            $kodeHtml = '<span class="badge badge-primary">' . esc($r['kode_kegiatan']) . '</span>';
+            if ($r['nama_tim']) {
+                $kodeHtml .= ' <span class="badge badge-warning" style="font-size:11px">' . esc($r['nama_tim']) . '</span>';
+            }
             return [
                 'nomor_naskah'  => esc($r['nomor_naskah'] ?: '—'),
-                'kode_kegiatan' => '<span class="badge badge-primary">' . esc($r['kode_kegiatan']) . '</span>',
+                'kode_kegiatan' => $kodeHtml,
                 'irban_nama'    => esc($r['irban_nama']),
                 'tujuan'        => '<span style="display:block;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' . esc($r['tujuan']) . '">' . esc($r['tujuan']) . '</span>',
                 'tanggal_mulai' => $r['tanggal_mulai'] ? date('d/m/Y', strtotime($r['tanggal_mulai'])) : '—',
@@ -153,8 +157,25 @@ class SptController extends BaseController
         }
         $setting = $this->settingModel->getByTahun((int)$pkpt['tahun']);
 
-        // Tim default dari PKPT
-        $timDefault = $this->timModel->buildFromPkptTim($pkptKegiatanId);
+        // SPT yang sudah ada untuk kegiatan ini (multi-tim context)
+        $db           = \Config\Database::connect();
+        $existingSpts = $db->table('spt')
+            ->select('id, nomor_naskah, nama_tim, status, tanggal_mulai')
+            ->where('pkpt_kegiatan_id', $pkptKegiatanId)
+            ->orderBy('id')
+            ->get()->getResultArray();
+
+        $hpAllocated  = $this->timModel->getHpAllocatedByKegiatan($pkptKegiatanId);
+        $sptCount     = count($existingSpts);
+
+        // Auto-suggest nama tim: Tim A, Tim B, Tim C …
+        $timLabels     = range('A', 'Z');
+        $suggestedNama = 'Tim ' . ($timLabels[$sptCount] ?? ($sptCount + 1));
+
+        // Tim default: sisa HP jika sudah ada SPT lain, otherwise full HP
+        $timDefault = $sptCount > 0
+            ? $this->timModel->buildFromPkptTimWithSisa($pkptKegiatanId, $hpAllocated)
+            : $this->timModel->buildFromPkptTim($pkptKegiatanId);
 
         // Dasar 1 otomatis dari setting
         $dasar1 = '';
@@ -166,15 +187,18 @@ class SptController extends BaseController
         }
 
         return view('admin/spt/form', [
-            'title'      => 'Generate SPT — ' . $kegiatan['kode_kegiatan'],
-            'kegiatan'   => $kegiatan,
-            'pkpt'       => $pkpt,
-            'setting'    => $setting,
-            'timDefault' => $timDefault,
-            'sdmAll'     => $this->sdmModel->getAktif(),
-            'sdmPenanda' => $this->sdmModel->getAktif(),
-            'dasar1'     => $dasar1,
-            'spt'        => null,
+            'title'         => 'Generate SPT — ' . $kegiatan['kode_kegiatan'],
+            'kegiatan'      => $kegiatan,
+            'pkpt'          => $pkpt,
+            'setting'       => $setting,
+            'timDefault'    => $timDefault,
+            'sdmAll'        => $this->sdmModel->getAktif(),
+            'sdmPenanda'    => $this->sdmModel->getAktif(),
+            'dasar1'        => $dasar1,
+            'spt'           => null,
+            'existingSpts'  => $existingSpts,
+            'hpAllocated'   => $hpAllocated,
+            'suggestedNama' => $suggestedNama,
         ]);
     }
 
@@ -200,6 +224,7 @@ class SptController extends BaseController
 
         $sptId = $this->sptModel->insert([
             'pkpt_kegiatan_id' => $pkptKegiatanId,
+            'nama_tim'         => trim($this->request->getPost('nama_tim') ?? '') ?: null,
             'nomor_naskah'     => $this->request->getPost('nomor_naskah'),
             'tanggal_naskah'   => $this->request->getPost('tanggal_naskah'),
             'dasar_1'          => $this->request->getPost('dasar_1'),
@@ -258,16 +283,28 @@ class SptController extends BaseController
         $kegiatan = $this->kegiatanModel->getDetail($spt['pkpt_kegiatan_id']);
         $pkpt     = $this->pkptModel->getWithIrban($kegiatan['pkpt_id']);
 
+        $db           = \Config\Database::connect();
+        $existingSpts = $db->table('spt')
+            ->select('id, nomor_naskah, nama_tim, status, tanggal_mulai')
+            ->where('pkpt_kegiatan_id', $spt['pkpt_kegiatan_id'])
+            ->where('id !=', $id)
+            ->orderBy('id')
+            ->get()->getResultArray();
+        $hpAllocated = $this->timModel->getHpAllocatedByKegiatan($spt['pkpt_kegiatan_id'], $id);
+
         return view('admin/spt/form', [
-            'title'      => 'Edit SPT — ' . $spt['kode_kegiatan'],
-            'kegiatan'   => $kegiatan,
-            'pkpt'       => $pkpt,
-            'setting'    => $this->settingModel->getByTahun((int)$pkpt['tahun']),
-            'timDefault' => $spt['tim'],
-            'sdmAll'     => $this->sdmModel->getAktif(),
-            'sdmPenanda' => $this->sdmModel->getAktif(),
-            'dasar1'     => $spt['dasar_1'],
-            'spt'        => $spt,
+            'title'         => 'Edit SPT — ' . $spt['kode_kegiatan'],
+            'kegiatan'      => $kegiatan,
+            'pkpt'          => $pkpt,
+            'setting'       => $this->settingModel->getByTahun((int)$pkpt['tahun']),
+            'timDefault'    => $spt['tim'],
+            'sdmAll'        => $this->sdmModel->getAktif(),
+            'sdmPenanda'    => $this->sdmModel->getAktif(),
+            'dasar1'        => $spt['dasar_1'],
+            'spt'           => $spt,
+            'existingSpts'  => $existingSpts,
+            'hpAllocated'   => $hpAllocated,
+            'suggestedNama' => $spt['nama_tim'] ?? null,
         ]);
     }
 
@@ -282,6 +319,7 @@ class SptController extends BaseController
         }
 
         $this->sptModel->update($id, [
+            'nama_tim'        => trim($this->request->getPost('nama_tim') ?? '') ?: null,
             'nomor_naskah'    => $this->request->getPost('nomor_naskah'),
             'tanggal_naskah'  => $this->request->getPost('tanggal_naskah'),
             'dasar_1'         => $this->request->getPost('dasar_1'),

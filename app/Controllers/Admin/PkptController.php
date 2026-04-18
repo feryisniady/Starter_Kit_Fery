@@ -309,6 +309,14 @@ class PkptController extends BaseController
         $pkpt = $this->pkptModel->getWithIrban($kegiatan['pkpt_id']);
         if (!$this->canAccessPkpt($pkpt)) return $this->response->setStatusCode(403);
 
+        $db   = \Config\Database::connect();
+        $spts = $db->table('spt')
+            ->select('id, nomor_naskah, nama_tim, status, tanggal_mulai, tanggal_selesai')
+            ->where('pkpt_kegiatan_id', $id)
+            ->orderBy('id')
+            ->get()->getResultArray();
+
+        $kegiatan['spts'] = $spts;
         return $this->response->setJSON(['success' => true, 'data' => $kegiatan]);
     }
 
@@ -434,11 +442,16 @@ class PkptController extends BaseController
         $data = [];
         foreach ($rows as $i => $row) {
             $riskBadge = '<span class="badge badge-'.($riskColor[$row['risiko_audit']]??'secondary').'">'.ucfirst($row['risiko_audit']).'</span>';
+            $timLabel  = $row['jumlah_spt'] > 1 ? $row['jumlah_spt'].' Tim' : '1 SPT';
             $sptBadge  = $row['spt_terbit'] > 0
-                ? '<span class="badge badge-success"><i class="fas fa-check"></i> Terbit</span>'
-                : ($row['jumlah_spt'] > 0
-                    ? '<span class="badge badge-info">'.$row['jumlah_spt'].' Proses</span>'
-                    : '<span class="badge badge-secondary">Belum ada SPT</span>');
+                ? ($row['jumlah_spt'] > 1
+                    ? '<span class="badge badge-success"><i class="fas fa-check"></i> '.$row['spt_terbit'].'/'.$row['jumlah_spt'].' Terbit</span>'
+                    : '<span class="badge badge-success"><i class="fas fa-check"></i> Terbit</span>')
+                : ($row['jumlah_spt'] > 1
+                    ? '<span class="badge badge-warning"><i class="fas fa-users"></i> '.$timLabel.'</span>'
+                    : ($row['jumlah_spt'] > 0
+                        ? '<span class="badge badge-info">Proses</span>'
+                        : '<span class="badge badge-secondary">Belum ada SPT</span>'));
             $periode = $row['tanggal_mulai']
                 ? date('d/m/Y', strtotime($row['tanggal_mulai'])).' s.d. '.date('d/m/Y', strtotime($row['tanggal_selesai']))
                 : '<span style="color:#94a3b8">—</span>';
