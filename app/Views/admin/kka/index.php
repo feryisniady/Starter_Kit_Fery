@@ -83,35 +83,44 @@
             <thead>
                 <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0">
                     <th style="padding:10px 16px;text-align:left;font-size:12px;color:#64748b;font-weight:600">ANGGOTA TIM</th>
-                    <th style="padding:10px 16px;text-align:center;font-size:12px;color:#64748b;font-weight:600">NIP</th>
                     <th style="padding:10px 16px;text-align:center;font-size:12px;color:#64748b;font-weight:600">PERAN</th>
-                    <th style="padding:10px 16px;text-align:center;font-size:12px;color:#64748b;font-weight:600">STATUS KKA</th>
+                    <th style="padding:10px 16px;text-align:center;font-size:12px;color:#64748b;font-weight:600">PROGRES KKA</th>
+                    <th style="padding:10px 16px;text-align:center;font-size:12px;color:#64748b;font-weight:600">STATUS REVIEW KT</th>
                     <th style="padding:10px 16px;text-align:center;font-size:12px;color:#64748b;font-weight:600">AKSI</th>
                 </tr>
             </thead>
             <tbody>
             <?php foreach ($kkaList as $k): ?>
+            <?php
+            $progColor = $statusColor[$k['status']] ?? 'secondary';
+            $progLabel = $statusLabel[$k['status']] ?? $k['status'];
+            $skStatus  = $k['status_kka'] ?? 'draft';
+            $skColor   = \App\Models\KkaModel::$statusKkaColor[$skStatus] ?? 'secondary';
+            $skLabel   = \App\Models\KkaModel::$statusKkaLabel[$skStatus] ?? $skStatus;
+            ?>
             <tr style="border-bottom:1px solid #f1f5f9" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
                 <td style="padding:12px 16px">
                     <div style="font-weight:600;color:#1e293b"><?= esc($k['nama']) ?></div>
+                    <div style="font-size:11px;color:#94a3b8"><?= esc($k['nip'] ?: '—') ?></div>
                     <?php if ($k['catatan_dalnis']): ?>
                     <div style="font-size:11px;color:#6366f1;margin-top:2px">
                         <i class="fas fa-comment-dots"></i> Ada catatan Dalnis
                     </div>
                     <?php endif; ?>
                 </td>
-                <td style="padding:12px 16px;text-align:center;font-size:12px;color:#64748b"><?= esc($k['nip'] ?: '—') ?></td>
                 <td style="padding:12px 16px;text-align:center">
                     <span style="font-size:11px;background:#eff6ff;color:#3b82f6;padding:2px 8px;border-radius:99px">
                         <?= esc($k['peran_spt'] ?: '—') ?>
                     </span>
                 </td>
                 <td style="padding:12px 16px;text-align:center">
-                    <?php
-                    $color = $statusColor[$k['status']] ?? 'secondary';
-                    $label = $statusLabel[$k['status']] ?? $k['status'];
-                    ?>
-                    <span class="badge badge-<?= $color ?>"><?= $label ?></span>
+                    <span class="badge badge-<?= $progColor ?>"><?= $progLabel ?></span>
+                </td>
+                <td style="padding:12px 16px;text-align:center">
+                    <span class="badge badge-<?= $skColor ?>"><?= $skLabel ?></span>
+                    <?php if ($skStatus === 'submitted'): ?>
+                    <div style="font-size:10px;color:#d97706;margin-top:2px"><i class="fas fa-bell"></i> Perlu direview</div>
+                    <?php endif; ?>
                 </td>
                 <td style="padding:12px 16px;text-align:center">
                     <a href="/admin/kka/<?= $k['id'] ?>" class="btn btn-sm btn-primary">

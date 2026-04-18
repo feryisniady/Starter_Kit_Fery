@@ -8,9 +8,13 @@ $stageStatus = [
     'simpulan'    => in_array($kka['status'], ['simpulan_selesai','selesai']),
     'rekomendasi' => $kka['status'] === 'selesai',
 ];
-$canEditIkhtisar    = $canEdit && $kka['status'] === 'draft';
-$canEditSimpulan    = $canEdit && $kka['status'] === 'ikhtisar_selesai';
-$canEditRekomendasi = $canEdit && $kka['status'] === 'simpulan_selesai';
+$statusKka = $kka['status_kka'] ?? 'draft';
+// AT hanya bisa edit jika KKA belum di-lock (belum approved) dan status_kka bukan submitted
+$kkaApproved  = $statusKka === 'approved';
+$kkaSubmitted = $statusKka === 'submitted';
+$canEditIkhtisar    = $canEdit && $kka['status'] === 'draft' && !$kkaApproved;
+$canEditSimpulan    = $canEdit && $kka['status'] === 'ikhtisar_selesai' && !$kkaApproved;
+$canEditRekomendasi = $canEdit && $kka['status'] === 'simpulan_selesai' && !$kkaApproved;
 ?>
 
 <div class="page-header">
@@ -34,6 +38,87 @@ $canEditRekomendasi = $canEdit && $kka['status'] === 'simpulan_selesai';
 <?php if(session()->getFlashdata('error')): ?>
 <div class="alert-error-inline mb-3"><i class="fas fa-circle-exclamation"></i> <?= esc(session()->getFlashdata('error')) ?></div>
 <?php endif; ?>
+
+<!-- ═══ Panel Pengiriman KKA ke KT ═══ -->
+<?php
+$skColors = [
+    'draft'     => ['bg'=>'#f8fafc','border'=>'#cbd5e1','icon'=>'clock','iconColor'=>'#64748b','title'=>'Belum Dikirim ke Ketua Tim','titleColor'=>'#374151'],
+    'submitted' => ['bg'=>'#fffbeb','border'=>'#fbbf24','icon'=>'paper-plane','iconColor'=>'#d97706','title'=>'Menunggu Review Ketua Tim','titleColor'=>'#92400e'],
+    'approved'  => ['bg'=>'#f0fdf4','border'=>'#22c55e','icon'=>'circle-check','iconColor'=>'#16a34a','title'=>'Disetujui Ketua Tim','titleColor'=>'#166534'],
+    'rejected'  => ['bg'=>'#fef2f2','border'=>'#ef4444','icon'=>'circle-xmark','iconColor'=>'#dc2626','title'=>'Dikembalikan — Perlu Perbaikan','titleColor'=>'#991b1b'],
+];
+$sc = $skColors[$statusKka] ?? $skColors['draft'];
+?>
+<div class="card mb-3" style="border-left:4px solid <?= $sc['border'] ?>;background:<?= $sc['bg'] ?>">
+    <div class="card-body" style="padding:14px 20px">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:12px">
+                <i class="fas fa-<?= $sc['icon'] ?>" style="font-size:22px;color:<?= $sc['iconColor'] ?>"></i>
+                <div>
+                    <div style="font-weight:700;font-size:14px;color:<?= $sc['titleColor'] ?>"><?= $sc['title'] ?></div>
+                    <?php if ($statusKka === 'submitted' && $kka['submitted_at']): ?>
+                    <div style="font-size:11px;color:#64748b;margin-top:2px">Dikirim <?= date('d M Y H:i', strtotime($kka['submitted_at'])) ?></div>
+                    <?php elseif (in_array($statusKka, ['approved','rejected']) && $kka['reviewed_at']): ?>
+                    <div style="font-size:11px;color:#64748b;margin-top:2px">Direview <?= date('d M Y H:i', strtotime($kka['reviewed_at'])) ?></div>
+                    <?php endif; ?>
+                    <?php if ($kka['catatan_review'] && in_array($statusKka, ['approved','rejected'])): ?>
+                    <div style="margin-top:6px;font-size:12px;padding:6px 10px;border-radius:6px;background:rgba(0,0,0,.05)">
+                        <strong>Catatan KT:</strong> <?= esc($kka['catatan_review']) ?>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                <?php if ($isAt && $kka['status'] === 'selesai' && in_array($statusKka, ['draft','rejected'])): ?>
+                <!-- AT: tombol kirim ke KT -->
+                <form action="/admin/kka/<?= $kka['id'] ?>/submit" method="POST"
+                      onsubmit="return confirm('Kirim KKA ini ke Ketua Tim untuk direview?')">
+                    <?= csrf_field() ?>
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="fas fa-paper-plane"></i> Kirim ke Ketua Tim
+                    </button>
+                </form>
+                <?php endif; ?>
+
+                <?php if ($isKt && $statusKka === 'submitted'): ?>
+                <!-- KT: panel review (setujui / kembalikan) -->
+                <button class="btn btn-success btn-sm" onclick="document.getElementById('panel-approve').classList.toggle('d-none')">
+                    <i class="fas fa-check"></i> Setujui
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="document.getElementById('panel-reject').classList.toggle('d-none')">
+                    <i class="fas fa-rotate-left"></i> Kembalikan
+                </button>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <?php if ($isKt && $statusKka === 'submitted'): ?>
+        <!-- Form Setujui -->
+        <div id="panel-approve" class="d-none" style="margin-top:12px;padding:12px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px">
+            <form action="/admin/kka/<?= $kka['id'] ?>/approve" method="POST">
+                <?= csrf_field() ?>
+                <div class="form-group" style="margin-bottom:8px">
+                    <label style="font-size:12px;font-weight:600;color:#166534">Catatan (opsional)</label>
+                    <textarea name="catatan_review" class="form-control" rows="2" placeholder="Tambahkan catatan persetujuan..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-success btn-sm"><i class="fas fa-circle-check"></i> Konfirmasi Setujui</button>
+            </form>
+        </div>
+        <!-- Form Kembalikan -->
+        <div id="panel-reject" class="d-none" style="margin-top:12px;padding:12px;background:#fef2f2;border:1px solid #fca5a5;border-radius:8px">
+            <form action="/admin/kka/<?= $kka['id'] ?>/reject" method="POST">
+                <?= csrf_field() ?>
+                <div class="form-group" style="margin-bottom:8px">
+                    <label style="font-size:12px;font-weight:600;color:#991b1b">Catatan Pengembalian <span style="color:#ef4444">*</span></label>
+                    <textarea name="catatan_review" class="form-control" rows="2" placeholder="Tuliskan alasan atau hal yang perlu diperbaiki..." required></textarea>
+                </div>
+                <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-rotate-left"></i> Konfirmasi Kembalikan</button>
+            </form>
+        </div>
+        <?php endif; ?>
+    </div>
+</div>
 
 <!-- Status Breadcrumb -->
 <div class="card mb-3" style="border:none;background:transparent;box-shadow:none">

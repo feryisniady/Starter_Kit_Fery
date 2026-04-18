@@ -261,6 +261,11 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	$routes->post('kka/rekomendasi/(:num)/delete',        'Admin\KkaController::deleteRekomendasi/$1');
 	$routes->post('kka/(:num)/rekomendasi/selesai',       'Admin\KkaController::selesaiRekomendasi/$1');
 
+	// Submit / Review KKA (AT → KT)
+	$routes->post('kka/(:num)/submit',                    'Admin\KkaController::submitKka/$1');
+	$routes->post('kka/(:num)/approve',                   'Admin\KkaController::approveKka/$1');
+	$routes->post('kka/(:num)/reject',                    'Admin\KkaController::rejectKka/$1');
+
 	// Catatan Dalnis
 	$routes->post('kka/(:num)/catatan-dalnis',            'Admin\KkaController::saveCatatanDalnis/$1');
 
@@ -279,4 +284,11 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 
 	// Demo / Simulasi
 	$routes->get('demo/km', 'Admin\DemoController::kmWorkflow');
+
+	// =====================================================================
+	// AUDITI — Dashboard Entitas (pihak yang diaudit)
+	// =====================================================================
+	$routes->get( 'auditi/dashboard',                        'Admin\AuditiController::dashboard');
+	$routes->get( 'auditi/nhp/(:num)',                       'Admin\AuditiController::showNhp/$1');
+	$routes->post('auditi/nhp-item/(:num)/tanggapi',         'Admin\AuditiController::tanggapi/$1');
 });

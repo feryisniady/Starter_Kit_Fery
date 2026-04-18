@@ -134,7 +134,7 @@
                     <?php foreach($pkaList as $i => $pka): ?>
                     <tr style="border-bottom:1px solid #f1f5f9">
                         <td style="padding:8px 12px;color:#94a3b8"><?= $i + 1 ?></td>
-                        <td style="padding:8px 12px"><?= esc($pka['nama_prosedur'] ?? $pka['prosedur'] ?? '-') ?></td>
+                        <td style="padding:8px 12px"><?= esc($pka['uraian_prosedur'] ?? '-') ?></td>
                     </tr>
                     <?php endforeach; ?>
                     </tbody>

@@ -272,4 +272,52 @@ class NhpModel
             ->orderBy('ni.nomor_urut')
             ->get()->getResultArray();
     }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // Dashboard Auditi — semua NHP dan item per entitas
+    // ──────────────────────────────────────────────────────────────────────
+
+    /**
+     * Semua NHP item untuk satu entitas (dari semua SPT yang terkait entitas itu).
+     * Join chain: nhp_item → nhp → spt → pkpt_kegiatan → pkpt_entitas
+     */
+    public function getNhpItemsByEntitas(int $entitasId): array
+    {
+        return $this->db->table('nhp_item ni')
+            ->select('ni.*,
+                      n.nomor_nhp, n.tanggal_nhp, n.status as nhp_status, n.spt_id,
+                      sp.nomor_naskah as spt_nomor,
+                      kt.kode as kode_temuan_kode, kt.uraian as kode_temuan_uraian')
+            ->join('nhp n', 'n.id = ni.nhp_id')
+            ->join('spt sp', 'sp.id = n.spt_id')
+            ->join('pkpt_kegiatan pk', 'pk.id = sp.pkpt_kegiatan_id')
+            ->join('pkpt_entitas pe', 'pe.pkpt_kegiatan_id = pk.id')
+            ->join('kka_simpulan ks', 'ks.id = ni.kka_simpulan_id', 'left')
+            ->join('kode_temuan kt', 'kt.id = ks.kode_temuan_id', 'left')
+            ->where('pe.entitas_id', $entitasId)
+            ->where('n.status !=', 'draft')
+            ->orderBy('n.tanggal_nhp', 'DESC')
+            ->orderBy('ni.nomor_urut')
+            ->get()->getResultArray();
+    }
+
+    /** Semua NHP header untuk satu entitas (grouped) */
+    public function getNhpByEntitas(int $entitasId): array
+    {
+        return $this->db->table('nhp n')
+            ->select('n.*, sp.nomor_naskah as spt_nomor,
+                      COUNT(ni.id) as jumlah_item,
+                      SUM(CASE WHEN ni.status_tanggapan="pending" THEN 1 ELSE 0 END) as jumlah_pending,
+                      SUM(CASE WHEN ni.status_tanggapan="sesuai" THEN 1 ELSE 0 END) as jumlah_sesuai,
+                      SUM(CASE WHEN ni.status_tanggapan="tidak_sesuai" THEN 1 ELSE 0 END) as jumlah_tidak_sesuai')
+            ->join('spt sp', 'sp.id = n.spt_id')
+            ->join('pkpt_kegiatan pk', 'pk.id = sp.pkpt_kegiatan_id')
+            ->join('pkpt_entitas pe', 'pe.pkpt_kegiatan_id = pk.id')
+            ->join('nhp_item ni', 'ni.nhp_id = n.id', 'left')
+            ->where('pe.entitas_id', $entitasId)
+            ->where('n.status !=', 'draft')
+            ->groupBy('n.id')
+            ->orderBy('n.tanggal_nhp', 'DESC')
+            ->get()->getResultArray();
+    }
 }

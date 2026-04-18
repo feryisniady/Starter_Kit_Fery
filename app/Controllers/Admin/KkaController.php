@@ -129,32 +129,41 @@ class KkaController extends BaseController
         $spt = $this->sptModel->getDetail($kka['spt_id']);
         $db  = \Config\Database::connect();
 
-        // PKA procedures untuk SPT ini (sumber ikhtisar AT)
-        $pkaList = $db->table('pka p')
+        // PKA procedures: AT hanya lihat milik sendiri, KT/Dalnis/Admin lihat semua
+        $pkaQuery = $db->table('pka p')
             ->select('p.*, s.nama as pic_nama')
             ->join('sdm s', 's.id = p.pic_sdm_id', 'left')
-            ->where('p.spt_id', $kka['spt_id'])
-            ->orderBy('p.nomor_urut')
-            ->get()->getResultArray();
+            ->where('p.spt_id', $kka['spt_id']);
+        if (!isAuditAdmin() && !isDalnisInSpt($kka['spt_id']) && !isKtInSpt($kka['spt_id'])) {
+            $pkaQuery->where('p.pic_sdm_id', $kka['sdm_id']);
+        }
+        $pkaList = $pkaQuery->orderBy('p.nomor_urut')->get()->getResultArray();
 
         // Lookup kode temuan (untuk dropdown simpulan)
         $kodeTemuanList = $db->table('kode_temuan')
             ->orderBy('kode')
             ->get()->getResultArray();
 
+        $isKt = isAuditAdmin() || isKtInSpt($kka['spt_id']) || isDalnisInSpt($kka['spt_id']);
+        $isAt = !$isKt && $this->canAccessKka($kka);
+
         return view('admin/kka/show', [
-            'title'           => 'KKA — ' . $kka['nama'],
-            'kka'             => $kka,
-            'spt'             => $spt,
-            'ikhtisar'        => $this->kkaModel->getIkhtisarByKka($kkaId),
-            'simpulan'        => $this->kkaModel->getSimpulanByKka($kkaId),
-            'rekomendasi'     => $this->kkaModel->getRekomendasiByKka($kkaId),
-            'pkaList'         => $pkaList,
-            'kodeTemuanList'  => $kodeTemuanList,
-            'statusLabel'     => KkaModel::$statusLabel,
-            'statusColor'     => KkaModel::$statusColor,
-            'canEdit'         => $this->canEditKka($kka),
-            'isDalnis'        => isAuditAdmin() || isDalnisInSpt($kka['spt_id']),
+            'title'            => 'KKA — ' . $kka['nama'],
+            'kka'              => $kka,
+            'spt'              => $spt,
+            'ikhtisar'         => $this->kkaModel->getIkhtisarByKka($kkaId),
+            'simpulan'         => $this->kkaModel->getSimpulanByKka($kkaId),
+            'rekomendasi'      => $this->kkaModel->getRekomendasiByKka($kkaId),
+            'pkaList'          => $pkaList,
+            'kodeTemuanList'   => $kodeTemuanList,
+            'statusLabel'      => KkaModel::$statusLabel,
+            'statusColor'      => KkaModel::$statusColor,
+            'statusKkaLabel'   => KkaModel::$statusKkaLabel,
+            'statusKkaColor'   => KkaModel::$statusKkaColor,
+            'canEdit'          => $this->canEditKka($kka),
+            'isDalnis'         => isAuditAdmin() || isDalnisInSpt($kka['spt_id']),
+            'isKt'             => $isKt,
+            'isAt'             => $isAt,
         ]);
     }
 
@@ -414,6 +423,71 @@ class KkaController extends BaseController
         }
 
         return redirect()->back()->with('error', 'Gagal memperbarui status.');
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // Submit / Review KKA (AT → KT)
+    // ──────────────────────────────────────────────────────────────────────
+
+    /** AT mengajukan KKA ke KT */
+    public function submitKka(int $kkaId)
+    {
+        $kka = $this->kkaModel->find($kkaId);
+        if (!$kka || !$this->canAccessKka($kka)) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+        if ($kka['status'] !== 'selesai') {
+            return redirect()->back()->with('error', 'KKA harus diselesaikan (semua tahap) sebelum dikirim ke KT.');
+        }
+
+        if ($this->kkaModel->submitKka($kkaId)) {
+            logActivity('kka.submit', 'kka', "KKA submitted ke KT kka_id={$kkaId}");
+            return redirect()->to('/admin/kka/' . $kkaId)->with('success', 'KKA berhasil dikirim ke Ketua Tim untuk direview.');
+        }
+
+        return redirect()->back()->with('error', 'Gagal mengirim KKA. Pastikan status KKA sudah selesai.');
+    }
+
+    /** KT menyetujui KKA */
+    public function approveKka(int $kkaId)
+    {
+        $kka = $this->kkaModel->find($kkaId);
+        if (!$kka) return redirect()->back()->with('error', 'KKA tidak ditemukan.');
+
+        if (!isAuditAdmin() && !isKtInSpt($kka['spt_id']) && !isDalnisInSpt($kka['spt_id'])) {
+            return redirect()->back()->with('error', 'Hanya Ketua Tim yang dapat menyetujui KKA.');
+        }
+
+        $catatan = $this->request->getPost('catatan_review') ?: null;
+        if ($this->kkaModel->approveKka($kkaId, $catatan)) {
+            logActivity('kka.approve', 'kka', "KKA disetujui KT kka_id={$kkaId}");
+            return redirect()->to('/admin/kka/' . $kkaId)->with('success', 'KKA disetujui.');
+        }
+
+        return redirect()->back()->with('error', 'Gagal menyetujui KKA. Pastikan KKA sudah disubmit.');
+    }
+
+    /** KT mengembalikan KKA ke AT */
+    public function rejectKka(int $kkaId)
+    {
+        $kka = $this->kkaModel->find($kkaId);
+        if (!$kka) return redirect()->back()->with('error', 'KKA tidak ditemukan.');
+
+        if (!isAuditAdmin() && !isKtInSpt($kka['spt_id']) && !isDalnisInSpt($kka['spt_id'])) {
+            return redirect()->back()->with('error', 'Hanya Ketua Tim yang dapat mengembalikan KKA.');
+        }
+
+        $catatan = trim($this->request->getPost('catatan_review') ?? '');
+        if (empty($catatan)) {
+            return redirect()->back()->with('error', 'Catatan wajib diisi saat mengembalikan KKA.');
+        }
+
+        if ($this->kkaModel->rejectKka($kkaId, $catatan)) {
+            logActivity('kka.reject', 'kka', "KKA dikembalikan KT kka_id={$kkaId}");
+            return redirect()->to('/admin/kka/' . $kkaId)->with('success', 'KKA dikembalikan ke Anggota Tim.');
+        }
+
+        return redirect()->back()->with('error', 'Gagal mengembalikan KKA.');
     }
 
     // ──────────────────────────────────────────────────────────────────────

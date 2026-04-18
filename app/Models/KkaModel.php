@@ -31,6 +31,21 @@ class KkaModel
         'selesai'           => 'success',
     ];
 
+    // Status pengiriman ke KT (status_kka)
+    public static array $statusKkaLabel = [
+        'draft'     => 'Belum Dikirim',
+        'submitted' => 'Menunggu Review KT',
+        'approved'  => 'Disetujui KT',
+        'rejected'  => 'Dikembalikan KT',
+    ];
+
+    public static array $statusKkaColor = [
+        'draft'     => 'secondary',
+        'submitted' => 'warning',
+        'approved'  => 'success',
+        'rejected'  => 'danger',
+    ];
+
     public function __construct()
     {
         $this->db = \Config\Database::connect();
@@ -333,5 +348,77 @@ class KkaModel
             ->countAllResults();
 
         return $draftCount === 0;
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // KKA Submission Flow (AT → KT)
+    // ──────────────────────────────────────────────────────────────────────
+
+    /**
+     * AT mengajukan KKA ke KT untuk direview.
+     * Syarat: kka.status = 'selesai' DAN status_kka = 'draft' atau 'rejected'.
+     */
+    public function submitKka(int $kkaId): bool
+    {
+        $kka = $this->db->table('kka')->where('id', $kkaId)->get()->getRowArray();
+        if (!$kka) return false;
+        if ($kka['status'] !== 'selesai') return false;
+        if (!in_array($kka['status_kka'], ['draft', 'rejected'])) return false;
+
+        $this->db->table('kka')->where('id', $kkaId)->update([
+            'status_kka'   => 'submitted',
+            'submitted_at' => date('Y-m-d H:i:s'),
+            'updated_at'   => date('Y-m-d H:i:s'),
+        ]);
+        return true;
+    }
+
+    /**
+     * KT menyetujui KKA.
+     */
+    public function approveKka(int $kkaId, ?string $catatan = null): bool
+    {
+        $kka = $this->db->table('kka')->where('id', $kkaId)->get()->getRowArray();
+        if (!$kka || $kka['status_kka'] !== 'submitted') return false;
+
+        $this->db->table('kka')->where('id', $kkaId)->update([
+            'status_kka'     => 'approved',
+            'catatan_review' => $catatan,
+            'reviewed_at'    => date('Y-m-d H:i:s'),
+            'updated_at'     => date('Y-m-d H:i:s'),
+        ]);
+        return true;
+    }
+
+    /**
+     * KT mengembalikan KKA ke AT (reject).
+     * Catatan wajib diisi.
+     */
+    public function rejectKka(int $kkaId, string $catatan): bool
+    {
+        $kka = $this->db->table('kka')->where('id', $kkaId)->get()->getRowArray();
+        if (!$kka || $kka['status_kka'] !== 'submitted') return false;
+
+        $this->db->table('kka')->where('id', $kkaId)->update([
+            'status_kka'     => 'rejected',
+            'catatan_review' => $catatan,
+            'reviewed_at'    => date('Y-m-d H:i:s'),
+            'updated_at'     => date('Y-m-d H:i:s'),
+        ]);
+        return true;
+    }
+
+    /**
+     * Apakah semua KKA di SPT sudah disetujui KT?
+     * Gate check sebelum KT bisa membuat NHP.
+     */
+    public function allApprovedBySpt(int $sptId): bool
+    {
+        $notApproved = $this->db->table('kka')
+            ->where('spt_id', $sptId)
+            ->where('status_kka !=', 'approved')
+            ->countAllResults();
+
+        return $notApproved === 0;
     }
 }

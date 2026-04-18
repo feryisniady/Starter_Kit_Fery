@@ -3,6 +3,7 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Models\KkaModel;
 use App\Models\NhpModel;
 use App\Models\SptModel;
 
@@ -18,11 +19,13 @@ class NhpController extends BaseController
 {
     protected NhpModel $nhpModel;
     protected SptModel $sptModel;
+    protected KkaModel $kkaModel;
 
     public function __construct()
     {
         $this->nhpModel = new NhpModel();
         $this->sptModel = new SptModel();
+        $this->kkaModel = new KkaModel();
     }
 
     // ──────────────────────────────────────────────────────────────────────
@@ -61,6 +64,12 @@ class NhpController extends BaseController
         if (!$spt) return redirect()->to('/admin/spt')->with('error', 'SPT tidak ditemukan.');
         if (!$this->canManage($sptId)) return redirect()->back()->with('error', 'Akses ditolak.');
 
+        // Gate: semua KKA harus sudah disetujui KT sebelum NHP bisa dibuat
+        if (!$this->kkaModel->allApprovedBySpt($sptId)) {
+            return redirect()->to('/admin/spt/' . $sptId . '/kka')
+                ->with('error', 'Semua KKA tim harus disetujui Ketua Tim sebelum NHP dapat dibuat.');
+        }
+
         $simpulanBelumNhp = $this->nhpModel->getSimpulanBelumNhp($sptId);
 
         return view('admin/nhp/create', [
@@ -75,6 +84,12 @@ class NhpController extends BaseController
         $spt = $this->sptModel->getDetail($sptId);
         if (!$spt || !$this->canManage($sptId)) {
             return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+
+        // Gate: semua KKA harus sudah disetujui KT
+        if (!$this->kkaModel->allApprovedBySpt($sptId)) {
+            return redirect()->to('/admin/spt/' . $sptId . '/kka')
+                ->with('error', 'Semua KKA tim harus disetujui Ketua Tim sebelum NHP dapat dibuat.');
         }
 
         $post = $this->request->getPost();
