@@ -269,4 +269,7 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	$routes->post('spt/(:num)/nhp/(:num)/item/add',                  'Admin\NhpController::addItem/$1/$2');
 	$routes->post('spt/(:num)/nhp/(:num)/item/(:num)/tanggapi',      'Admin\NhpController::tanggapi/$1/$2/$3');
 	$routes->get( 'spt/(:num)/nhp/matriks',                         'Admin\NhpController::matriks/$1');
+
+	// Demo / Simulasi
+	$routes->get('demo/km', 'Admin\DemoController::kmWorkflow');
 });
