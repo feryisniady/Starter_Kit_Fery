@@ -314,12 +314,12 @@ class SptController extends BaseController
             return redirect()->back()->with('error', 'SPT tidak dalam status draft.');
         }
 
-        // Cek kelengkapan KM sebelum bisa diajukan
-        $missing = $this->kmModel->getMissingLabels($id);
+        // Cek kelengkapan KM Fase 1 (Persiapan) — syarat SPT terbit
+        $missing = $this->kmModel->getMissingPhase1Labels($id);
         if (!empty($missing)) {
             $list = implode(', ', $missing);
             return redirect()->to('/admin/spt/' . $id . '/km')
-                ->with('error', 'SPT belum dapat diajukan. Lengkapi dokumen KM berikut: ' . $list);
+                ->with('error', 'SPT belum dapat diajukan. Selesaikan Fase 1 KM berikut: ' . $list);
         }
 
         $this->sptModel->update($id, ['status' => 'diajukan']);

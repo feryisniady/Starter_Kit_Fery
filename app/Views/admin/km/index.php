@@ -124,9 +124,20 @@ $prereqs = [
     'km5b' => ['km5'],
     'km7'  => ['km5'],
     'km9'  => ['km7'],
-    'km10' => ['km5b'],
     'km11' => ['km10'],
+    // km10 dan km11 dikunci via SPT status (phase 3 lock di bawah)
 ];
+
+// Status SPT untuk milestone
+$sptStatus      = $spt['status'] ?? 'draft';
+$sptTerbit      = in_array($sptStatus, ['terbit']);
+$sptDiproses    = in_array($sptStatus, ['diajukan','acc_irban','acc_evlap','acc_sekretaris']);
+$sptStatusLabel = \App\Models\SptModel::$statusLabel[$sptStatus] ?? $sptStatus;
+$phase1Done     = true;
+foreach ($checklist as $k => $ci) {
+    if (($ci['phase'] ?? 1) !== 1) continue;
+    if (($ci['required'] ?? true) && !$ci['complete']) { $phase1Done = false; break; }
+}
 
 // Penanggung jawab per langkah
 $roleBadge = [
@@ -239,7 +250,7 @@ foreach ($checklist as $key => $item) {
 <?php endif; ?>
 
 <!-- Stepper per Fase -->
-<?php foreach ($phases as $phaseLabel => $phaseKeys): ?>
+<?php $phaseIdx = 0; foreach ($phases as $phaseLabel => $phaseKeys): $phaseIdx++; ?>
 <div class="card mb-3">
     <div class="card-header" style="padding:10px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0">
         <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#64748b">
@@ -270,6 +281,12 @@ foreach ($checklist as $key => $item) {
                     break;
                 }
             }
+        }
+
+        // Phase 3 items: terkunci jika SPT belum terbit
+        if (!$locked && ($item['phase'] ?? 1) === 3 && !$sptTerbit) {
+            $locked   = true;
+            $lockedBy = 'SPT belum terbit';
         }
 
         // Role badge
@@ -391,6 +408,65 @@ foreach ($checklist as $key => $item) {
     <?php endforeach; ?>
     </div>
 </div>
+
+<?php if ($phaseIdx === 1): ?>
+<!-- ═══ MILESTONE: SPT TERBIT ═══ -->
+<?php
+$milestoneColor  = $sptTerbit ? '#059669' : ($sptDiproses ? '#7c3aed' : ($phase1Done ? '#2563eb' : '#94a3b8'));
+$milestoneBorder = $sptTerbit ? '#10b981' : ($sptDiproses ? '#8b5cf6' : ($phase1Done ? '#3b82f6' : '#e2e8f0'));
+$milestoneIcon   = $sptTerbit ? 'flag-checkered' : ($sptDiproses ? 'spinner fa-spin' : 'paper-plane');
+?>
+<div style="position:relative;margin:4px 0 4px;display:flex;align-items:center;gap:0">
+    <!-- Garis kiri -->
+    <div style="width:32px;flex-shrink:0;display:flex;justify-content:center">
+        <div style="width:2px;height:100%;background:<?= $milestoneBorder ?>;min-height:12px"></div>
+    </div>
+    <div style="flex:1;border:2px solid <?= $milestoneBorder ?>;border-radius:12px;background:<?= $sptTerbit ? '#f0fdf4' : ($sptDiproses ? '#f5f3ff' : ($phase1Done ? '#eff6ff' : '#f8fafc')) ?>;padding:14px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <div style="width:44px;height:44px;border-radius:50%;background:<?= $milestoneColor ?>;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i class="fas fa-<?= $milestoneIcon ?>" style="color:#fff;font-size:18px"></i>
+        </div>
+        <div style="flex:1;min-width:160px">
+            <div style="font-weight:700;font-size:14px;color:#1e293b">
+                <?php if ($sptTerbit): ?>
+                    <span style="color:#059669"><i class="fas fa-circle-check"></i> SPT TERBIT — Tim Resmi Turun ke Lapangan</span>
+                <?php elseif ($sptDiproses): ?>
+                    <span style="color:#7c3aed"><i class="fas fa-clock"></i> SPT Sedang Diproses</span>
+                <?php elseif ($phase1Done): ?>
+                    <span style="color:#2563eb"><i class="fas fa-circle-exclamation"></i> Fase 1 Selesai — SPT Siap Diajukan</span>
+                <?php else: ?>
+                    <span style="color:#94a3b8"><i class="fas fa-lock"></i> SPT dapat diajukan setelah Fase 1 selesai</span>
+                <?php endif; ?>
+            </div>
+            <div style="font-size:12px;color:#64748b;margin-top:4px">
+                <?php if ($sptTerbit): ?>
+                    Status: <strong style="color:#059669"><?= esc($sptStatusLabel) ?></strong>
+                    — Fase 2 &amp; 3 sudah dapat dikerjakan
+                <?php elseif ($sptDiproses): ?>
+                    Status: <strong style="color:#7c3aed"><?= esc($sptStatusLabel) ?></strong>
+                    — Menunggu persetujuan selanjutnya
+                <?php elseif ($phase1Done): ?>
+                    Semua dokumen persiapan lengkap. SPT dapat diajukan untuk mendapat persetujuan.
+                <?php else: ?>
+                    Selesaikan semua langkah Fase 1 terlebih dahulu.
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php if ($phase1Done && !$sptTerbit && !$sptDiproses && ($isKt || $isAdm)): ?>
+        <a href="/admin/spt/<?= $sptId ?>" class="btn btn-primary btn-sm" style="white-space:nowrap;flex-shrink:0">
+            <i class="fas fa-paper-plane"></i> Ajukan SPT
+        </a>
+        <?php elseif ($sptDiproses): ?>
+        <a href="/admin/spt/<?= $sptId ?>" class="btn btn-sm btn-secondary" style="white-space:nowrap;flex-shrink:0">
+            <i class="fas fa-eye"></i> Lihat Status
+        </a>
+        <?php endif; ?>
+    </div>
+    <!-- Garis kanan (kosong, buat padding) -->
+    <div style="width:32px;flex-shrink:0"></div>
+</div>
+<!-- ════════════════════════════ -->
+<?php endif; ?>
+
 <?php endforeach; ?>
 
 <?php endif; ?>
