@@ -230,6 +230,9 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	// Dashboard per SPT (KT/Dalnis lihat semua; AT redirect ke KKA-nya)
 	$routes->get('spt/(:num)/kka',                        'Admin\KkaController::index/$1');
 
+	// KT Compiled View — rekapitulasi semua simpulan AT
+	$routes->get('spt/(:num)/kka/compiled',               'Admin\KkaController::compiled/$1');
+
 	// Detail + isi KKA (show satu KKA per AT)
 	$routes->get('kka/(:num)',                            'Admin\KkaController::show/$1');
 
@@ -253,4 +256,17 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 
 	// Catatan Dalnis
 	$routes->post('kka/(:num)/catatan-dalnis',            'Admin\KkaController::saveCatatanDalnis/$1');
+
+	// =====================================================================
+	// NHP — Notisi Hasil Pemeriksaan
+	// =====================================================================
+	$routes->get( 'spt/(:num)/nhp',                                  'Admin\NhpController::index/$1');
+	$routes->get( 'spt/(:num)/nhp/create',                           'Admin\NhpController::create/$1');
+	$routes->post('spt/(:num)/nhp/store',                            'Admin\NhpController::store/$1');
+	$routes->get( 'spt/(:num)/nhp/(:num)',                           'Admin\NhpController::show/$1/$2');
+	$routes->post('spt/(:num)/nhp/(:num)/kirim',                     'Admin\NhpController::kirim/$1/$2');
+	$routes->post('spt/(:num)/nhp/(:num)/selesai',                   'Admin\NhpController::selesai/$1/$2');
+	$routes->post('spt/(:num)/nhp/(:num)/item/add',                  'Admin\NhpController::addItem/$1/$2');
+	$routes->post('spt/(:num)/nhp/(:num)/item/(:num)/tanggapi',      'Admin\NhpController::tanggapi/$1/$2/$3');
+	$routes->get( 'spt/(:num)/nhp/matriks',                         'Admin\NhpController::matriks/$1');
 });
