@@ -781,7 +781,7 @@ class PkptController extends BaseController
         // Per-kegiatan breakdown — spt_ids & spt_labels dalam urutan sama untuk linking
         try {
             $kegiatan = $db->query("
-                SELECT pk.id as kegiatan_id, pk.kode_kegiatan, pk.nama_kegiatan, pk.jenis_pengawasan,
+                SELECT pk.id as kegiatan_id, pk.kode_kegiatan, pk.area_pengawasan, pk.jenis_pengawasan,
                     COALESCE(pt.hp_total, 0) as hp_pkpt,
                     COALESCE(SUM(st.hp_desk + st.hp_field), 0) as hp_alokasi,
                     COALESCE(SUM(
@@ -800,7 +800,7 @@ class PkptController extends BaseController
                 LEFT JOIN spt_tim st ON st.spt_id = sp.id AND st.sdm_id = {$sdmId}
                 LEFT JOIN spt_anggaran_waktu aw ON aw.spt_id = sp.id AND aw.sdm_id = {$sdmId}
                 WHERE pt.sdm_id = {$sdmId}
-                GROUP BY pk.id, pk.kode_kegiatan, pk.nama_kegiatan, pk.jenis_pengawasan, pt.hp_total
+                GROUP BY pk.id, pk.kode_kegiatan, pk.area_pengawasan, pk.jenis_pengawasan, pt.hp_total
                 ORDER BY pk.kode_kegiatan
             ")->getResultArray();
         } catch (\Exception $e) {
