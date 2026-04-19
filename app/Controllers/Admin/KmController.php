@@ -175,11 +175,21 @@ class KmController extends BaseController
         $canEditBase  = ($isAdmin || $isKtDal) && canEditKmInSpt($sptId, 'km2');
         $canEditRealisasi = $canEditBase && $km5bAda && !$km10Ada;
 
+        // Budget HP dari PKPT per SDM — untuk widget warning KM-2
+        $pkptTimMap = [];
+        if (!empty($spt['pkpt_kegiatan_id'])) {
+            $pkptTim    = $db->table('pkpt_tim')
+                ->where('pkpt_kegiatan_id', $spt['pkpt_kegiatan_id'])
+                ->get()->getResultArray();
+            $pkptTimMap = array_column($pkptTim, null, 'sdm_id');
+        }
+
         return view('admin/km/anggaran_waktu', [
             'title'             => 'KM-2 — Formulir Anggaran Waktu',
             'spt'               => $spt,
             'awMap'             => $awMap,
             'timList'           => $timList,
+            'pkptTimMap'        => $pkptTimMap,
             'canEdit'           => $canEditBase,
             'canEditRealisasi'  => $canEditRealisasi,
             'km5bAda'           => $km5bAda,
