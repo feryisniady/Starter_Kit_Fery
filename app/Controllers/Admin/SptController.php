@@ -339,13 +339,30 @@ class SptController extends BaseController
         if (!$spt) return redirect()->to('/admin/spt')->with('error', 'SPT tidak ditemukan.');
         if (!$this->canAccessSpt($spt)) return redirect()->to('/admin/spt')->with('error', 'Akses ditolak.');
 
+        // Edit hanya boleh saat draft
+        $canEdit = ($spt['status'] === 'draft');
+
+        // Approve hanya untuk role yang sesuai tahap saat ini
+        $approvalRoles = [
+            'diajukan'       => ['irban', 'ka_irban', 'superadmin', 'admin'],
+            'acc_irban'      => ['evlap', 'subbag_evlap', 'superadmin', 'admin'],
+            'acc_evlap'      => ['sekretaris', 'superadmin', 'admin'],
+            'acc_sekretaris' => ['inspektur', 'superadmin', 'admin'],
+        ];
+        $canApproveNow = false;
+        foreach (($approvalRoles[$spt['status']] ?? []) as $role) {
+            if (hasRole($role)) { $canApproveNow = true; break; }
+        }
+
         return view('admin/spt/show', [
-            'title'         => 'Detail SPT — ' . ($spt['nomor_naskah'] ?: '#' . $id),
-            'spt'           => $spt,
-            'statusLabel'   => SptModel::$statusLabel,
-            'statusColor'   => SptModel::$statusColor,
-            'temuanSummary' => $this->temuanModel->getSummaryBySpt($id),
-            'kmChecklist'   => $this->kmModel->getChecklist($id),
+            'title'          => 'Detail SPT — ' . ($spt['nomor_naskah'] ?: '#' . $id),
+            'spt'            => $spt,
+            'statusLabel'    => SptModel::$statusLabel,
+            'statusColor'    => SptModel::$statusColor,
+            'temuanSummary'  => $this->temuanModel->getSummaryBySpt($id),
+            'kmChecklist'    => $this->kmModel->getChecklist($id),
+            'canEdit'        => $canEdit,
+            'canApproveNow'  => $canApproveNow,
         ]);
     }
 
