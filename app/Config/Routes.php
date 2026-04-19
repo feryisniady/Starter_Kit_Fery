@@ -154,6 +154,8 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	// =====================================================================
 	$routes->get('spt',                         'Admin\SptController::index');
 	$routes->post('spt/data',                   'Admin\SptController::getData');
+	$routes->get('spt/non-pkpt/create',         'Admin\SptController::createNonPkpt');
+	$routes->post('spt/non-pkpt/store',         'Admin\SptController::storeNonPkpt');
 	$routes->get('spt/create/(:num)',           'Admin\SptController::create/$1');
 	$routes->post('spt/store/(:num)',           'Admin\SptController::store/$1');
 	$routes->get('spt/(:num)',                  'Admin\SptController::show/$1');

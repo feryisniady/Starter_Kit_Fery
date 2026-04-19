@@ -69,38 +69,50 @@ class SptController extends BaseController
         $status  = $this->request->getPost('status') ?? '';
         $irbanId = $isAdmin ? null : $this->getUserIrbanId($userId);
 
-        // Non-admin dengan akun tidak terhubung ke SDM/Irban — tampilkan kosong
         if (!$isAdmin && $irbanId === null) {
             return $this->dtResponse($draw, 0, 0, []);
         }
 
         $db = \Config\Database::connect();
 
-        // Total tanpa search (basis filter tahun + irban)
-        $totalQ = $db->table('spt s')
-            ->join('pkpt_kegiatan pk', 'pk.id = s.pkpt_kegiatan_id')
-            ->join('pkpt p', 'p.id = pk.pkpt_id')
-            ->where('p.tahun', $tahun);
-        if ($irbanId) $totalQ->where('p.irban_id', $irbanId);
-        if ($status)  $totalQ->where('s.status', $status);
-        $total = $totalQ->countAllResults();
+        // LEFT JOIN agar Non-PKPT (pkpt_kegiatan_id NULL) tetap tampil
+        $buildBase = function() use ($db, $tahun, $irbanId, $status) {
+            $q = $db->table('spt s')
+                ->join('pkpt_kegiatan pk', 'pk.id = s.pkpt_kegiatan_id', 'left')
+                ->join('pkpt p',           'p.id = pk.pkpt_id',          'left')
+                ->join('irban i_pkpt',     'i_pkpt.id = p.irban_id',     'left')
+                ->join('irban i_spt',      'i_spt.id = s.irban_id',      'left')
+                ->groupStart()
+                    ->where('p.tahun',  $tahun)
+                    ->orWhere('s.tahun', $tahun)
+                ->groupEnd();
+            if ($irbanId) {
+                $q->groupStart()
+                    ->where('p.irban_id',  $irbanId)
+                    ->orWhere('s.irban_id', $irbanId)
+                ->groupEnd();
+            }
+            if ($status) $q->where('s.status', $status);
+            return $q;
+        };
 
-        // Query data
-        $q = $db->table('spt s')
-            ->select('s.id, s.nomor_naskah, s.nama_tim, s.tanggal_mulai, s.tujuan, s.status, pk.kode_kegiatan, i.nama as irban_nama')
-            ->join('pkpt_kegiatan pk', 'pk.id = s.pkpt_kegiatan_id')
-            ->join('pkpt p', 'p.id = pk.pkpt_id')
-            ->join('irban i', 'i.id = p.irban_id')
-            ->where('p.tahun', $tahun);
-        if ($irbanId) $q->where('p.irban_id', $irbanId);
-        if ($status)  $q->where('s.status', $status);
+        $total = $buildBase()->countAllResults();
+
+        $q = $buildBase()
+            ->select('s.id, s.nomor_naskah, s.nama_tim, s.tanggal_mulai, s.tujuan, s.status,
+                      s.jenis_spt, s.jenis_non_pkpt,
+                      COALESCE(pk.kode_kegiatan, s.jenis_non_pkpt) as kode_kegiatan,
+                      COALESCE(i_pkpt.nama, i_spt.nama) as irban_nama');
+
         if ($search) {
             $q->groupStart()
-                ->like('s.nomor_naskah', $search)
+                ->like('s.nomor_naskah',  $search)
                 ->orLike('pk.kode_kegiatan', $search)
-                ->orLike('s.tujuan', $search)
-                ->orLike('i.nama', $search)
-                ->groupEnd();
+                ->orLike('s.jenis_non_pkpt', $search)
+                ->orLike('s.tujuan',         $search)
+                ->orLike('i_pkpt.nama',      $search)
+                ->orLike('i_spt.nama',       $search)
+            ->groupEnd();
         }
 
         $filtered = $search ? $q->countAllResults(false) : $total;
@@ -110,20 +122,24 @@ class SptController extends BaseController
         $sc = SptModel::$statusColor;
 
         $data = array_map(function ($r) use ($sl, $sc) {
-            $badge   = '<span class="badge badge-' . ($sc[$r['status']] ?? 'secondary') . '">'
-                     . esc($sl[$r['status']] ?? $r['status']) . '</span>';
-            $actions = '<a href="/admin/spt/' . $r['id'] . '" class="btn btn-xs btn-primary">Detail</a>';
+            $isNonPkpt = ($r['jenis_spt'] ?? 'pkpt') === 'non_pkpt';
+            $badge     = '<span class="badge badge-' . ($sc[$r['status']] ?? 'secondary') . '">'
+                       . esc($sl[$r['status']] ?? $r['status']) . '</span>';
+            $actions   = '<a href="/admin/spt/' . $r['id'] . '" class="btn btn-xs btn-primary">Detail</a>';
             if ($r['status'] === 'terbit') {
                 $actions .= ' <a href="/admin/spt/' . $r['id'] . '/word" class="btn btn-xs btn-success"><i class="fas fa-file-word"></i></a>';
             }
-            $kodeHtml = '<span class="badge badge-primary">' . esc($r['kode_kegiatan']) . '</span>';
+            $kodeHtml = $isNonPkpt
+                ? '<span class="badge badge-warning" style="font-size:11px"><i class="fas fa-star"></i> Non-PKPT</span>'
+                  . '<br><span style="font-size:11px;color:#475569">' . esc($r['kode_kegiatan'] ?? '—') . '</span>'
+                : '<span class="badge badge-primary">' . esc($r['kode_kegiatan'] ?? '—') . '</span>';
             if ($r['nama_tim']) {
-                $kodeHtml .= ' <span class="badge badge-warning" style="font-size:11px">' . esc($r['nama_tim']) . '</span>';
+                $kodeHtml .= ' <span class="badge badge-warning" style="font-size:10px">' . esc($r['nama_tim']) . '</span>';
             }
             return [
                 'nomor_naskah'  => esc($r['nomor_naskah'] ?: '—'),
                 'kode_kegiatan' => $kodeHtml,
-                'irban_nama'    => esc($r['irban_nama']),
+                'irban_nama'    => esc($r['irban_nama'] ?? '—'),
                 'tujuan'        => '<span style="display:block;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' . esc($r['tujuan']) . '">' . esc($r['tujuan']) . '</span>',
                 'tanggal_mulai' => $r['tanggal_mulai'] ? date('d/m/Y', strtotime($r['tanggal_mulai'])) : '—',
                 'status'        => $badge,
@@ -132,6 +148,73 @@ class SptController extends BaseController
         }, $rows);
 
         return $this->dtResponse($draw, $total, $filtered, $data);
+    }
+
+    // ===================================================
+    // SPT NON-PKPT (Mandatory)
+    // ===================================================
+
+    public function createNonPkpt()
+    {
+        if (!$this->isAdmin()) {
+            $irbanId = $this->getUserIrbanId(session()->get('user_id'));
+            if ($irbanId === null) return redirect()->to('/admin/spt')->with('error', 'Akses ditolak.');
+        }
+        return view('admin/spt/form_non_pkpt', [
+            'title'     => 'Buat SPT Non-PKPT / Mandatori',
+            'irbanList' => $this->irbanModel->orderBy('kode')->findAll(),
+            'sdmAll'    => $this->sdmModel->getAktif(),
+            'sdmPenanda'=> $this->sdmModel->getAktif(),
+            'jenisOpts' => SptModel::$jenisNonPkpt,
+            'tahunAktif'=> $this->settingModel->getTahunAktif(),
+            'spt'       => null,
+            'setting'   => $this->settingModel->getByTahun($this->settingModel->getTahunAktif()),
+        ]);
+    }
+
+    public function storeNonPkpt()
+    {
+        $rules = ['tanggal_naskah' => 'required', 'tujuan' => 'required',
+                  'irban_id' => 'required', 'tahun' => 'required'];
+        if (!$this->validate($rules)) {
+            return redirect()->back()->withInput()
+                ->with('error', implode('<br>', $this->validator->getErrors()));
+        }
+
+        if (!$this->isAdmin()) {
+            $myIrbanId = $this->getUserIrbanId(session()->get('user_id'));
+            $postIrban = (int)$this->request->getPost('irban_id');
+            if ($myIrbanId === null || $myIrbanId !== $postIrban) {
+                return redirect()->to('/admin/spt')->with('error', 'Akses ditolak.');
+            }
+        }
+
+        $sptId = $this->sptModel->insert([
+            'pkpt_kegiatan_id' => null,
+            'jenis_spt'        => 'non_pkpt',
+            'irban_id'         => (int)$this->request->getPost('irban_id'),
+            'tahun'            => (int)$this->request->getPost('tahun'),
+            'jenis_non_pkpt'   => $this->request->getPost('jenis_non_pkpt'),
+            'nama_tim'         => trim($this->request->getPost('nama_tim') ?? '') ?: null,
+            'nomor_naskah'     => $this->request->getPost('nomor_naskah'),
+            'tanggal_naskah'   => $this->request->getPost('tanggal_naskah'),
+            'dasar_1'          => $this->request->getPost('dasar_1'),
+            'dasar_2'          => $this->request->getPost('dasar_2') ?: null,
+            'tujuan'           => $this->request->getPost('tujuan'),
+            'tanggal_mulai'    => $this->request->getPost('tanggal_mulai') ?: null,
+            'tanggal_selesai'  => $this->request->getPost('tanggal_selesai') ?: null,
+            'tembusan'         => $this->request->getPost('tembusan'),
+            'penandatangan_id' => $this->request->getPost('penandatangan_id') ?: null,
+            'status'           => 'draft',
+            'created_by'       => session()->get('user_id'),
+        ]);
+
+        $timData = $this->parseTimPost();
+        if ($timData) $this->timModel->saveTimSpt((int)$sptId, $timData);
+        $this->approvalModel->initApprovals((int)$sptId);
+
+        logActivity('spt.create.non_pkpt', 'spt', "Buat SPT Non-PKPT id={$sptId}");
+        return redirect()->to('/admin/spt/' . $sptId)->with('success', 'SPT Non-PKPT berhasil dibuat.');
     }
 
     // ===================================================
@@ -276,6 +359,19 @@ class SptController extends BaseController
             return redirect()->to('/admin/spt/' . $id)->with('error', 'SPT sudah diajukan, tidak bisa diedit.');
         }
 
+        if (($spt['jenis_spt'] ?? 'pkpt') === 'non_pkpt') {
+            return view('admin/spt/form_non_pkpt', [
+                'title'     => 'Edit SPT Non-PKPT — ' . ($spt['nomor_naskah'] ?: '#' . $id),
+                'irbanList' => $this->irbanModel->orderBy('kode')->findAll(),
+                'sdmAll'    => $this->sdmModel->getAktif(),
+                'sdmPenanda'=> $this->sdmModel->getAktif(),
+                'jenisOpts' => SptModel::$jenisNonPkpt,
+                'tahunAktif'=> (int)($spt['tahun'] ?? $this->settingModel->getTahunAktif()),
+                'spt'       => $spt,
+                'setting'   => $this->settingModel->getByTahun((int)($spt['tahun'] ?? $this->settingModel->getTahunAktif())),
+            ]);
+        }
+
         $kegiatan = $this->kegiatanModel->getDetail($spt['pkpt_kegiatan_id']);
         $pkpt     = $this->pkptModel->getWithIrban($kegiatan['pkpt_id']);
 
@@ -314,7 +410,7 @@ class SptController extends BaseController
             return redirect()->back()->with('error', 'SPT tidak bisa diedit.');
         }
 
-        $this->sptModel->update($id, [
+        $updateData = [
             'nama_tim'        => trim($this->request->getPost('nama_tim') ?? '') ?: null,
             'nomor_naskah'    => $this->request->getPost('nomor_naskah'),
             'tanggal_naskah'  => $this->request->getPost('tanggal_naskah'),
@@ -325,7 +421,13 @@ class SptController extends BaseController
             'tanggal_selesai' => $this->request->getPost('tanggal_selesai') ?: null,
             'tembusan'        => $this->request->getPost('tembusan'),
             'penandatangan_id'=> $this->request->getPost('penandatangan_id') ?: null,
-        ]);
+        ];
+        if (($spt['jenis_spt'] ?? 'pkpt') === 'non_pkpt') {
+            $updateData['irban_id']       = (int)$this->request->getPost('irban_id');
+            $updateData['tahun']          = (int)$this->request->getPost('tahun');
+            $updateData['jenis_non_pkpt'] = $this->request->getPost('jenis_non_pkpt');
+        }
+        $this->sptModel->update($id, $updateData);
 
         $timData = $this->parseTimPost();
         if ($timData) $this->timModel->saveTimSpt($id, $timData);

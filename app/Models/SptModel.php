@@ -9,7 +9,8 @@ class SptModel extends Model
     protected $table         = 'spt';
     protected $primaryKey    = 'id';
     protected $allowedFields = [
-        'pkpt_kegiatan_id', 'nama_tim', 'nomor_naskah', 'tanggal_naskah',
+        'pkpt_kegiatan_id', 'jenis_spt', 'irban_id', 'tahun', 'jenis_non_pkpt',
+        'nama_tim', 'nomor_naskah', 'tanggal_naskah',
         'dasar_1', 'dasar_2', 'tujuan', 'tanggal_mulai', 'tanggal_selesai',
         'tembusan', 'penandatangan_id', 'status', 'file_word', 'catatan', 'created_by',
     ];
@@ -35,17 +36,33 @@ class SptModel extends Model
         'terbit'          => 'success',
     ];
 
+    public static array $jenisNonPkpt = [
+        'Reviu LKPD'                   => 'Reviu LKPD',
+        'Reviu RKA'                    => 'Reviu RKA',
+        'Evaluasi SPIP'                => 'Evaluasi SPIP',
+        'Evaluasi SAKIP'               => 'Evaluasi SAKIP',
+        'Monitoring TLHP'              => 'Monitoring TLHP',
+        'Pemeriksaan Kasus/Khusus'     => 'Pemeriksaan Kasus/Khusus',
+        'Asistensi/Pendampingan'       => 'Asistensi/Pendampingan',
+        'Reviu Laporan Keuangan'       => 'Reviu Laporan Keuangan',
+        'Penugasan Mandatori Lainnya'  => 'Penugasan Mandatori Lainnya',
+    ];
+
     public function getDetail(int $id): ?array
     {
         $spt = $this->db->table('spt s')
-            ->select('s.*, pk.kode_kegiatan, pk.tujuan_sasaran, pk.area_pengawasan, pk.jenis_pengawasan,
-                      p.tahun, p.irban_id, i.nama as irban_nama,
+            ->select('s.*,
+                      pk.kode_kegiatan, pk.tujuan_sasaran, pk.area_pengawasan, pk.jenis_pengawasan,
+                      COALESCE(p.tahun,  s.tahun)    as tahun,
+                      COALESCE(p.irban_id, s.irban_id) as irban_id,
+                      COALESCE(i_pkpt.nama, i_spt.nama) as irban_nama,
                       sdm.nama as penandatangan_nama, sdm.jabatan_struktural as penandatangan_jabatan,
-                      sdm.nip as penandatangan_nip, sdm.pangkat_golongan as penandatangan_pangkat')
-            ->join('pkpt_kegiatan pk', 'pk.id = s.pkpt_kegiatan_id')
-            ->join('pkpt p', 'p.id = pk.pkpt_id')
-            ->join('irban i', 'i.id = p.irban_id')
-            ->join('sdm', 'sdm.id = s.penandatangan_id', 'left')
+                      sdm.nip  as penandatangan_nip,  sdm.pangkat_golongan  as penandatangan_pangkat')
+            ->join('pkpt_kegiatan pk', 'pk.id = s.pkpt_kegiatan_id', 'left')
+            ->join('pkpt p',           'p.id = pk.pkpt_id',          'left')
+            ->join('irban i_pkpt',     'i_pkpt.id = p.irban_id',     'left')
+            ->join('irban i_spt',      'i_spt.id = s.irban_id',      'left')
+            ->join('sdm',              'sdm.id = s.penandatangan_id', 'left')
             ->where('s.id', $id)
             ->get()->getRowArray();
 
@@ -71,11 +88,15 @@ class SptModel extends Model
     public function getBySdm(int $sdmId, ?string $status = null): array
     {
         $q = $this->db->table('spt s')
-            ->select('s.*, pk.kode_kegiatan, pk.area_pengawasan, i.nama as irban_nama')
-            ->join('spt_tim st', 'st.spt_id = s.id')
-            ->join('pkpt_kegiatan pk', 'pk.id = s.pkpt_kegiatan_id')
-            ->join('pkpt p', 'p.id = pk.pkpt_id')
-            ->join('irban i', 'i.id = p.irban_id')
+            ->select('s.*,
+                      COALESCE(pk.kode_kegiatan, s.jenis_non_pkpt, "Non-PKPT") as kode_kegiatan,
+                      COALESCE(pk.area_pengawasan, s.tujuan) as area_pengawasan,
+                      COALESCE(i_pkpt.nama, i_spt.nama) as irban_nama')
+            ->join('spt_tim st',       'st.spt_id = s.id')
+            ->join('pkpt_kegiatan pk', 'pk.id = s.pkpt_kegiatan_id', 'left')
+            ->join('pkpt p',           'p.id = pk.pkpt_id',          'left')
+            ->join('irban i_pkpt',     'i_pkpt.id = p.irban_id',     'left')
+            ->join('irban i_spt',      'i_spt.id = s.irban_id',      'left')
             ->where('st.sdm_id', $sdmId);
 
         if ($status) $q->where('s.status', $status);
@@ -83,9 +104,6 @@ class SptModel extends Model
         return $q->orderBy('s.created_at', 'DESC')->get()->getResultArray();
     }
 
-    /**
-     * Tentukan tahap approval berikutnya berdasarkan status saat ini.
-     */
     public function getNextApprovalTahap(string $status): ?string
     {
         return match ($status) {
