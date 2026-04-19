@@ -84,13 +84,20 @@ if (!$isKtDal && empty($displayList)) {
         <form action="/admin/spt/<?= $spt['id'] ?>/km/2/save" method="POST">
             <?= csrf_field() ?>
 
-            <?php foreach($displayList as $t): ?>
-            <?php $aw = $awMap[$t['sdm_id']] ?? null; ?>
+            <?php
+$pkptTimMap = $pkptTimMap ?? [];
+foreach($displayList as $t):
+    $aw         = $awMap[$t['sdm_id']] ?? null;
+    $pkptHp     = isset($pkptTimMap[$t['sdm_id']]) ? (float)$pkptTimMap[$t['sdm_id']]['hp_total'] : null;
+    $awRencana  = (float)($aw['persiapan_rencana_hari'] ?? 0)
+                + (float)($aw['pelaksanaan_rencana_hari'] ?? 0)
+                + (float)($aw['penyelesaian_rencana_hari'] ?? 0);
+?>
             <input type="hidden" name="sdm_id[]" value="<?= $t['sdm_id'] ?>">
 
             <div class="card mb-3" style="border-left:4px solid #6366f1">
                 <div class="card-body">
-                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap">
                         <div style="width:36px;height:36px;border-radius:50%;background:#e0e7ff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#6366f1;flex-shrink:0">
                             <?= strtoupper(substr($t['sdm_nama'], 0, 1)) ?>
                         </div>
@@ -108,6 +115,36 @@ if (!$isKtDal && empty($displayList)) {
                         </span>
                         <?php endif; ?>
                     </div>
+
+                    <?php if($pkptHp !== null): ?>
+                    <?php
+                    $pct   = $pkptHp > 0 ? min(100, round($awRencana / $pkptHp * 100)) : ($awRencana > 0 ? 100 : 0);
+                    $sisa  = $pkptHp - $awRencana;
+                    $barColor   = $sisa < 0 ? '#ef4444' : ($pct >= 80 ? '#f59e0b' : '#22c55e');
+                    $statusHtml = $sisa < 0
+                        ? '<span style="color:#ef4444;font-weight:700"><i class="fas fa-triangle-exclamation"></i> Melebihi '.abs($sisa).' HP!</span>'
+                        : ($pct >= 80
+                            ? '<span style="color:#d97706;font-weight:600"><i class="fas fa-triangle-exclamation"></i> Mendekati batas</span>'
+                            : '<span style="color:#16a34a;font-weight:600"><i class="fas fa-check"></i> Sisa '.$sisa.' HP</span>');
+                    ?>
+                    <div class="aw-hp-widget" data-sdm="<?= $t['sdm_id'] ?>" data-budget="<?= $pkptHp ?>"
+                         style="display:flex;align-items:center;gap:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:7px 12px;margin-bottom:12px;flex-wrap:wrap">
+                        <span style="font-size:11px;color:#64748b;white-space:nowrap">
+                            <i class="fas fa-bullseye" style="color:#6366f1"></i> Budget PKPT:
+                            <strong style="color:#1e293b"><?= $pkptHp ?> HP</strong>
+                        </span>
+                        <span style="color:#cbd5e1">|</span>
+                        <span style="font-size:11px;color:#64748b;white-space:nowrap">
+                            Rencana KM-2:
+                            <strong class="aw-rencana-val" style="color:#1e293b"><?= $awRencana ?> HP</strong>
+                        </span>
+                        <div style="flex:1;min-width:80px;max-width:160px;height:7px;background:#e2e8f0;border-radius:4px;overflow:hidden">
+                            <div class="aw-bar-fill" style="height:100%;width:<?= $pct ?>%;background:<?= $barColor ?>;border-radius:4px;transition:width .25s,background .25s"></div>
+                        </div>
+                        <span class="aw-hp-status" style="font-size:11px;white-space:nowrap"><?= $statusHtml ?></span>
+                    </div>
+                    <?php endif; ?>
+
 
                     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
 
@@ -261,4 +298,47 @@ if (!$isKtDal && empty($displayList)) {
     </div>
 </div>
 
+<?= $this->endSection() ?>
+<?= $this->section('scripts') ?>
+<script>
+function updateAwHpWidget(sdmId) {
+    const get = (name) => parseFloat($(`input[name="${name}"]`).val()) || 0;
+    const total = get(`persiapan_rencana_${sdmId}`)
+                + get(`pelaksanaan_rencana_${sdmId}`)
+                + get(`penyelesaian_rencana_${sdmId}`);
+
+    const widget = $(`.aw-hp-widget[data-sdm="${sdmId}"]`);
+    if (!widget.length) return;
+
+    const budget = parseFloat(widget.data('budget')) || 0;
+    const pct    = budget > 0 ? Math.min(100, Math.round(total / budget * 100)) : (total > 0 ? 100 : 0);
+    const sisa   = Math.round((budget - total) * 10) / 10;
+
+    widget.find('.aw-rencana-val').text(total + ' HP');
+    widget.find('.aw-bar-fill').css('width', pct + '%');
+
+    let color, html;
+    if (sisa < 0) {
+        color = '#ef4444';
+        html  = `<span style="color:#ef4444;font-weight:700"><i class="fas fa-triangle-exclamation"></i> Melebihi ${Math.abs(sisa)} HP!</span>`;
+    } else if (pct >= 80) {
+        color = '#f59e0b';
+        html  = `<span style="color:#d97706;font-weight:600"><i class="fas fa-triangle-exclamation"></i> Mendekati batas</span>`;
+    } else {
+        color = '#22c55e';
+        html  = `<span style="color:#16a34a;font-weight:600"><i class="fas fa-check"></i> Sisa ${sisa} HP</span>`;
+    }
+    widget.find('.aw-bar-fill').css('background', color);
+    widget.find('.aw-hp-status').html(html);
+}
+
+$(function() {
+    // Live update saat nilai rencana diubah
+    $(document).on('input change', 'input[name^="persiapan_rencana_"], input[name^="pelaksanaan_rencana_"], input[name^="penyelesaian_rencana_"]', function() {
+        const name  = $(this).attr('name');
+        const sdmId = name.split('_').pop();
+        updateAwHpWidget(sdmId);
+    });
+});
+</script>
 <?= $this->endSection() ?>

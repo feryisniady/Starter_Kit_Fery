@@ -8,15 +8,16 @@
     </div>
     <div class="page-actions">
         <a href="/admin/spt" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Kembali</a>
-        <?php if($spt['status'] === 'draft'): ?>
+
+        <?php if($canEdit): ?>
             <a href="/admin/spt/<?= $spt['id'] ?>/edit" class="btn btn-warning"><i class="fas fa-edit"></i> Edit</a>
             <a href="/admin/spt/<?= $spt['id'] ?>/km" class="btn btn-info">
                 <i class="fas fa-shield-check"></i> Kelengkapan KM
                 <?php
-                $kmDone = count(array_filter($kmChecklist, fn($c) => $c['complete']));
+                $kmDone  = count(array_filter($kmChecklist, fn($c) => $c['complete']));
                 $kmTotal = count($kmChecklist);
-                if ($kmDone < $kmTotal):
                 ?>
+                <?php if ($kmDone < $kmTotal): ?>
                 <span class="badge badge-warning" style="margin-left:4px"><?= $kmDone ?>/<?= $kmTotal ?></span>
                 <?php else: ?>
                 <span class="badge badge-success" style="margin-left:4px"><i class="fas fa-check"></i></span>
@@ -26,6 +27,7 @@
                 <i class="fas fa-paper-plane"></i> Ajukan
             </button>
         <?php endif; ?>
+
         <?php if($spt['status'] === 'ditolak'): ?>
             <form action="/admin/spt/<?= $spt['id'] ?>/revisi" method="POST" style="display:inline"
                   onsubmit="return confirm('Mulai revisi SPT? Status akan kembali ke Draft dan Anda bisa edit.')">
@@ -35,7 +37,8 @@
                 </button>
             </form>
         <?php endif; ?>
-        <?php if(in_array($spt['status'], ['diajukan','acc_irban','acc_evlap','acc_sekretaris'])): ?>
+
+        <?php if($canApproveNow): ?>
             <button class="btn btn-success" onclick="$('#modal-approve').show()">
                 <i class="fas fa-check"></i> Approve
             </button>
@@ -43,6 +46,7 @@
                 <i class="fas fa-times"></i> Tolak
             </button>
         <?php endif; ?>
+
         <?php if($spt['status'] === 'terbit'): ?>
             <a href="/admin/spt/<?= $spt['id'] ?>/word" class="btn btn-success">
                 <i class="fas fa-file-word"></i> Download Word

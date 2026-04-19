@@ -7,6 +7,9 @@
         <p>Manajemen SPT Inspektorat</p>
     </div>
     <div class="page-actions">
+        <a href="/admin/spt/non-pkpt/create" class="btn btn-warning">
+            <i class="fas fa-star"></i> SPT Non-PKPT
+        </a>
         <select id="sel-tahun" class="form-control" style="width:auto">
             <?php foreach($settings as $s): ?>
             <option value="<?= $s['tahun'] ?>" <?= $s['tahun'] == $tahunAktif ? 'selected' : '' ?>><?= $s['tahun'] ?></option>
