@@ -1,4 +1,7 @@
 <?= $this->extend('layouts/main') ?>
+<?= $this->section('styles') ?>
+<link rel="stylesheet" href="/assets/_main/modules/summernote/summernote-lite.css">
+<?= $this->endSection() ?>
 <?= $this->section('content') ?>
 
 <div class="page-header">
@@ -97,7 +100,7 @@ $totalRealisasi = fn($t) => (float)($t['persiapan_realisasi_hari'] ?? 0)
                 <td style="padding:10px 12px;border:1px solid #e2e8f0;text-align:center;font-weight:700;background:#f8fafc;color:#475569">4</td>
                 <td style="padding:10px 12px;border:1px solid #e2e8f0;color:#475569">Uraian Kegiatan Pengawasan</td>
                 <td style="padding:10px 12px;border:1px solid #e2e8f0">
-                    <textarea name="kegiatan" class="form-control form-control-sm" rows="2"
+                    <textarea name="kegiatan" id="kegiatan-editor" class="form-control form-control-sm" rows="4"
                               placeholder="Audit Ketaatan Pengelolaan Keuangan..."
                               <?= !$canEdit ? 'disabled' : '' ?>><?= old('kegiatan', $row['kegiatan'] ?? $spt['tujuan'] ?? '') ?></textarea>
                 </td>
@@ -338,4 +341,24 @@ $totalRealisasi = fn($t) => (float)($t['persiapan_realisasi_hari'] ?? 0)
 
 </form>
 
+<?= $this->endSection() ?>
+
+<?= $this->section('scripts') ?>
+<script src="/assets/_main/modules/summernote/summernote-lite.js"></script>
+<script>
+$(function(){
+    <?php if($canEdit): ?>
+    $('#kegiatan-editor').summernote({
+        placeholder: 'Uraian kegiatan pengawasan...',
+        height: 160,
+        toolbar: [
+            ['style',  ['bold','italic','underline','clear']],
+            ['para',   ['ul','ol','paragraph']],
+            ['insert', ['hr']],
+            ['view',   ['codeview']],
+        ],
+    });
+    <?php endif; ?>
+});
+</script>
 <?= $this->endSection() ?>
