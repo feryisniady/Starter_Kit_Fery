@@ -46,7 +46,7 @@ class KmController extends BaseController
     }
 
     // ──────────────────────────────────────────────────────────────────────
-    // KM-1 — Peta Pengawasan / Kartu Penugasan  (KT + Dalnis)
+    // KM-1 — Kartu Penugasan format BPKP KM5  (KT + Dalnis)
     // ──────────────────────────────────────────────────────────────────────
 
     public function km1(int $sptId)
@@ -57,11 +57,30 @@ class KmController extends BaseController
 
         $db  = \Config\Database::connect();
         $row = $db->table('spt_km1')->where('spt_id', $sptId)->get()->getRowArray();
+        $km6 = $db->table('spt_km6')->where('spt_id', $sptId)->get()->getRowArray();
+
+        // HP per anggota dari spt_tim + realisasi dari anggaran_waktu
+        $timAw = $db->table('spt_tim st')
+            ->select('st.sdm_id, st.peran_spt, st.hp_desk, st.hp_field,
+                      sdm.nama as sdm_nama,
+                      aw.persiapan_realisasi_hari, aw.pelaksanaan_realisasi_hari,
+                      aw.penyelesaian_realisasi_hari')
+            ->join('sdm', 'sdm.id = st.sdm_id')
+            ->join('spt_anggaran_waktu aw', 'aw.spt_id = st.spt_id AND aw.sdm_id = st.sdm_id', 'left')
+            ->where('st.spt_id', $sptId)
+            ->orderBy('st.urutan')
+            ->get()->getResultArray();
+
+        // Cek km5b (entry meeting) untuk status realisasi
+        $km5bAda = !empty($km6);
 
         return view('admin/km/km1', [
             'title'    => 'KM-1 — Kartu Penugasan',
             'spt'      => $spt,
             'row'      => $row,
+            'km6'      => $km6,
+            'timAw'    => $timAw,
+            'km5bAda'  => $km5bAda,
             'canEdit'  => canEditKmInSpt($sptId, 'km1'),
         ]);
     }
@@ -73,16 +92,30 @@ class KmController extends BaseController
         $spt = $this->sptModel->find($sptId);
         if (!$spt) return redirect()->back()->with('error', 'SPT tidak ditemukan.');
 
+        $p    = fn(string $k) => $this->request->getPost($k);
+        $pd   = fn(string $k) => $this->request->getPost($k) ?: null;
         $db   = \Config\Database::connect();
+
         $data = [
-            'spt_id'            => $sptId,
-            'no_kartu'          => $this->request->getPost('no_kartu'),
-            'tujuan_satker'     => $this->request->getPost('tujuan_satker'),
-            'kegiatan'          => $this->request->getPost('kegiatan'),
-            'rencana_mulai'     => $this->request->getPost('rencana_mulai') ?: null,
-            'rencana_selesai'   => $this->request->getPost('rencana_selesai') ?: null,
-            'rencana_kunjungan' => $this->request->getPost('rencana_kunjungan'),
-            'catatan'           => $this->request->getPost('catatan'),
+            'spt_id'                 => $sptId,
+            'no_kartu'               => $p('no_kartu'),
+            'tingkat_risiko'         => $p('tingkat_risiko'),
+            'laporan_kepada'         => $p('laporan_kepada'),
+            'tujuan_satker'          => $p('tujuan_satker'),
+            'kegiatan'               => $p('kegiatan'),
+            'rencana_mulai'          => $pd('rencana_mulai'),
+            'rencana_selesai'        => $pd('rencana_selesai'),
+            'rencana_kunjungan'      => $p('rencana_kunjungan'),
+            'kunjungan_pm_1'         => $pd('kunjungan_pm_1'),
+            'kunjungan_pm_2'         => $pd('kunjungan_pm_2'),
+            'kunjungan_pm_3'         => $pd('kunjungan_pm_3'),
+            'kunjungan_pt_1'         => $pd('kunjungan_pt_1'),
+            'kunjungan_pt_2'         => $pd('kunjungan_pt_2'),
+            'kunjungan_pt_3'         => $pd('kunjungan_pt_3'),
+            'rmp_bulan'              => $pd('rmp_bulan'),
+            'rpl_bulan'              => $pd('rpl_bulan'),
+            'tanggal_konsep_laporan' => $pd('tanggal_konsep_laporan'),
+            'catatan'                => $p('catatan'),
         ];
 
         $existing = $db->table('spt_km1')->where('spt_id', $sptId)->get()->getRowArray();
@@ -93,7 +126,7 @@ class KmController extends BaseController
             $db->table('spt_km1')->insert(array_merge($data, ['created_at' => $now, 'updated_at' => $now]));
         }
 
-        logActivity('spt.km1.save', 'spt_km1', "Simpan KM-1 SPT id={$sptId}");
+        logActivity('spt.km1.save', 'spt_km1', "Simpan KM-1 Kartu Penugasan SPT id={$sptId}");
         return redirect()->to('/admin/spt/' . $sptId . '/km')->with('success', 'KM-1 Kartu Penugasan berhasil disimpan.');
     }
 
@@ -136,14 +169,23 @@ class KmController extends BaseController
                 ->get()->getResultArray()
             : [];
 
+        $db2          = \Config\Database::connect();
+        $km5bAda      = (bool)$db2->table('spt_km6')->where('spt_id', $sptId)->countAllResults();
+        $km10Ada      = (bool)$db2->table('spt_km10')->where('spt_id', $sptId)->countAllResults();
+        $canEditBase  = ($isAdmin || $isKtDal) && canEditKmInSpt($sptId, 'km2');
+        $canEditRealisasi = $canEditBase && $km5bAda && !$km10Ada;
+
         return view('admin/km/anggaran_waktu', [
-            'title'    => 'KM-2 — Formulir Anggaran Waktu',
-            'spt'      => $spt,
-            'awMap'    => $awMap,
-            'timList'  => $timList,
-            'canEdit'  => ($isAdmin || $isKtDal) && canEditKmInSpt($sptId, 'km2'),
-            'isKtDal'  => $isAdmin || $isKtDal,
-            'mySdmId'  => $sdmId,
+            'title'             => 'KM-2 — Formulir Anggaran Waktu',
+            'spt'               => $spt,
+            'awMap'             => $awMap,
+            'timList'           => $timList,
+            'canEdit'           => $canEditBase,
+            'canEditRealisasi'  => $canEditRealisasi,
+            'km5bAda'           => $km5bAda,
+            'km10Ada'           => $km10Ada,
+            'isKtDal'           => $isAdmin || $isKtDal,
+            'mySdmId'           => $sdmId,
         ]);
     }
 
