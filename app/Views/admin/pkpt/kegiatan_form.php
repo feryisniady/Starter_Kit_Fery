@@ -1,4 +1,20 @@
 <?= $this->extend('layouts/main') ?>
+<?= $this->section('styles') ?>
+<style>
+#tim-rows tr.tim-row td {
+    padding: 10px 8px;
+    vertical-align: middle;
+    border-bottom: 1px solid #e2e8f0;
+}
+#tim-rows tr.tim-row:last-child td { border-bottom: none; }
+#tim-rows tr.tim-row:hover td { background: #f8fafc; }
+#tim-rows tr.tim-row td:first-child {
+    border-left: 3px solid #e2e8f0;
+    transition: border-color .2s;
+}
+#tim-rows tr.tim-row:hover td:first-child { border-left-color: #6366f1; }
+</style>
+<?= $this->endSection() ?>
 <?= $this->section('content') ?>
 
 <div class="page-header">
@@ -418,26 +434,22 @@ function renderSisaHp($el, sisa, hp) {
     const warn  = !over && sisa > 0 && hp >= Math.ceil(sisa * 0.8);
     const color = over ? '#ef4444' : (warn ? '#f59e0b' : '#22c55e');
     const icon  = over ? 'fa-circle-xmark' : (warn ? 'fa-triangle-exclamation' : 'fa-circle-check');
-    const maxV  = Math.max(sisa, hp, 1);
-    const pct   = Math.min(100, Math.round(hp / maxV * 100));
+    const pct   = sisa > 0 ? Math.min(100, Math.round(hp / sisa * 100)) : (hp > 0 ? 100 : 0);
 
-    let html = '<div style="margin-top:5px">';
-    html += '<div style="display:flex;align-items:center;gap:5px;font-size:11px;flex-wrap:wrap">';
-    html += '<i class="fas ' + icon + '" style="color:' + color + '"></i>';
-    html += '<span style="color:#64748b">Sisa HP:</span>';
-    html += '<strong style="color:' + color + '">' + sisa + ' hari</strong>';
-    if (over) {
-        html += '<span style="background:#fee2e2;color:#991b1b;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700">';
-        html += '<i class="fas fa-triangle-exclamation"></i> +' + (hp - sisa) + ' hari melebihi!</span>';
-    } else if (warn) {
-        html += '<span style="background:#fef9c3;color:#854d0e;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:600">Mendekati batas</span>';
-    }
-    html += '</div>';
-    html += '<div style="margin-top:3px;height:5px;background:#e2e8f0;border-radius:3px;overflow:hidden">';
-    html += '<div style="height:100%;width:' + pct + '%;background:' + color + ';border-radius:3px;transition:width .3s"></div>';
-    html += '</div>';
-    html += '<div style="font-size:10px;color:#94a3b8;margin-top:1px">' + hp + ' dari ' + Math.max(sisa, hp) + ' hari digunakan</div>';
-    html += '</div>';
+    let badge = '';
+    if (over)      badge = ' <span style="background:#fee2e2;color:#991b1b;border-radius:10px;padding:0 7px;font-weight:700">+' + (hp-sisa) + ' melebihi!</span>';
+    else if (warn) badge = ' <span style="background:#fef9c3;color:#854d0e;border-radius:10px;padding:0 7px">⚠ mendekati batas</span>';
+
+    const html =
+        '<div style="display:flex;align-items:center;gap:5px;margin-top:4px;font-size:11px;flex-wrap:nowrap">' +
+        '<i class="fas ' + icon + '" style="color:' + color + ';font-size:10px;flex-shrink:0"></i>' +
+        '<span style="color:#64748b;white-space:nowrap">Sisa:</span>' +
+        '<strong style="color:' + color + ';white-space:nowrap">' + sisa + ' hr</strong>' +
+        '<div style="height:4px;width:48px;background:#e2e8f0;border-radius:2px;flex-shrink:0;overflow:hidden">' +
+        '<div style="height:100%;width:' + pct + '%;background:' + color + ';border-radius:2px;transition:width .3s"></div>' +
+        '</div>' +
+        badge +
+        '</div>';
     $el.html(html);
 }
 
