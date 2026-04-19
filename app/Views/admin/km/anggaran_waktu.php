@@ -26,11 +26,8 @@
 <?php endif; ?>
 
 <?php
-// Tentukan daftar anggota yang ditampilkan:
-// isKtDal/Admin → semua (dari $timList); AT → hanya baris miliknya di $awMap
 $displayList = $isKtDal ? $timList : array_filter($timList, fn($t) => (int)$t['sdm_id'] === $mySdmId);
 if (!$isKtDal && empty($displayList)) {
-    // AT yang belum ada di timList tapi ada di awMap (jarang terjadi)
     foreach ($awMap as $aw) {
         if ((int)$aw['sdm_id'] === $mySdmId) {
             $displayList[] = ['sdm_id' => $aw['sdm_id'], 'sdm_nama' => $aw['sdm_nama'], 'peran_spt' => $aw['peran_spt'] ?? ''];
@@ -54,11 +51,27 @@ if (!$isKtDal && empty($displayList)) {
         <div style="background:#eff6ff;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#1d4ed8">
             <i class="fas fa-info-circle"></i>
             <?php if($isKtDal): ?>
-            Isi rencana jadwal dan hari untuk setiap anggota tim. Kolom <strong>Realisasi Hari</strong> diisi setelah fase selesai.
+            Isi rencana jadwal dan hari untuk setiap anggota tim. Kolom <strong>Realisasi Hari</strong> diisi setelah Entry Meeting (KM-5b) selesai.
             <?php else: ?>
             Isi rencana jadwal dan jumlah hari untuk setiap fase penugasan Anda.
             <?php endif; ?>
         </div>
+        <?php endif; ?>
+
+        <?php if($isKtDal && $canEdit): ?>
+            <?php if($km10Ada): ?>
+            <div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#991b1b">
+                <i class="fas fa-lock"></i> <strong>Realisasi terkunci.</strong> Exit Meeting (KM-10) telah selesai — kolom realisasi tidak dapat diubah.
+            </div>
+            <?php elseif(!$km5bAda): ?>
+            <div style="background:#fef9c3;border:1px solid #fde047;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#854d0e">
+                <i class="fas fa-hourglass-half"></i> <strong>Realisasi belum dapat diisi.</strong> Isi Entry Meeting (KM-5b) terlebih dahulu untuk membuka kolom realisasi.
+            </div>
+            <?php else: ?>
+            <div style="background:#dcfce7;border:1px solid #86efac;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#166534">
+                <i class="fas fa-unlock"></i> <strong>Realisasi dapat diisi.</strong> Entry Meeting telah selesai. Isi realisasi hari setiap fase.
+            </div>
+            <?php endif; ?>
         <?php endif; ?>
 
         <?php if(empty($displayList)): ?>
@@ -128,7 +141,7 @@ if (!$isKtDal && empty($displayList)) {
                                 <input type="number" name="persiapan_realisasi_<?= $t['sdm_id'] ?>" class="form-control form-control-sm"
                                        step="0.5" min="0" placeholder="0"
                                        value="<?= $aw['persiapan_realisasi_hari'] ?? '' ?>"
-                                       <?= !$canEdit ? 'disabled' : '' ?>>
+                                       <?= !$canEditRealisasi ? 'disabled' : '' ?>>
                             </div>
                             <?php elseif($aw && $aw['persiapan_realisasi_hari'] !== null): ?>
                             <div style="font-size:11px;color:#22c55e;margin-top:4px">
@@ -167,7 +180,7 @@ if (!$isKtDal && empty($displayList)) {
                                 <input type="number" name="pelaksanaan_realisasi_<?= $t['sdm_id'] ?>" class="form-control form-control-sm"
                                        step="0.5" min="0" placeholder="0"
                                        value="<?= $aw['pelaksanaan_realisasi_hari'] ?? '' ?>"
-                                       <?= !$canEdit ? 'disabled' : '' ?>>
+                                       <?= !$canEditRealisasi ? 'disabled' : '' ?>>
                             </div>
                             <?php elseif($aw && $aw['pelaksanaan_realisasi_hari'] !== null): ?>
                             <div style="font-size:11px;color:#22c55e;margin-top:4px">
@@ -206,7 +219,7 @@ if (!$isKtDal && empty($displayList)) {
                                 <input type="number" name="penyelesaian_realisasi_<?= $t['sdm_id'] ?>" class="form-control form-control-sm"
                                        step="0.5" min="0" placeholder="0"
                                        value="<?= $aw['penyelesaian_realisasi_hari'] ?? '' ?>"
-                                       <?= !$canEdit ? 'disabled' : '' ?>>
+                                       <?= !$canEditRealisasi ? 'disabled' : '' ?>>
                             </div>
                             <?php elseif($aw && $aw['penyelesaian_realisasi_hari'] !== null): ?>
                             <div style="font-size:11px;color:#22c55e;margin-top:4px">
@@ -217,7 +230,7 @@ if (!$isKtDal && empty($displayList)) {
 
                     </div><!-- end grid -->
 
-                    <?php if($isKtDal && $aw && $canEdit && empty($aw['kt_verified'])): ?>
+                    <?php if($isKtDal && $aw && $canEditRealisasi && empty($aw['kt_verified'])): ?>
                     <div style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end">
                         <form action="/admin/spt/<?= $spt['id'] ?>/km/2/verifikasi" method="POST" style="display:inline">
                             <?= csrf_field() ?>
