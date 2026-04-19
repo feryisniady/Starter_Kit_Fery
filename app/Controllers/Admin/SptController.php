@@ -518,14 +518,14 @@ class SptController extends BaseController
         $phpWord->addParagraphStyle('hrThick', [
             'borderBottomSize'  => 18,
             'borderBottomColor' => '000000',
-            'spaceBefore'       => 80,
+            'spaceBefore'       => 30,
             'spaceAfter'        => 0,
         ]);
         $phpWord->addParagraphStyle('hrThin', [
             'borderBottomSize'  => 4,
             'borderBottomColor' => '000000',
-            'spaceBefore'       => 20,
-            'spaceAfter'        => 160,
+            'spaceBefore'       => 8,
+            'spaceAfter'        => 60,
         ]);
 
         // ── KOP ──────────────────────────────────────────────
@@ -556,25 +556,27 @@ class SptController extends BaseController
         $section->addText('', null, 'hrThin');
 
         // ── JUDUL ────────────────────────────────────────────
-        $section->addText('SURAT PERINTAH', ['bold' => true, 'size' => 14], $jcC);
+        $section->addText('SURAT PERINTAH', ['bold' => true, 'size' => 14],
+            $jcC + ['spaceBefore' => 60, 'spaceAfter' => 20]);
         $section->addText(
             'NOMOR : ' . ($spt['nomor_naskah'] ?: '....................................'),
             ['size' => 12],
-            $jcC
+            $jcC + ['spaceBefore' => 0, 'spaceAfter' => 100]
         );
-        $section->addTextBreak(1);
 
         // ── DASAR (borderless 3-col: label | : | isi) ────────
         $dtbl = $section->addTable('noBorder');
         $dtbl->addRow();
         $dtbl->addCell($cm(1.8), $noBorder)->addText('Dasar', ['size' => 12], $jcL);
         $dtbl->addCell($cm(0.3), $noBorder)->addText(':', ['size' => 12], $jcL);
-        $dtbl->addCell($cm(13.4), $noBorder)->addText('1.  ' . ($spt['dasar_1'] ?? ''), ['size' => 12]);
+        // Hanging indent agar baris kedua sejajar dengan awal teks (bukan angka "1.")
+        $pDasar = ['indentation' => ['left' => 320, 'hanging' => 320]];
+        $dtbl->addCell($cm(13.4), $noBorder)->addText('1.  ' . ($spt['dasar_1'] ?? ''), ['size' => 12], $pDasar);
         if (!empty($spt['dasar_2'])) {
             $dtbl->addRow();
             $dtbl->addCell($cm(1.8), $noBorder)->addText('');
             $dtbl->addCell($cm(0.3), $noBorder)->addText('');
-            $dtbl->addCell($cm(13.4), $noBorder)->addText('2.  ' . $spt['dasar_2'], ['size' => 12]);
+            $dtbl->addCell($cm(13.4), $noBorder)->addText('2.  ' . $spt['dasar_2'], ['size' => 12], $pDasar);
         }
         $section->addTextBreak(1);
 
@@ -652,8 +654,8 @@ class SptController extends BaseController
         $ttdTbl->addRow();
         $ttdTbl->addCell($cm(8.0), $noBorder)->addText('');
         $sig = $ttdTbl->addCell($cm(7.5), $noBorder);
-        $sig->addText('Ditetapkan di  : Sampang',        ['size' => 12], $jcC);
-        $sig->addText('Pada tanggal    : ' . $tglNaskah, ['size' => 12], $jcC);
+        $sig->addText('Ditetapkan di  : Sampang',        ['size' => 12], $jcL);
+        $sig->addText('Pada tanggal    : ' . $tglNaskah, ['size' => 12], $jcL);
         $sig->addTextBreak(1);
         $sig->addText($jabatan . ',',                    ['size' => 12], $jcC);
         $sig->addTextBreak(3);
@@ -677,12 +679,12 @@ class SptController extends BaseController
         $footer->addText(
             '"BERANI JUJUR ITU HEBAT — Tolak Gratifikasi, Tegakkan Integritas"',
             ['bold' => true, 'italic' => true, 'size' => 9, 'color' => '8B0000'],
-            $jcC
+            $jcL
         );
         $footer->addText(
             'Dokumen ini ditandatangani secara elektronik melalui sistem BSrE BSSN dan sah tanpa tanda tangan basah.',
             ['size' => 8, 'color' => '666666'],
-            $jcC
+            $jcL
         );
 
         // ── SIMPAN & UNDUH ────────────────────────────────────
