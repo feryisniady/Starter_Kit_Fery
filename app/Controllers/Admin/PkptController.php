@@ -672,28 +672,34 @@ class PkptController extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'SDM tidak ditemukan.']);
         }
 
-        // Per-kegiatan breakdown
-        $kegiatan = $db->query("
-            SELECT pk.kode_kegiatan, pk.nama_kegiatan, pk.jenis_pengawasan,
-                p2.irban_id,
-                COALESCE(pt.hp_total, 0) as hp_pkpt,
-                COALESCE(SUM(st.hp_desk + st.hp_field), 0) as hp_alokasi,
-                COALESCE(SUM(
-                    COALESCE(aw.persiapan_realisasi_hari,0) +
-                    COALESCE(aw.pelaksanaan_realisasi_hari,0) +
-                    COALESCE(aw.penyelesaian_realisasi_hari,0)
-                ), 0) as hp_realisasi,
-                GROUP_CONCAT(DISTINCT sp.nomor_naskah ORDER BY sp.id SEPARATOR ', ') as spt_list
-            FROM pkpt_tim pt
-            JOIN pkpt_kegiatan pk ON pk.id = pt.pkpt_kegiatan_id AND pk.status != 'batal'
-            JOIN pkpt p2 ON p2.id = pk.pkpt_id AND p2.tahun = {$tahun}
-            LEFT JOIN spt sp ON sp.pkpt_kegiatan_id = pk.id
-            LEFT JOIN spt_tim st ON st.spt_id = sp.id AND st.sdm_id = {$sdmId}
-            LEFT JOIN spt_anggaran_waktu aw ON aw.spt_id = sp.id AND aw.sdm_id = {$sdmId}
-            WHERE pt.sdm_id = {$sdmId}
-            GROUP BY pk.id, pk.kode_kegiatan, pk.nama_kegiatan, pk.jenis_pengawasan, pt.hp_total
-            ORDER BY pk.kode_kegiatan
-        ")->getResultArray();
+        // Per-kegiatan breakdown — spt_ids & spt_labels dalam urutan sama untuk linking
+        try {
+            $kegiatan = $db->query("
+                SELECT pk.id as kegiatan_id, pk.kode_kegiatan, pk.nama_kegiatan, pk.jenis_pengawasan,
+                    COALESCE(pt.hp_total, 0) as hp_pkpt,
+                    COALESCE(SUM(st.hp_desk + st.hp_field), 0) as hp_alokasi,
+                    COALESCE(SUM(
+                        COALESCE(aw.persiapan_realisasi_hari,0) +
+                        COALESCE(aw.pelaksanaan_realisasi_hari,0) +
+                        COALESCE(aw.penyelesaian_realisasi_hari,0)
+                    ), 0) as hp_realisasi,
+                    GROUP_CONCAT(DISTINCT sp.id       ORDER BY sp.id SEPARATOR ',') as spt_ids,
+                    GROUP_CONCAT(DISTINCT sp.nomor_naskah ORDER BY sp.id SEPARATOR '|') as spt_list,
+                    COUNT(DISTINCT sp.id) as jumlah_spt,
+                    SUM(CASE WHEN aw.sdm_id IS NULL AND st.sdm_id IS NOT NULL THEN 1 ELSE 0 END) as spt_tanpa_aw
+                FROM pkpt_tim pt
+                JOIN pkpt_kegiatan pk ON pk.id = pt.pkpt_kegiatan_id AND pk.status != 'batal'
+                JOIN pkpt p2 ON p2.id = pk.pkpt_id AND p2.tahun = {$tahun}
+                LEFT JOIN spt sp ON sp.pkpt_kegiatan_id = pk.id
+                LEFT JOIN spt_tim st ON st.spt_id = sp.id AND st.sdm_id = {$sdmId}
+                LEFT JOIN spt_anggaran_waktu aw ON aw.spt_id = sp.id AND aw.sdm_id = {$sdmId}
+                WHERE pt.sdm_id = {$sdmId}
+                GROUP BY pk.id, pk.kode_kegiatan, pk.nama_kegiatan, pk.jenis_pengawasan, pt.hp_total
+                ORDER BY pk.kode_kegiatan
+            ")->getResultArray();
+        } catch (\Exception $e) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Query error: ' . $e->getMessage()]);
+        }
 
         return $this->response->setJSON([
             'success'  => true,
