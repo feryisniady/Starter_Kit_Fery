@@ -551,6 +551,159 @@ class PkptController extends BaseController
     }
 
     // ===================================================
+    // MONITORING HP PER SDM
+    // ===================================================
+
+    public function monitoringSdm()
+    {
+        $tahun = (int)($this->request->getGet('tahun') ?? $this->settingModel->getTahunAktif());
+
+        // HP Efektif
+        $hpEfektif = (new HariLiburModel())->hitungHariKerjaTahun($tahun);
+        if ($hpEfektif === 0) {
+            $setting   = $this->settingModel->getByTahun($tahun);
+            $hpEfektif = $setting ? (int)$setting['total_hp_tahunan'] : 0;
+        }
+
+        $db = \Config\Database::connect();
+
+        // Tahun list untuk filter dropdown
+        $tahunList = $db->table('pkpt')->select('tahun')->distinct()->orderBy('tahun', 'DESC')->get()->getResultArray();
+        $tahunList = array_column($tahunList, 'tahun');
+
+        // HP PKPT per SDM (planned)
+        $hpPkptRows = $db->query("
+            SELECT pt.sdm_id, SUM(pt.hp_total) as hp_pkpt
+            FROM pkpt_tim pt
+            JOIN pkpt_kegiatan pk ON pk.id = pt.pkpt_kegiatan_id AND pk.status != 'batal'
+            JOIN pkpt p ON p.id = pk.pkpt_id AND p.tahun = {$tahun}
+            GROUP BY pt.sdm_id
+        ")->getResultArray();
+        $hpPkptMap = array_column($hpPkptRows, null, 'sdm_id');
+
+        // HP Alokasi SPT per SDM
+        $hpAlokasiRows = $db->query("
+            SELECT st.sdm_id, SUM(st.hp_desk + st.hp_field) as hp_alokasi
+            FROM spt_tim st
+            JOIN spt sp ON sp.id = st.spt_id
+            JOIN pkpt_kegiatan pk ON pk.id = sp.pkpt_kegiatan_id
+            JOIN pkpt p ON p.id = pk.pkpt_id AND p.tahun = {$tahun}
+            GROUP BY st.sdm_id
+        ")->getResultArray();
+        $hpAlokasiMap = array_column($hpAlokasiRows, null, 'sdm_id');
+
+        // HP Realisasi per SDM
+        $hpRealisasiRows = $db->query("
+            SELECT aw.sdm_id,
+                SUM(COALESCE(aw.persiapan_realisasi_hari,0) + COALESCE(aw.pelaksanaan_realisasi_hari,0) + COALESCE(aw.penyelesaian_realisasi_hari,0)) as hp_realisasi
+            FROM spt_anggaran_waktu aw
+            JOIN spt sp ON sp.id = aw.spt_id
+            JOIN pkpt_kegiatan pk ON pk.id = sp.pkpt_kegiatan_id
+            JOIN pkpt p ON p.id = pk.pkpt_id AND p.tahun = {$tahun}
+            GROUP BY aw.sdm_id
+        ")->getResultArray();
+        $hpRealisasiMap = array_column($hpRealisasiRows, null, 'sdm_id');
+
+        // All active SDM with irban
+        $sdmRows = $db->query("
+            SELECT s.id, s.nama as sdm_nama, i.nama as irban_nama, i.kode as irban_kode, i.id as irban_id
+            FROM sdm s
+            JOIN irban i ON i.id = s.irban_id
+            WHERE s.aktif = 1
+            ORDER BY i.kode, s.nama
+        ")->getResultArray();
+
+        // Irban filter from GET
+        $filterIrban = (int)($this->request->getGet('irban_id') ?? 0);
+
+        // Merge maps and compute status
+        foreach ($sdmRows as &$row) {
+            $sdmId              = (int)$row['id'];
+            $row['hp_pkpt']     = (int)($hpPkptMap[$sdmId]['hp_pkpt'] ?? 0);
+            $row['hp_alokasi']  = (int)($hpAlokasiMap[$sdmId]['hp_alokasi'] ?? 0);
+            $row['hp_realisasi']= (int)($hpRealisasiMap[$sdmId]['hp_realisasi'] ?? 0);
+            $row['sisa_hp']     = $hpEfektif - $row['hp_pkpt'];
+
+            if ($hpEfektif > 0 && $row['hp_pkpt'] > $hpEfektif) {
+                $row['status'] = 'melebihi';
+            } elseif ($hpEfektif > 0 && $row['hp_pkpt'] >= $hpEfektif * 0.8) {
+                $row['status'] = 'peringatan';
+            } else {
+                $row['status'] = 'aman';
+            }
+        }
+        unset($row);
+
+        // Apply irban filter
+        if ($filterIrban > 0) {
+            $sdmRows = array_values(array_filter($sdmRows, fn($r) => (int)$r['irban_id'] === $filterIrban));
+        }
+
+        return view('admin/pkpt/monitoring_sdm', [
+            'title'      => 'Monitoring Anggaran Waktu SDM',
+            'tahun'      => $tahun,
+            'tahunList'  => $tahunList,
+            'hpEfektif'  => $hpEfektif,
+            'sdmRows'    => $sdmRows,
+            'irbanList'  => $this->irbanModel->findAll(),
+            'filterIrban'=> $filterIrban,
+        ]);
+    }
+
+    public function monitoringSdmDetail()
+    {
+        $sdmId = (int)$this->request->getGet('sdm_id');
+        $tahun = (int)($this->request->getGet('tahun') ?? $this->settingModel->getTahunAktif());
+
+        if (!$sdmId) {
+            return $this->response->setJSON(['success' => false, 'message' => 'SDM tidak ditemukan.']);
+        }
+
+        $db = \Config\Database::connect();
+
+        // SDM info
+        $sdm = $db->table('sdm s')
+            ->select('s.id, s.nama as sdm_nama, s.jabatan_fungsional, i.nama as irban_nama, i.kode as irban_kode')
+            ->join('irban i', 'i.id = s.irban_id', 'left')
+            ->where('s.id', $sdmId)
+            ->get()->getRowArray();
+
+        if (!$sdm) {
+            return $this->response->setJSON(['success' => false, 'message' => 'SDM tidak ditemukan.']);
+        }
+
+        // Per-kegiatan breakdown
+        $kegiatan = $db->query("
+            SELECT pk.kode_kegiatan, pk.nama_kegiatan, pk.jenis_pengawasan,
+                p2.irban_id,
+                COALESCE(pt.hp_total, 0) as hp_pkpt,
+                COALESCE(SUM(st.hp_desk + st.hp_field), 0) as hp_alokasi,
+                COALESCE(SUM(
+                    COALESCE(aw.persiapan_realisasi_hari,0) +
+                    COALESCE(aw.pelaksanaan_realisasi_hari,0) +
+                    COALESCE(aw.penyelesaian_realisasi_hari,0)
+                ), 0) as hp_realisasi,
+                GROUP_CONCAT(DISTINCT sp.nomor_naskah ORDER BY sp.id SEPARATOR ', ') as spt_list
+            FROM pkpt_tim pt
+            JOIN pkpt_kegiatan pk ON pk.id = pt.pkpt_kegiatan_id AND pk.status != 'batal'
+            JOIN pkpt p2 ON p2.id = pk.pkpt_id AND p2.tahun = {$tahun}
+            LEFT JOIN spt sp ON sp.pkpt_kegiatan_id = pk.id
+            LEFT JOIN spt_tim st ON st.spt_id = sp.id AND st.sdm_id = {$sdmId}
+            LEFT JOIN spt_anggaran_waktu aw ON aw.spt_id = sp.id AND aw.sdm_id = {$sdmId}
+            WHERE pt.sdm_id = {$sdmId}
+            GROUP BY pk.id, pk.kode_kegiatan, pk.nama_kegiatan, pk.jenis_pengawasan, pt.hp_total
+            ORDER BY pk.kode_kegiatan
+        ")->getResultArray();
+
+        return $this->response->setJSON([
+            'success'  => true,
+            'sdm'      => $sdm,
+            'tahun'    => $tahun,
+            'kegiatan' => $kegiatan,
+        ]);
+    }
+
+    // ===================================================
     // HELPERS
     // ===================================================
 

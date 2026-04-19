@@ -134,6 +134,8 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 
 	$routes->get('pkpt',                            'Admin\PkptController::index');
 	$routes->get('pkpt/hp-monitor',                 'Admin\PkptController::hpMonitor');
+	$routes->get('pkpt/monitoring-sdm',             'Admin\PkptController::monitoringSdm');
+	$routes->get('pkpt/monitoring-sdm/detail',      'Admin\PkptController::monitoringSdmDetail');
 	$routes->post('pkpt/data',                      'Admin\PkptController::getData');
 	$routes->post('pkpt/buat',                      'Admin\PkptController::createOrGetPkpt');
 	$routes->get('pkpt/(:num)',                     'Admin\PkptController::show/$1');
