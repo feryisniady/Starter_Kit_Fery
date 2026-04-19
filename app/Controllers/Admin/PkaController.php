@@ -24,13 +24,37 @@ class PkaController extends BaseController
         if (!$spt) return redirect()->to('/admin/spt')->with('error', 'SPT tidak ditemukan.');
         if (!canViewSptAudit($sptId)) return redirect()->to('/admin/spt')->with('error', 'Akses ditolak.');
 
+        $db      = \Config\Database::connect();
+        $sdmList = $this->getSdmTim($sptId);
+
+        // Total HP Rencana (semua fase) per SDM dari KM-2 Anggaran Waktu
+        $awRows = $db->table('spt_anggaran_waktu')
+            ->select('sdm_id,
+                COALESCE(persiapan_rencana_hari,0) +
+                COALESCE(pelaksanaan_rencana_hari,0) +
+                COALESCE(penyelesaian_rencana_hari,0) as total_rencana')
+            ->where('spt_id', $sptId)
+            ->get()->getResultArray();
+        $awBudgetMap = [];
+        foreach ($awRows as $r) {
+            $awBudgetMap[(int)$r['sdm_id']] = (float)$r['total_rencana'];
+        }
+
+        // Map info SDM untuk JS (nama + peran_spt)
+        $sdmInfoMap = [];
+        foreach ($sdmList as $s) {
+            $sdmInfoMap[(int)$s['id']] = ['nama' => $s['nama'], 'peran_spt' => $s['peran_spt']];
+        }
+
         return view('admin/pka/index', [
-            'title'   => 'Program Kerja Audit — ' . ($spt['nomor_naskah'] ?: '#' . $sptId),
-            'spt'     => $spt,
-            'pkaList' => $this->pkaModel->getBySpt($sptId),
-            'sdmList' => $this->getSdmTim($sptId),
-            'stats'   => $this->pkaModel->getStatsBySpt($sptId),
-            'canEdit' => canEditKmInSpt($sptId, 'km4'),
+            'title'       => 'Program Kerja Audit — ' . ($spt['nomor_naskah'] ?: '#' . $sptId),
+            'spt'         => $spt,
+            'pkaList'     => $this->pkaModel->getBySpt($sptId),
+            'sdmList'     => $sdmList,
+            'sdmInfoMap'  => $sdmInfoMap,
+            'awBudgetMap' => $awBudgetMap,
+            'stats'       => $this->pkaModel->getStatsBySpt($sptId),
+            'canEdit'     => canEditKmInSpt($sptId, 'km4'),
         ]);
     }
 

@@ -1,6 +1,17 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
 
+<?php
+$awBudgetMap = $awBudgetMap ?? [];
+$sdmInfoMap  = $sdmInfoMap  ?? [];
+// Hitung total HP PKA per PIC (server-side, untuk render awal)
+$pkaHpMap = [];
+foreach ($pkaList as $p) {
+    $pid = (int)($p['pic_sdm_id'] ?? 0);
+    if ($pid) $pkaHpMap[$pid] = ($pkaHpMap[$pid] ?? 0) + (float)($p['rencana_waktu'] ?? 0);
+}
+?>
+
 <div class="page-header">
     <div class="page-title">
         <h1>Program Kerja Audit (PKA)</h1>
@@ -41,7 +52,67 @@
     </div>
 </div>
 
-<!-- Tabel PKA -->
+<!-- ═══════════════════════════════════════════════════════
+     PANEL REKAP HP PER PIC
+     ═══════════════════════════════════════════════════════ -->
+<div class="card mb-3">
+    <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+        <h3 class="card-title" style="margin:0"><i class="fas fa-chart-bar"></i> Rekap Alokasi HP per PIC</h3>
+        <span style="font-size:11px;color:#94a3b8"><i class="fas fa-info-circle"></i> Dibandingkan vs total Rencana KM-2</span>
+    </div>
+    <div class="card-body" style="padding:12px 16px">
+        <?php if (empty($awBudgetMap)): ?>
+        <div style="font-size:12px;color:#94a3b8;padding:6px 0">
+            <i class="fas fa-info-circle"></i>
+            KM-2 Anggaran Waktu belum diisi. Isi terlebih dahulu untuk menampilkan monitoring HP per PIC.
+        </div>
+        <?php else: ?>
+        <div id="hp-summary-rows">
+        <?php foreach ($awBudgetMap as $sdmId => $budget):
+            $used = $pkaHpMap[$sdmId] ?? 0;
+            $sisa = $budget - $used;
+            $pct  = $budget > 0 ? min(100, round($used / $budget * 100)) : ($used > 0 ? 100 : 0);
+            $info = $sdmInfoMap[$sdmId] ?? ['nama' => 'SDM #'.$sdmId, 'peran_spt' => ''];
+            if ($sisa < 0) {
+                $barColor = '#ef4444';
+                $statusHtml = '<span style="color:#ef4444;font-weight:700"><i class="fas fa-triangle-exclamation"></i> Lebih '.number_format(abs($sisa),1).' HP</span>';
+            } elseif ($pct >= 80) {
+                $barColor = '#f59e0b';
+                $statusHtml = '<span style="color:#d97706;font-weight:600"><i class="fas fa-triangle-exclamation"></i> Mendekati batas</span>';
+            } else {
+                $barColor = '#22c55e';
+                $statusHtml = '<span style="color:#16a34a;font-weight:600"><i class="fas fa-check"></i> Sisa '.number_format($sisa,1).' HP</span>';
+            }
+        ?>
+        <div class="hp-summary-row" data-summary-sdm="<?= $sdmId ?>"
+             style="display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid #f1f5f9;flex-wrap:wrap">
+            <div style="width:28px;height:28px;border-radius:50%;background:#e0e7ff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#6366f1;flex-shrink:0">
+                <?= strtoupper(substr($info['nama'], 0, 1)) ?>
+            </div>
+            <div style="width:150px;min-width:0">
+                <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><?= esc($info['nama']) ?></div>
+                <div style="font-size:10px;color:#94a3b8"><?= esc($info['peran_spt']) ?></div>
+            </div>
+            <div style="font-size:11px;color:#64748b;white-space:nowrap">
+                Budget KM-2: <strong style="color:#1e293b"><?= number_format($budget, 1) ?> HP</strong>
+            </div>
+            <div style="font-size:11px;color:#64748b;white-space:nowrap">
+                PKA: <strong class="hp-used-val" style="color:#1e293b"><?= number_format($used, 1) ?> HP</strong>
+            </div>
+            <div style="flex:1;min-width:80px;max-width:160px;height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden">
+                <div class="hp-bar-fill" style="height:100%;width:<?= $pct ?>%;background:<?= $barColor ?>;border-radius:4px;transition:width .3s,background .3s"></div>
+            </div>
+            <div style="font-size:11px;min-width:110px" class="hp-status-text"><?= $statusHtml ?></div>
+        </div>
+        <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     TABEL PKA
+     ═══════════════════════════════════════════════════════ -->
 <div class="card mb-3">
     <div class="card-header"><h3 class="card-title"><i class="fas fa-list-check"></i> Prosedur Audit</h3></div>
     <div class="card-body">
@@ -51,15 +122,17 @@
                     <th width="40">No</th>
                     <th>Uraian Prosedur</th>
                     <th width="160">PIC</th>
-                    <th width="80">Rencana (HP)</th>
-                    <th width="80">Realisasi (HP)</th>
+                    <th width="90">Rencana (HP)</th>
+                    <th width="90">Realisasi (HP)</th>
                     <th width="90">Status</th>
                     <th width="100">Aksi</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="pka-tbody">
             <?php foreach($pkaList as $row): ?>
-            <tr id="pka-row-<?= $row['id'] ?>">
+            <tr id="pka-row-<?= $row['id'] ?>"
+                data-pic-id="<?= (int)($row['pic_sdm_id'] ?? 0) ?>"
+                data-rencana="<?= (float)($row['rencana_waktu'] ?? 0) ?>">
                 <td><?= $row['nomor_urut'] ?></td>
                 <td><?= esc($row['uraian_prosedur']) ?></td>
                 <td><?= esc($row['pic_nama'] ?? '—') ?></td>
@@ -98,37 +171,41 @@
     </div>
 </div>
 
-<!-- Form Tambah -->
+<!-- ═══════════════════════════════════════════════════════
+     FORM TAMBAH PROSEDUR
+     ═══════════════════════════════════════════════════════ -->
 <?php if ($canEdit): ?>
 <div class="card">
     <div class="card-header"><h3 class="card-title"><i class="fas fa-plus"></i> Tambah Prosedur</h3></div>
     <div class="card-body">
         <form action="/admin/spt/<?= $spt['id'] ?>/pka/store" method="POST">
             <?= csrf_field() ?>
-            <div style="display:grid;grid-template-columns:1fr 180px 100px 100px auto;gap:12px;align-items:end">
+            <div style="display:grid;grid-template-columns:1fr 200px 110px auto;gap:12px;align-items:start">
                 <div class="form-group mb-0">
                     <label>Uraian Prosedur <span style="color:red">*</span></label>
                     <textarea name="uraian_prosedur" class="form-control" rows="2" required placeholder="Deskripsikan prosedur audit..."></textarea>
                 </div>
                 <div class="form-group mb-0">
                     <label>PIC</label>
-                    <select name="pic_sdm_id" class="form-control">
+                    <select name="pic_sdm_id" id="add-pic-sdm" class="form-control">
                         <option value="">— Pilih SDM —</option>
                         <?php foreach($sdmList as $s): ?>
                         <option value="<?= $s['id'] ?>"><?= esc($s['nama']) ?></option>
                         <?php endforeach; ?>
                     </select>
+                    <div id="add-pic-widget" style="display:none;margin-top:4px"></div>
                 </div>
                 <div class="form-group mb-0">
                     <label>Rencana (HP)</label>
-                    <input type="number" step="0.5" min="0" name="rencana_waktu" class="form-control" placeholder="0">
-                </div>
-                <div class="form-group mb-0">
-                    <label style="visibility:hidden">_</label>
+                    <input type="number" step="0.5" min="0" name="rencana_waktu" id="add-rencana-hp"
+                           class="form-control" placeholder="0">
+                    <div style="font-size:10px;color:#94a3b8;margin-top:2px">Hari Pemeriksaan</div>
                 </div>
                 <div class="form-group mb-0">
                     <label style="visibility:hidden">.</label>
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Tambah</button>
+                    <button type="submit" class="btn btn-primary" style="display:block;width:100%">
+                        <i class="fas fa-plus"></i> Tambah
+                    </button>
                 </div>
             </div>
         </form>
@@ -136,10 +213,12 @@
 </div>
 <?php endif; ?>
 
-<!-- Modal Edit PKA -->
+<!-- ═══════════════════════════════════════════════════════
+     MODAL EDIT PKA
+     ═══════════════════════════════════════════════════════ -->
 <?php if ($canEdit): ?>
 <div id="modal-edit-pka" class="modal-overlay" style="display:none">
-    <div class="modal-box" style="max-width:540px">
+    <div class="modal-box" style="max-width:560px">
         <div class="modal-header">
             <h3>Edit Prosedur PKA</h3>
             <button class="modal-close" onclick="$('#modal-edit-pka').hide()"><i class="fas fa-times"></i></button>
@@ -152,7 +231,7 @@
                 <textarea id="edit-uraian" name="uraian_prosedur" class="form-control" rows="3"></textarea>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-                <div class="form-group">
+                <div class="form-group mb-0">
                     <label>PIC</label>
                     <select id="edit-pic" name="pic_sdm_id" class="form-control">
                         <option value="">— Pilih SDM —</option>
@@ -161,15 +240,17 @@
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="form-group">
+                <div class="form-group mb-0">
                     <label>Rencana (HP)</label>
                     <input type="number" step="0.5" min="0" id="edit-rencana" name="rencana_waktu" class="form-control">
                 </div>
-                <div class="form-group">
+                <div class="form-group mb-0">
                     <label>Realisasi (HP)</label>
                     <input type="number" step="0.5" min="0" id="edit-realisasi" name="realisasi_waktu" class="form-control">
                 </div>
             </div>
+            <!-- Widget HP di modal edit -->
+            <div id="edit-pic-widget" style="display:none;margin-top:10px"></div>
             <div class="form-actions">
                 <button type="button" class="btn btn-secondary" onclick="$('#modal-edit-pka').hide()">Batal</button>
                 <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Simpan</button>
@@ -182,11 +263,91 @@
 <?= $this->endSection() ?>
 <?= $this->section('scripts') ?>
 <script>
-const csrfToken = '<?= csrf_hash() ?>';
-const csrfName  = '<?= csrf_token() ?>';
+const csrfToken  = '<?= csrf_hash() ?>';
+const csrfName   = '<?= csrf_token() ?>';
+const awBudgetMap = <?= json_encode(array_map('floatval', $awBudgetMap)) ?>;
+const sdmInfoMap  = <?= json_encode($sdmInfoMap) ?>;
 
+// ── Hitung total HP PKA per PIC dari baris tabel ─────────────────────────
+function getPkaHpMap(excludeRowId) {
+    const map = {};
+    $('#pka-tbody tr[data-pic-id]').each(function() {
+        if (excludeRowId && $(this).attr('id') === 'pka-row-' + excludeRowId) return;
+        const picId = parseInt($(this).data('pic-id'));
+        const hp    = parseFloat($(this).data('rencana')) || 0;
+        if (picId) map[picId] = (map[picId] || 0) + hp;
+    });
+    return map;
+}
+
+// ── Render panel summary HP per PIC ──────────────────────────────────────
+function refreshSummaryPanel() {
+    const hpMap = getPkaHpMap();
+    $('.hp-summary-row').each(function() {
+        const sdmId  = parseInt($(this).data('summary-sdm'));
+        const budget = awBudgetMap[sdmId] || 0;
+        const used   = hpMap[sdmId] || 0;
+        const sisa   = budget - used;
+        const pct    = budget > 0 ? Math.min(100, Math.round(used / budget * 100)) : (used > 0 ? 100 : 0);
+
+        let barColor, statusHtml;
+        if (sisa < 0) {
+            barColor   = '#ef4444';
+            statusHtml = `<span style="color:#ef4444;font-weight:700"><i class="fas fa-triangle-exclamation"></i> Lebih ${Math.abs(sisa).toFixed(1)} HP</span>`;
+        } else if (pct >= 80) {
+            barColor   = '#f59e0b';
+            statusHtml = `<span style="color:#d97706;font-weight:600"><i class="fas fa-triangle-exclamation"></i> Mendekati batas</span>`;
+        } else {
+            barColor   = '#22c55e';
+            statusHtml = `<span style="color:#16a34a;font-weight:600"><i class="fas fa-check"></i> Sisa ${sisa.toFixed(1)} HP</span>`;
+        }
+
+        $(this).find('.hp-used-val').text(used.toFixed(1) + ' HP');
+        $(this).find('.hp-bar-fill').css({ width: pct + '%', background: barColor });
+        $(this).find('.hp-status-text').html(statusHtml);
+    });
+}
+
+// ── Mini widget di form tambah / modal edit ───────────────────────────────
+function renderMiniWidget(containerId, picId, newHp, excludeRowId) {
+    const container = $(containerId);
+    picId = parseInt(picId);
+    if (!picId || !awBudgetMap[picId]) { container.hide(); return; }
+
+    const budget = awBudgetMap[picId] || 0;
+    const prev   = getPkaHpMap(excludeRowId)[picId] || 0;
+    const total  = prev + newHp;
+    const sisa   = budget - total;
+    const pct    = budget > 0 ? Math.min(100, Math.round(total / budget * 100)) : (total > 0 ? 100 : 0);
+
+    let color, msg;
+    if (sisa < 0) {
+        color = '#ef4444';
+        msg   = `<i class="fas fa-triangle-exclamation"></i> Melebihi ${Math.abs(sisa).toFixed(1)} HP!`;
+    } else if (pct >= 80) {
+        color = '#f59e0b';
+        msg   = `<i class="fas fa-triangle-exclamation"></i> Mendekati batas`;
+    } else {
+        color = '#22c55e';
+        msg   = `<i class="fas fa-check"></i> Sisa ${sisa.toFixed(1)} HP`;
+    }
+
+    container.show().html(`
+        <div style="display:flex;align-items:center;gap:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:6px 10px;flex-wrap:wrap">
+            <span style="font-size:11px;color:#64748b;white-space:nowrap">Budget KM-2: <strong>${budget.toFixed(1)} HP</strong></span>
+            <span style="color:#e2e8f0">|</span>
+            <span style="font-size:11px;color:#64748b;white-space:nowrap">Total PKA: <strong style="color:#1e293b">${total.toFixed(1)} HP</strong></span>
+            <div style="flex:1;min-width:50px;max-width:120px;height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden">
+                <div style="height:100%;width:${pct}%;background:${color};border-radius:3px;transition:width .2s"></div>
+            </div>
+            <span style="font-size:11px;color:${color};font-weight:600;white-space:nowrap">${msg}</span>
+        </div>`);
+}
+
+// ── DataTable ─────────────────────────────────────────────────────────────
+let dt;
 $(function() {
-    const dt = $('#dt-pka').DataTable({
+    dt = $('#dt-pka').DataTable({
         paging: false, language: DT_LANG_ID, order: [],
         columnDefs: [{ orderable: false, targets: [5, 6] }],
     });
@@ -210,15 +371,24 @@ $(function() {
 
     // Buka modal edit
     $(document).on('click', '.btn-edit-pka', function() {
-        $('#edit-pka-id').val($(this).data('id'));
+        const rowId = $(this).data('id');
+        $('#edit-pka-id').val(rowId);
         $('#edit-uraian').val($(this).data('uraian'));
         $('#edit-pic').val($(this).data('pic'));
         $('#edit-rencana').val($(this).data('rencana'));
         $('#edit-realisasi').val($(this).data('realisasi'));
+        $('#edit-pic-widget').hide();
+        renderMiniWidget('#edit-pic-widget', $(this).data('pic'), parseFloat($(this).data('rencana')) || 0, rowId);
         $('#modal-edit-pka').show();
     });
 
-    // Submit edit
+    // Live widget saat PIC/HP berubah di modal edit
+    $(document).on('change input', '#edit-pic, #edit-rencana', function() {
+        const rowId = $('#edit-pka-id').val();
+        renderMiniWidget('#edit-pic-widget', $('#edit-pic').val(), parseFloat($('#edit-rencana').val()) || 0, rowId);
+    });
+
+    // Submit edit via AJAX — reload agar panel summary ter-refresh
     $('#form-edit-pka').on('submit', function(e) {
         e.preventDefault();
         const id   = $('#edit-pka-id').val();
@@ -229,15 +399,22 @@ $(function() {
         });
     });
 
-    // Hapus PKA
+    // Hapus PKA — update panel summary setelah row dihapus
     $(document).on('click', '.btn-del-pka', function() {
         if (!confirm('Hapus prosedur ini?')) return;
         const id  = $(this).data('id');
         const row = $(this).closest('tr');
         $.post('/admin/spt/pka/delete/' + id, { [csrfName]: csrfToken }, res => {
-            if (res.success) dt.row(row).remove().draw();
-            else alert('Gagal menghapus.');
+            if (res.success) {
+                dt.row(row).remove().draw();
+                refreshSummaryPanel();
+            } else alert('Gagal menghapus.');
         });
+    });
+
+    // Live widget form tambah — saat PIC atau HP berubah
+    $('#add-pic-sdm, #add-rencana-hp').on('change input', function() {
+        renderMiniWidget('#add-pic-widget', $('#add-pic-sdm').val(), parseFloat($('#add-rencana-hp').val()) || 0, null);
     });
 });
 </script>
