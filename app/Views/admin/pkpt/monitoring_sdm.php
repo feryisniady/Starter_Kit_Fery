@@ -329,8 +329,8 @@ $(function() {
                     html += '<tr style="border-bottom:1px solid #f1f5f9">';
                     html += '<td style="padding:8px 10px"><span class="badge badge-primary" style="font-size:10px">' + k.kode_kegiatan + '</span></td>';
                     html += '<td style="padding:8px 10px">';
-                    html += '<div style="font-weight:500;color:#1e293b">' + escHtml(k.nama_kegiatan || k.jenis_pengawasan) + '</div>';
-                    if (k.jenis_pengawasan && k.nama_kegiatan) {
+                    html += '<div style="font-weight:500;color:#1e293b">' + escHtml(k.area_pengawasan || k.jenis_pengawasan) + '</div>';
+                    if (k.area_pengawasan && k.jenis_pengawasan) {
                         html += '<div style="font-size:11px;color:#64748b">' + escHtml(k.jenis_pengawasan) + '</div>';
                     }
                     html += '</td>';
