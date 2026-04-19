@@ -123,9 +123,9 @@ foreach ($pkaList as $p) {
                     <th>Uraian Prosedur</th>
                     <th width="160">PIC</th>
                     <th width="90">Rencana (HP)</th>
-                    <th width="90">Realisasi (HP)</th>
-                    <th width="90">Status</th>
-                    <th width="100">Aksi</th>
+                    <th width="90">Realisasi</th>
+                    <th width="100">Status</th>
+                    <th width="120">Aksi</th>
                 </tr>
             </thead>
             <tbody id="pka-tbody">
@@ -137,24 +137,35 @@ foreach ($pkaList as $p) {
                 <td><?= esc($row['uraian_prosedur']) ?></td>
                 <td><?= esc($row['pic_nama'] ?? '—') ?></td>
                 <td style="text-align:center"><?= $row['rencana_waktu'] ?? '—' ?></td>
-                <td style="text-align:center"><?= $row['realisasi_waktu'] ?? '—' ?></td>
+                <td style="text-align:center;color:#94a3b8;font-size:12px">
+                    <?php if ($row['realisasi_waktu'] !== null): ?>
+                    <span title="Diperbarui melalui KKA"><?= $row['realisasi_waktu'] ?> HP</span>
+                    <?php else: ?>
+                    <span title="Belum ada realisasi">—</span>
+                    <?php endif; ?>
+                </td>
                 <td>
-                    <span class="badge badge-<?= $row['status'] === 'selesai' ? 'success' : 'warning' ?>" id="status-badge-<?= $row['id'] ?>">
-                        <?= $row['status'] === 'selesai' ? 'Selesai' : 'Belum' ?>
+                    <span class="badge badge-<?= $row['status'] === 'selesai' ? 'success' : 'secondary' ?>" id="status-badge-<?= $row['id'] ?>">
+                        <?= $row['status'] === 'selesai' ? 'Dikerjakan' : 'Belum' ?>
                     </span>
                 </td>
                 <td>
                     <?php if ($canEdit): ?>
-                    <button class="btn btn-xs btn-<?= $row['status'] === 'selesai' ? 'warning' : 'success' ?> btn-selesai"
-                            data-id="<?= $row['id'] ?>" title="Toggle selesai">
-                        <i class="fas fa-<?= $row['status'] === 'selesai' ? 'undo' : 'check' ?>"></i>
+                    <button class="btn btn-xs btn-<?= $row['status'] === 'selesai' ? 'outline-secondary' : 'success' ?> btn-selesai"
+                            data-id="<?= $row['id'] ?>"
+                            title="<?= $row['status'] === 'selesai' ? 'Batal tandai dikerjakan' : 'Tandai sudah dikerjakan' ?>"
+                            style="font-size:11px;padding:2px 7px">
+                        <?php if ($row['status'] === 'selesai'): ?>
+                        <i class="fas fa-undo"></i> Batal
+                        <?php else: ?>
+                        <i class="fas fa-check"></i> Dikerjakan
+                        <?php endif; ?>
                     </button>
                     <button class="btn btn-xs btn-primary btn-edit-pka"
                             data-id="<?= $row['id'] ?>"
                             data-uraian="<?= esc($row['uraian_prosedur']) ?>"
                             data-pic="<?= $row['pic_sdm_id'] ?? '' ?>"
-                            data-rencana="<?= $row['rencana_waktu'] ?? '' ?>"
-                            data-realisasi="<?= $row['realisasi_waktu'] ?? '' ?>">
+                            data-rencana="<?= $row['rencana_waktu'] ?? '' ?>">
                         <i class="fas fa-edit"></i>
                     </button>
                     <button class="btn btn-xs btn-danger btn-del-pka" data-id="<?= $row['id'] ?>">
@@ -230,7 +241,7 @@ foreach ($pkaList as $p) {
                 <label>Uraian Prosedur</label>
                 <textarea id="edit-uraian" name="uraian_prosedur" class="form-control" rows="3"></textarea>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div class="form-group mb-0">
                     <label>PIC</label>
                     <select id="edit-pic" name="pic_sdm_id" class="form-control">
@@ -241,13 +252,12 @@ foreach ($pkaList as $p) {
                     </select>
                 </div>
                 <div class="form-group mb-0">
-                    <label>Rencana (HP)</label>
+                    <label>Rencana (HP) <span style="font-size:10px;color:#94a3b8;font-weight:400">— Hari Pemeriksaan</span></label>
                     <input type="number" step="0.5" min="0" id="edit-rencana" name="rencana_waktu" class="form-control">
                 </div>
-                <div class="form-group mb-0">
-                    <label>Realisasi (HP)</label>
-                    <input type="number" step="0.5" min="0" id="edit-realisasi" name="realisasi_waktu" class="form-control">
-                </div>
+            </div>
+            <div style="font-size:11px;color:#94a3b8;margin-top:6px">
+                <i class="fas fa-info-circle"></i> Realisasi waktu dicatat otomatis melalui KKA oleh Anggota Tim.
             </div>
             <!-- Widget HP di modal edit -->
             <div id="edit-pic-widget" style="display:none;margin-top:10px"></div>
@@ -352,7 +362,7 @@ $(function() {
         columnDefs: [{ orderable: false, targets: [5, 6] }],
     });
 
-    // Toggle selesai
+    // Toggle dikerjakan
     $(document).on('click', '.btn-selesai', function() {
         const id  = $(this).data('id');
         const btn = $(this);
@@ -360,12 +370,15 @@ $(function() {
             if (!res.success) return;
             const done = res.status === 'selesai';
             $('#status-badge-' + id)
-                .removeClass('badge-warning badge-success')
-                .addClass(done ? 'badge-success' : 'badge-warning')
-                .text(done ? 'Selesai' : 'Belum');
-            btn.removeClass('btn-success btn-warning')
-               .addClass(done ? 'btn-warning' : 'btn-success')
-               .html('<i class="fas fa-' + (done ? 'undo' : 'check') + '"></i>');
+                .removeClass('badge-secondary badge-success')
+                .addClass(done ? 'badge-success' : 'badge-secondary')
+                .text(done ? 'Dikerjakan' : 'Belum');
+            btn.removeClass('btn-success btn-outline-secondary')
+               .addClass(done ? 'btn-outline-secondary' : 'btn-success')
+               .attr('title', done ? 'Batal tandai dikerjakan' : 'Tandai sudah dikerjakan')
+               .html(done
+                   ? '<i class="fas fa-undo"></i> Batal'
+                   : '<i class="fas fa-check"></i> Dikerjakan');
         });
     });
 
@@ -376,7 +389,6 @@ $(function() {
         $('#edit-uraian').val($(this).data('uraian'));
         $('#edit-pic').val($(this).data('pic'));
         $('#edit-rencana').val($(this).data('rencana'));
-        $('#edit-realisasi').val($(this).data('realisasi'));
         $('#edit-pic-widget').hide();
         renderMiniWidget('#edit-pic-widget', $(this).data('pic'), parseFloat($(this).data('rencana')) || 0, rowId);
         $('#modal-edit-pka').show();
