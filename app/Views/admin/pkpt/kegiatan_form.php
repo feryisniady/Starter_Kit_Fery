@@ -263,11 +263,12 @@ $hpBarColor = $hpPct >= 90 ? '#ef4444' : ($hpPct >= 70 ? '#f59e0b' : '#22c55e');
                                     </option>
                                     <?php endforeach; ?>
                                 </select>
-                                <small class="sisa-hp-info" style="color:#6366f1;font-size:11px"></small>
+                                <div class="sisa-hp-info"></div>
                             </td>
                             <td>
                                 <input type="number" name="tim_hp[]" class="form-control form-control-sm hp-input"
-                                       value="<?= $t['hp_total'] ?>" min="1" onchange="hitungTotal()" style="width:70px">
+                                       value="<?= $t['hp_total'] ?>" min="1"
+                                       onchange="hitungTotal();refreshSisaHp(this)" style="width:70px">
                             </td>
                             <td class="anggaran-cell" style="font-size:12px;white-space:nowrap">
                                 Rp <?= number_format($t['anggaran'], 0, ',', '.') ?>
@@ -342,9 +343,9 @@ function tambahBarisTim() {
             <select name="tim_sdm_id[]" class="form-control form-control-sm sdm-select" required onchange="updateSisaHp(this)">
                 <option value="">— Pilih —</option>${sdmOptions}
             </select>
-            <small class="sisa-hp-info" style="color:#6366f1;font-size:11px"></small>
+            <div class="sisa-hp-info"></div>
         </td>
-        <td><input type="number" name="tim_hp[]" class="form-control form-control-sm hp-input" value="1" min="1" onchange="hitungTotal()" style="width:70px"></td>
+        <td><input type="number" name="tim_hp[]" class="form-control form-control-sm hp-input" value="1" min="1" onchange="hitungTotal();refreshSisaHp(this)" style="width:70px"></td>
         <td class="anggaran-cell" style="font-size:12px">Rp 160.000</td>
         <td><button type="button" class="btn btn-xs btn-danger" onclick="$(this).closest('tr').remove();hitungTotal()"><i class="fas fa-times"></i></button></td>
     </tr>`;
@@ -390,13 +391,63 @@ function hitungTotal() {
 
 function updateSisaHp(sel) {
     const sdmId = $(sel).val();
-    if (!sdmId) return;
+    const $info = $(sel).closest('td').find('.sisa-hp-info');
+    if (!sdmId) { $info.html(''); return; }
+
+    $info.html('<span style="font-size:11px;color:#94a3b8"><i class="fas fa-spinner fa-spin"></i></span>');
+
     $.get('/admin/pkpt/sisa-hp?sdm_id=' + sdmId + '&tahun=' + tahun, res => {
-        $(sel).next('.sisa-hp-info').text('Sisa HP SDM: ' + res.sisa_hp + ' hari');
+        const sisa = parseInt(res.sisa_hp) || 0;
+        const hp   = parseInt($(sel).closest('tr').find('.hp-input').val()) || 0;
+        $(sel).attr('data-sisa-hp', sisa);
+        renderSisaHp($info, sisa, hp);
     });
 }
 
-$(document).ready(hitungTotal);
+function refreshSisaHp(input) {
+    const $sel  = $(input).closest('tr').find('.sdm-select');
+    const sisa  = parseInt($sel.attr('data-sisa-hp'));
+    if (isNaN(sisa)) return;
+    const hp    = parseInt($(input).val()) || 0;
+    const $info = $sel.closest('td').find('.sisa-hp-info');
+    renderSisaHp($info, sisa, hp);
+}
+
+function renderSisaHp($el, sisa, hp) {
+    const over  = hp > sisa;
+    const warn  = !over && sisa > 0 && hp >= Math.ceil(sisa * 0.8);
+    const color = over ? '#ef4444' : (warn ? '#f59e0b' : '#22c55e');
+    const icon  = over ? 'fa-circle-xmark' : (warn ? 'fa-triangle-exclamation' : 'fa-circle-check');
+    const maxV  = Math.max(sisa, hp, 1);
+    const pct   = Math.min(100, Math.round(hp / maxV * 100));
+
+    let html = '<div style="margin-top:5px">';
+    html += '<div style="display:flex;align-items:center;gap:5px;font-size:11px;flex-wrap:wrap">';
+    html += '<i class="fas ' + icon + '" style="color:' + color + '"></i>';
+    html += '<span style="color:#64748b">Sisa HP:</span>';
+    html += '<strong style="color:' + color + '">' + sisa + ' hari</strong>';
+    if (over) {
+        html += '<span style="background:#fee2e2;color:#991b1b;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700">';
+        html += '<i class="fas fa-triangle-exclamation"></i> +' + (hp - sisa) + ' hari melebihi!</span>';
+    } else if (warn) {
+        html += '<span style="background:#fef9c3;color:#854d0e;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:600">Mendekati batas</span>';
+    }
+    html += '</div>';
+    html += '<div style="margin-top:3px;height:5px;background:#e2e8f0;border-radius:3px;overflow:hidden">';
+    html += '<div style="height:100%;width:' + pct + '%;background:' + color + ';border-radius:3px;transition:width .3s"></div>';
+    html += '</div>';
+    html += '<div style="font-size:10px;color:#94a3b8;margin-top:1px">' + hp + ' dari ' + Math.max(sisa, hp) + ' hari digunakan</div>';
+    html += '</div>';
+    $el.html(html);
+}
+
+$(document).ready(function() {
+    hitungTotal();
+    // Load sisa HP untuk semua baris yang sudah ada
+    $('.sdm-select').each(function() {
+        if ($(this).val()) updateSisaHp(this);
+    });
+});
 
 function onRmpChange(sel) {
     const opt = sel.options[sel.selectedIndex];
