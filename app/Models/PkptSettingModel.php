@@ -24,8 +24,13 @@ class PkptSettingModel extends Model
 
     public function getTahunAktif(): int
     {
-        $row = $this->orderBy('tahun', 'DESC')->first();
-        return $row ? (int)$row['tahun'] : (int)date('Y');
+        $current = (int)date('Y');
+        // Prioritas: tahun sekarang atau tahun terbaru yang ≤ sekarang
+        $row = $this->where('tahun <=', $current)->orderBy('tahun', 'DESC')->first();
+        if ($row) return (int)$row['tahun'];
+        // Fallback: tahun terkecil yang ada (jika semua > sekarang)
+        $row = $this->orderBy('tahun', 'ASC')->first();
+        return $row ? (int)$row['tahun'] : $current;
     }
 
     /** Ambil HP efektif: dari hari_libur jika ada, fallback ke total_hp_tahunan */
