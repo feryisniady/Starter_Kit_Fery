@@ -319,7 +319,7 @@ $(function() {
                 html += '<th style="padding:8px 10px;text-align:center;color:#64748b;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;width:80px">HP PKPT</th>';
                 html += '<th style="padding:8px 10px;text-align:center;color:#64748b;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;width:80px">HP SPT</th>';
                 html += '<th style="padding:8px 10px;text-align:center;color:#64748b;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;width:90px">HP Realisasi</th>';
-                html += '<th style="padding:8px 10px;text-align:left;color:#64748b;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">SPT</th>';
+                html += '<th style="padding:8px 10px;text-align:left;color:#64748b;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">SPT / Rekomendasi</th>';
                 html += '</tr></thead><tbody>';
 
                 d.kegiatan.forEach(function(k) {
@@ -342,7 +342,29 @@ $(function() {
                         html += '<div style="height:4px;background:#f1f5f9;border-radius:2px;margin-top:3px"><div style="height:100%;width:' + pct + '%;background:' + barColor + ';border-radius:2px"></div></div>';
                     }
                     html += '</td>';
-                    html += '<td style="padding:8px 10px;font-size:11px;color:#475569">' + (k.spt_list ? escHtml(k.spt_list) : '<span style="color:#94a3b8">—</span>') + '</td>';
+                    // SPT sebagai link ke halaman KM
+                    let sptHtml = '<span style="color:#94a3b8">—</span>';
+                    if (k.spt_ids && k.spt_list) {
+                        const ids    = k.spt_ids.split(',');
+                        const labels = k.spt_list.split('|');
+                        const links  = ids.map((id, i) =>
+                            '<a href="/admin/spt/' + id.trim() + '/km" target="_blank" style="color:#6366f1;font-size:11px;white-space:nowrap">' +
+                            escHtml(labels[i] ? labels[i].trim() : '#' + id.trim()) + '</a>'
+                        );
+                        sptHtml = links.join('<br>');
+                    }
+
+                    // Rekomendasi KM
+                    let rekomHtml = '';
+                    if (parseInt(k.hp_pkpt) > 0 && parseInt(k.jumlah_spt) === 0) {
+                        rekomHtml = '<div style="margin-top:4px;font-size:10px;background:#fef9c3;color:#854d0e;border-radius:4px;padding:2px 6px;display:inline-block"><i class="fas fa-triangle-exclamation"></i> SPT belum dibuat</div>';
+                    } else if (parseInt(k.hp_alokasi) === 0 && parseInt(k.jumlah_spt) > 0) {
+                        rekomHtml = '<div style="margin-top:4px;font-size:10px;background:#fef9c3;color:#854d0e;border-radius:4px;padding:2px 6px;display:inline-block"><i class="fas fa-triangle-exclamation"></i> KM-2 belum diisi</div>';
+                    } else if (parseInt(k.hp_realisasi) === 0 && parseInt(k.hp_alokasi) > 0) {
+                        rekomHtml = '<div style="margin-top:4px;font-size:10px;background:#eff6ff;color:#1d4ed8;border-radius:4px;padding:2px 6px;display:inline-block"><i class="fas fa-info-circle"></i> Realisasi KM-2 belum diisi</div>';
+                    }
+
+                    html += '<td style="padding:8px 10px;font-size:11px;color:#475569">' + sptHtml + rekomHtml + '</td>';
                     html += '</tr>';
                 });
 
