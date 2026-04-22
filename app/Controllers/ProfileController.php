@@ -66,7 +66,7 @@ class ProfileController extends BaseController
             }
 
             // Validasi ekstensi dari nama file asli
-            $origExt = strtolower(pathinfo($avatar->getClientFilename(), PATHINFO_EXTENSION));
+            $origExt = strtolower($avatar->getClientExtension());
             if (!in_array($origExt, $allowedExt)) {
                 return redirect()->back()->with('error', 'Ekstensi file tidak diizinkan.');
             }
