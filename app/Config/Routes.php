@@ -202,6 +202,7 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	$routes->post('spt/(:num)/km/1/save',                 'Admin\KmController::saveKm1/$1');
 	// KM-2: Anggaran Waktu
 	$routes->get('spt/(:num)/km/2',                       'Admin\KmController::anggaranWaktu/$1');
+	$routes->get('spt/(:num)/km/2/print',                 'Admin\KmController::printKm4Aw/$1');
 	$routes->post('spt/(:num)/km/2/save',                 'Admin\KmController::saveAnggaranWaktu/$1');
 	$routes->post('spt/(:num)/km/2/verifikasi',           'Admin\KmController::verifikasiAw/$1');
 	$routes->get('spt/(:num)/km/anggaran-waktu',          'Admin\KmController::anggaranWaktu/$1');   // backward compat

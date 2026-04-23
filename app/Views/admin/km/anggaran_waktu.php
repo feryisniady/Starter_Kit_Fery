@@ -7,6 +7,9 @@
         <p>SPT: <?= esc($spt['nomor_naskah'] ?: '#'.$spt['id']) ?> — <?= esc($spt['irban_nama']) ?></p>
     </div>
     <div class="page-actions">
+        <a href="/admin/spt/<?= $spt['id'] ?>/km/2/print" target="_blank" class="btn btn-outline-primary">
+            <i class="fas fa-print"></i> Cetak Formulir KM-4
+        </a>
         <a href="/admin/spt/<?= $spt['id'] ?>/km" class="btn btn-secondary">
             <i class="fas fa-arrow-left"></i> Kembali ke KM
         </a>
