@@ -5,6 +5,7 @@ namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Models\KkaModel;
 use App\Models\NhpModel;
+use App\Models\NhpItemDokumenModel;
 use App\Models\SptModel;
 
 /**
@@ -20,12 +21,14 @@ class NhpController extends BaseController
     protected NhpModel $nhpModel;
     protected SptModel $sptModel;
     protected KkaModel $kkaModel;
+    protected NhpItemDokumenModel $dokModel;
 
     public function __construct()
     {
-        $this->nhpModel = new NhpModel();
-        $this->sptModel = new SptModel();
-        $this->kkaModel = new KkaModel();
+        $this->nhpModel  = new NhpModel();
+        $this->sptModel  = new SptModel();
+        $this->kkaModel  = new KkaModel();
+        $this->dokModel  = new NhpItemDokumenModel();
     }
 
     // ──────────────────────────────────────────────────────────────────────
@@ -150,6 +153,16 @@ class NhpController extends BaseController
         }
 
         $items = $this->nhpModel->getItems($nhpId);
+
+        // Inject dokumen per item agar view bisa menampilkan bukti dukung entitas
+        $allDok = $this->dokModel->getByNhp($nhpId);
+        $dokByItem = [];
+        foreach ($allDok as $d) {
+            $dokByItem[$d['nhp_item_id']][] = $d;
+        }
+        foreach ($items as &$item) {
+            $item['dokumen'] = $dokByItem[$item['id']] ?? [];
+        }
 
         return view('admin/nhp/show', [
             'title'          => 'Detail NHP — ' . ($nhp['nomor_nhp'] ?: '#' . $nhpId),
@@ -323,6 +336,24 @@ class NhpController extends BaseController
             'totalNilai' => $totalNilai,
             'canManage'  => $this->canManage($sptId),
         ]);
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // Download dokumen bukti dukung yang diupload entitas (auth-gated)
+    // ──────────────────────────────────────────────────────────────────────
+
+    public function downloadItemDokumen(int $dokId)
+    {
+        $dok = $this->dokModel->find($dokId);
+        if (!$dok) return redirect()->back()->with('error', 'File tidak ditemukan.');
+
+        $path = WRITEPATH . 'uploads/nhp-dokumen/' . $dok['path_file'];
+        if (!file_exists($path)) return redirect()->back()->with('error', 'File tidak tersedia di server.');
+
+        return $this->response
+            ->setHeader('Content-Type', mime_content_type($path))
+            ->setHeader('Content-Disposition', 'inline; filename="' . $dok['nama_file'] . '"')
+            ->setBody(file_get_contents($path));
     }
 
     // ──────────────────────────────────────────────────────────────────────

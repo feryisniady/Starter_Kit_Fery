@@ -65,12 +65,15 @@ class MasterEntitasController extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => implode(', ', $this->validator->getErrors())]);
         }
 
+        $userId = $this->request->getPost('user_id');
+
         $id = $this->entitasModel->insert([
-            'kode'   => $this->request->getPost('kode'),
-            'nama'   => $this->request->getPost('nama'),
-            'alamat' => $this->request->getPost('alamat'),
-            'kepala' => $this->request->getPost('kepala'),
-            'aktif'  => 1,
+            'kode'    => $this->request->getPost('kode'),
+            'nama'    => $this->request->getPost('nama'),
+            'alamat'  => $this->request->getPost('alamat'),
+            'kepala'  => $this->request->getPost('kepala'),
+            'aktif'   => 1,
+            'user_id' => $userId ? (int)$userId : null,
         ]);
 
         logActivity('master.entitas.create', 'entitas', 'Tambah entitas: ' . $this->request->getPost('nama'));
@@ -80,7 +83,41 @@ class MasterEntitasController extends BaseController
     public function show(int $id)
     {
         $row = $this->entitasModel->find($id);
-        return $this->response->setJSON($row ?: ['error' => 'Not found']);
+        if (!$row) return $this->response->setJSON(['error' => 'Not found']);
+
+        // Tambah nama user yang terhubung
+        if ($row['user_id']) {
+            $user = \Config\Database::connect()->table('users')->where('id', $row['user_id'])->get()->getRowArray();
+            $row['user_nama'] = $user['name'] ?? '';
+        } else {
+            $row['user_nama'] = '';
+        }
+        return $this->response->setJSON($row);
+    }
+
+    /** AJAX: daftar user aktif yang bisa dihubungkan ke entitas */
+    public function getUsers()
+    {
+        if (!$this->request->isAJAX()) return $this->response->setStatusCode(403);
+
+        $db      = \Config\Database::connect();
+        $entitasId = (int) $this->request->getGet('entitas_id'); // exclude self
+
+        // User yang belum terhubung ke entitas manapun (atau terhubung ke entitas ini sendiri)
+        $linked = $db->table('entitas')
+            ->select('user_id')
+            ->where('user_id IS NOT NULL')
+            ->where('aktif', 1);
+        if ($entitasId) $linked->where('id !=', $entitasId);
+        $linkedIds = array_column($linked->get()->getResultArray(), 'user_id');
+
+        $q = $db->table('users')->select('id, name, email')->where('status', 'active')->orderBy('name');
+        if (!empty($linkedIds)) {
+            $q->whereNotIn('id', $linkedIds);
+        }
+
+        $users = $q->get()->getResultArray();
+        return $this->response->setJSON($users);
     }
 
     public function update(int $id)
@@ -90,12 +127,15 @@ class MasterEntitasController extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => implode(', ', $this->validator->getErrors())]);
         }
 
+        $userId = $this->request->getPost('user_id');
+
         $this->entitasModel->update($id, [
-            'kode'   => $this->request->getPost('kode'),
-            'nama'   => $this->request->getPost('nama'),
-            'alamat' => $this->request->getPost('alamat'),
-            'kepala' => $this->request->getPost('kepala'),
-            'aktif'  => (int)$this->request->getPost('aktif'),
+            'kode'    => $this->request->getPost('kode'),
+            'nama'    => $this->request->getPost('nama'),
+            'alamat'  => $this->request->getPost('alamat'),
+            'kepala'  => $this->request->getPost('kepala'),
+            'aktif'   => (int)$this->request->getPost('aktif'),
+            'user_id' => $userId ? (int)$userId : null,
         ]);
 
         logActivity('master.entitas.update', 'entitas', 'Update entitas: ' . $this->request->getPost('nama'));

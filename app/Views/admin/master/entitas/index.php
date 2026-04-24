@@ -86,6 +86,20 @@
                           placeholder="Alamat lengkap OPD..." style="border-radius:8px;resize:none"></textarea>
             </div>
 
+            <div class="form-group">
+                <label style="font-size:12px;font-weight:600;color:#374151">
+                    <i class="fas fa-user-shield" style="color:#6366f1"></i>
+                    Akun Portal Auditi
+                    <span style="font-weight:400;color:#94a3b8">(opsional)</span>
+                </label>
+                <select name="user_id" id="f-user-id" class="form-control" style="border-radius:8px">
+                    <option value="">— Tidak dihubungkan —</option>
+                </select>
+                <div style="font-size:11px;color:#94a3b8;margin-top:4px">
+                    User ini yang akan login ke Portal Auditi dan menerima NHP / mengisi TL.
+                </div>
+            </div>
+
             <div class="form-group" id="wrap-aktif" style="display:none">
                 <label style="font-size:12px;font-weight:600;color:#374151">Status</label>
                 <div style="display:flex;gap:12px;margin-top:4px">
@@ -145,6 +159,8 @@ $(function() {
             $('#modal-title').text('Edit Entitas');
             $('#modal-header-bg').css('background', 'linear-gradient(135deg,#d97706 0%,#f59e0b 100%)');
             $('#modal-err').hide();
+            // Load users untuk dropdown, sertakan user yang saat ini sudah terhubung
+            loadUsers(id, res.user_id);
             $('#modal-entitas').show();
         });
     });
@@ -200,8 +216,26 @@ function openModal() {
     $('#modal-title').text('Tambah Entitas');
     $('#modal-header-bg').css('background', 'linear-gradient(135deg,#4f46e5 0%,#6366f1 100%)');
     $('#modal-err').hide();
+    loadUsers(null, null);
     $('#modal-entitas').show();
 }
 function closeModal() { $('#modal-entitas').hide(); }
+
+function loadUsers(entitasId, selectedUserId) {
+    const params = entitasId ? '?entitas_id=' + entitasId : '';
+    $.get('/admin/master/entitas/users' + params, users => {
+        const sel = $('#f-user-id');
+        sel.html('<option value="">— Tidak dihubungkan —</option>');
+        users.forEach(u => {
+            const opt = $('<option>').val(u.id).text(u.name + ' (' + u.email + ')');
+            if (String(u.id) === String(selectedUserId)) opt.prop('selected', true);
+            sel.append(opt);
+        });
+        // Jika user yang terpilih tidak ada di list (sudah linked entitas lain), tambahkan manual
+        if (selectedUserId && sel.val() != selectedUserId) {
+            sel.prepend($('<option>').val(selectedUserId).text('[User saat ini]').prop('selected', true));
+        }
+    });
+}
 </script>
 <?= $this->endSection() ?>

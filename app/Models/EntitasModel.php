@@ -8,7 +8,7 @@ class EntitasModel extends Model
 {
     protected $table         = 'entitas';
     protected $primaryKey    = 'id';
-    protected $allowedFields = ['kode', 'nama', 'alamat', 'kepala', 'aktif'];
+    protected $allowedFields = ['kode', 'nama', 'alamat', 'kepala', 'aktif', 'user_id'];
     protected $useTimestamps = true;
 
     public function getAktif(): array

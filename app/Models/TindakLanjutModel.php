@@ -73,4 +73,53 @@ class TindakLanjutModel extends Model
             'diterima' => count(array_filter($all, fn($r) => $r['status_verifikasi'] === 'diterima')),
         ];
     }
+
+    /** Semua TL untuk panel verifikasi admin BPKP */
+    public function getAllForAdmin(?string $status = null): array
+    {
+        $q = $this->db->table('tindak_lanjut tl')
+            ->select('tl.*, r.isi_rekomendasi, r.batas_waktu, r.nilai_rekomendasi, r.id as rekomendasi_id,
+                      t.judul as temuan_judul, t.nilai_temuan,
+                      sp.nomor_naskah as spt_nomor, sp.id as spt_id,
+                      e.nama as entitas_nama, uv.name as verified_by_nama')
+            ->join('rekomendasi r', 'r.id = tl.rekomendasi_id')
+            ->join('temuan t', 't.id = r.temuan_id')
+            ->join('spt sp', 'sp.id = t.spt_id')
+            ->join('entitas e', 'e.id = tl.entitas_id')
+            ->join('users uv', 'uv.id = tl.verified_by', 'left')
+            ->orderBy('tl.created_at', 'DESC');
+
+        if ($status) {
+            $q->where('tl.status_verifikasi', $status);
+        }
+
+        return $q->get()->getResultArray();
+    }
+
+    /** Detail satu TL lengkap + dokumen + riwayat semua TL untuk rekomendasi yang sama */
+    public function getDetailForAdmin(int $tlId): ?array
+    {
+        $row = $this->db->table('tindak_lanjut tl')
+            ->select('tl.*, r.isi_rekomendasi, r.batas_waktu, r.nilai_rekomendasi, r.id as rekomendasi_id,
+                      r.status as rekomendasi_status,
+                      t.judul as temuan_judul, t.kondisi, t.sebab, t.akibat, t.nilai_temuan,
+                      sp.nomor_naskah as spt_nomor, sp.id as spt_id,
+                      e.nama as entitas_nama, e.id as entitas_id_ref,
+                      uv.name as verified_by_nama')
+            ->join('rekomendasi r', 'r.id = tl.rekomendasi_id')
+            ->join('temuan t', 't.id = r.temuan_id')
+            ->join('spt sp', 'sp.id = t.spt_id')
+            ->join('entitas e', 'e.id = tl.entitas_id')
+            ->join('users uv', 'uv.id = tl.verified_by', 'left')
+            ->where('tl.id', $tlId)
+            ->get()->getRowArray();
+
+        if (!$row) return null;
+
+        $dokModel = new TindakLanjutDokumenModel();
+        $row['dokumen'] = $dokModel->getByTl($tlId);
+        $row['riwayat'] = $this->getByRekomendasi($row['rekomendasi_id']);
+
+        return $row;
+    }
 }

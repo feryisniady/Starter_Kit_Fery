@@ -240,6 +240,33 @@
             </div>
             <?php endif; ?>
 
+            <!-- Bukti dukung yang diupload entitas -->
+            <?php if (!empty($item['dokumen'])): ?>
+            <div style="margin-bottom:12px;padding:10px 14px;background:#f0fdf4;border-left:3px solid #10b981;border-radius:4px">
+                <div style="font-size:11px;font-weight:700;color:#065f46;text-transform:uppercase;margin-bottom:8px">
+                    <i class="fas fa-paperclip"></i> Bukti Dukung Entitas (<?= count($item['dokumen']) ?> file)
+                </div>
+                <?php foreach($item['dokumen'] as $dok): ?>
+                <?php
+                $ext = strtolower(pathinfo($dok['nama_file'], PATHINFO_EXTENSION));
+                $ico = $ext === 'pdf' ? 'file-pdf' : (in_array($ext,['jpg','jpeg','png']) ? 'file-image' : (in_array($ext,['xls','xlsx']) ? 'file-excel' : 'file-word'));
+                $iconColor = ['file-pdf'=>'#ef4444','file-image'=>'#10b981','file-excel'=>'#16a34a','file-word'=>'#2563eb'][$ico] ?? '#6366f1';
+                ?>
+                <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #d1fae5">
+                    <i class="fas fa-<?= $ico ?>" style="color:<?= $iconColor ?>;font-size:15px;flex-shrink:0"></i>
+                    <span style="flex:1;font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                        <?= esc($dok['nama_file']) ?>
+                    </span>
+                    <span style="font-size:11px;color:#94a3b8;flex-shrink:0"><?= round($dok['ukuran']/1024) ?> KB</span>
+                    <a href="/admin/nhp/item-dokumen/<?= $dok['id'] ?>/download" target="_blank"
+                       class="btn btn-sm" style="font-size:11px;padding:3px 8px;flex-shrink:0;background:#10b981;color:#fff;border:none">
+                        <i class="fas fa-download"></i>
+                    </a>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+
             <!-- Form catat tanggapan -->
             <?php if ($canManage && in_array($nhp['status'], ['terkirim', 'ditanggapi'])): ?>
             <div>
