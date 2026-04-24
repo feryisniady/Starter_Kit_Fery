@@ -538,6 +538,28 @@ class KkaController extends BaseController
         return redirect()->back()->with('error', 'Gagal mengembalikan KKA.');
     }
 
+    /** AT membuka kembali KKA rejected agar bisa diperbaiki lalu submit ulang */
+    public function reopenKka(int $kkaId)
+    {
+        $kka = $this->kkaModel->find($kkaId);
+        if (!$kka) return redirect()->back()->with('error', 'KKA tidak ditemukan.');
+
+        if (!$this->canEditKka($kka)) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+
+        if (($kka['status_kka'] ?? '') !== 'rejected') {
+            return redirect()->back()->with('error', 'KKA tidak dalam status dikembalikan.');
+        }
+
+        if ($this->kkaModel->reopenKka($kkaId)) {
+            logActivity('kka.reopen', 'kka', "KKA dibuka kembali oleh AT kka_id={$kkaId}");
+            return redirect()->to('/admin/kka/' . $kkaId)->with('success', 'KKA dibuka kembali. Silakan perbaiki dan kirim ulang ke Ketua Tim.');
+        }
+
+        return redirect()->back()->with('error', 'Gagal membuka kembali KKA.');
+    }
+
     // ──────────────────────────────────────────────────────────────────────
     // Catatan Dalnis
     // ──────────────────────────────────────────────────────────────────────

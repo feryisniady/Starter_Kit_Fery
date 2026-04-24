@@ -503,6 +503,22 @@ class KkaModel
     }
 
     /**
+     * AT membuka kembali KKA yang dikembalikan KT agar bisa diperbaiki.
+     */
+    public function reopenKka(int $kkaId): bool
+    {
+        $kka = $this->db->table('kka')->where('id', $kkaId)->get()->getRowArray();
+        if (!$kka || $kka['status_kka'] !== 'rejected') return false;
+
+        $this->db->table('kka')->where('id', $kkaId)->update([
+            'status'     => 'draft',
+            'status_kka' => 'draft',
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        return true;
+    }
+
+    /**
      * Apakah semua KKA di SPT sudah disetujui KT?
      * Gate check sebelum KT bisa membuat NHP.
      */

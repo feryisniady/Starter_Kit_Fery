@@ -67,6 +67,13 @@ $sc = $skColors[$statusKka] ?? $skColors['draft'];
                 </div>
             </div>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <?php if ($isAt && $statusKka === 'rejected'): ?>
+                <form action="/admin/kka/<?= $kka['id'] ?>/reopen" method="POST"
+                      onsubmit="return confirm('Buka KKA ini kembali untuk diperbaiki? Status akan direset ke Draft agar Anda dapat mengedit.')">
+                    <?= csrf_field() ?>
+                    <button class="btn btn-warning btn-sm"><i class="fas fa-rotate-left"></i> Buka untuk Diperbaiki</button>
+                </form>
+                <?php endif; ?>
                 <?php if ($isAt && $kkaSelesai && in_array($statusKka,['draft','rejected'])): ?>
                 <form action="/admin/kka/<?= $kka['id'] ?>/submit" method="POST"
                       onsubmit="return confirm('Kirim KKA ini ke Ketua Tim untuk direview?')">
@@ -399,7 +406,18 @@ $formId   = 'form-pka-' . $pka['id'];
 </div>
 <?php endif; ?>
 
-<?php if ($kkaSelesai && !$kkaApproved && in_array($statusKka, ['draft','rejected'])): ?>
+<?php if ($isAt && $statusKka === 'rejected'): ?>
+<div style="padding:16px 20px;background:#fef3c7;border:1px solid #fbbf24;border-radius:12px;margin-bottom:20px;display:flex;gap:14px;align-items:flex-start">
+    <i class="fas fa-triangle-exclamation" style="font-size:22px;color:#d97706;margin-top:2px"></i>
+    <div>
+        <div style="font-weight:700;color:#92400e;margin-bottom:4px">KKA Dikembalikan — Perlu Diperbaiki</div>
+        <div style="font-size:12px;color:#78350f;line-height:1.6">
+            Klik <strong>"Buka untuk Diperbaiki"</strong> di atas agar status KKA direset ke Draft,
+            kemudian perbaiki isian prosedur sesuai catatan KT, lalu selesaikan dan kirim ulang.
+        </div>
+    </div>
+</div>
+<?php elseif ($kkaSelesai && !$kkaApproved && in_array($statusKka, ['draft','rejected'])): ?>
 <div style="text-align:center;padding:20px;background:#f0fdf4;border:1px solid #86efac;border-radius:12px;margin-bottom:20px">
     <i class="fas fa-check-circle" style="font-size:28px;color:#16a34a;display:block;margin-bottom:8px"></i>
     <div style="font-weight:700;color:#166534">KKA Selesai</div>

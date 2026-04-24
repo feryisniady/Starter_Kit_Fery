@@ -280,6 +280,7 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	$routes->post('kka/(:num)/submit',                    'Admin\KkaController::submitKka/$1');
 	$routes->post('kka/(:num)/approve',                   'Admin\KkaController::approveKka/$1');
 	$routes->post('kka/(:num)/reject',                    'Admin\KkaController::rejectKka/$1');
+	$routes->post('kka/(:num)/reopen',                    'Admin\KkaController::reopenKka/$1');
 
 	// Catatan Dalnis
 	$routes->post('kka/(:num)/catatan-dalnis',            'Admin\KkaController::saveCatatanDalnis/$1');
