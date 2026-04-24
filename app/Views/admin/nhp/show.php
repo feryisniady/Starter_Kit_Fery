@@ -10,19 +10,23 @@
     </div>
     <div class="page-actions">
         <?php if ($canManage && $nhp['status'] === 'draft'): ?>
-        <form method="POST" action="/admin/spt/<?= $spt['id'] ?>/nhp/<?= $nhp['id'] ?>/kirim" style="display:inline">
+        <form method="POST" action="/admin/spt/<?= $spt['id'] ?>/nhp/<?= $nhp['id'] ?>/kirim" style="display:inline"
+              data-confirm="NHP ini akan ditandai sebagai <b>terkirim ke entitas</b>. Lanjutkan?"
+              data-confirm-title="Kirim ke Entitas?"
+              data-confirm-btn="<i class='fas fa-paper-plane'></i>&nbsp;Ya, Kirim">
             <?= csrf_field() ?>
-            <button type="submit" class="btn btn-info"
-                    onclick="return confirm('Tandai NHP ini sebagai terkirim ke entitas?')">
+            <button type="submit" class="btn btn-info">
                 <i class="fas fa-paper-plane"></i> Kirim ke Entitas
             </button>
         </form>
         <?php endif; ?>
         <?php if ($canManage && $nhp['status'] === 'ditanggapi'): ?>
-        <form method="POST" action="/admin/spt/<?= $spt['id'] ?>/nhp/<?= $nhp['id'] ?>/selesai" style="display:inline">
+        <form method="POST" action="/admin/spt/<?= $spt['id'] ?>/nhp/<?= $nhp['id'] ?>/selesai" style="display:inline"
+              data-confirm="Temuan yang tidak sesuai akan otomatis masuk <b>Matriks Temuan</b>. Proses ini tidak dapat dibatalkan."
+              data-confirm-title="Selesaikan NHP?"
+              data-confirm-btn="<i class='fas fa-circle-check'></i>&nbsp;Ya, Selesaikan">
             <?= csrf_field() ?>
-            <button type="submit" class="btn btn-success"
-                    onclick="return confirm('Selesaikan NHP? Temuan tidak sesuai akan masuk Matriks Temuan.')">
+            <button type="submit" class="btn btn-success">
                 <i class="fas fa-circle-check"></i> Selesaikan NHP
             </button>
         </form>

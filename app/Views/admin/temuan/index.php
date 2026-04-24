@@ -112,12 +112,19 @@ $(function() {
     });
 
     $(document).on('click', '.btn-del-temuan', function() {
-        if (!confirm('Hapus temuan ini beserta seluruh rekomendasi-nya?')) return;
         const id  = $(this).data('id');
         const row = $(this).closest('tr');
-        $.post('/admin/spt/temuan/' + id + '/delete', { [csrfName]: csrfToken }, res => {
-            if (res.success) dt.row(row).remove().draw();
-            else alert('Gagal menghapus.');
+        swalConfirm({
+            title: 'Hapus Temuan?',
+            html: 'Temuan ini beserta seluruh <b>rekomendasinya</b> akan dihapus permanen.',
+            icon: 'warning',
+            confirmButtonColor: '#ef4444',
+            confirmButtonText: '<i class="fas fa-trash"></i>&nbsp;Ya, Hapus',
+        }, () => {
+            $.post('/admin/spt/temuan/' + id + '/delete', { [csrfName]: csrfToken }, res => {
+                if (res.success) dt.row(row).remove().draw();
+                else Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal menghapus temuan.', timer: 2500 });
+            });
         });
     });
 });

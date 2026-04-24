@@ -72,7 +72,8 @@ ksort($grouped);
                         <i class="fas fa-edit"></i>
                     </a>
                     <form action="/admin/pka-template/<?= $tpl['id'] ?>/delete" method="POST" style="display:inline"
-                          onsubmit="return confirm('Hapus template ini?')">
+                          data-confirm="Template <b><?= esc($tpl['nama']) ?></b> akan dihapus permanen beserta semua prosedurnya."
+                          data-confirm-type="delete">
                         <?= csrf_field() ?>
                         <button type="submit" class="btn btn-xs btn-danger"><i class="fas fa-trash"></i></button>
                     </form>

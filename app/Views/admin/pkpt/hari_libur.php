@@ -134,10 +134,17 @@ $(function() {
     });
 
     $(document).on('click', '.btn-del-libur', function() {
-        if (!confirm('Hapus hari libur ini?')) return;
         const id = $(this).data('id');
-        $.post('/admin/pkpt/hari-libur/delete/' + id, { [csrfName]: csrfToken }, res => {
-            if (res.success) dtLibur.ajax.reload(null, false);
+        swalConfirm({
+            title: 'Hapus Hari Libur?',
+            html: 'Hari libur ini akan dihapus dan perhitungan HP akan berubah.',
+            icon: 'warning',
+            confirmButtonColor: '#ef4444',
+            confirmButtonText: '<i class="fas fa-trash"></i>&nbsp;Ya, Hapus',
+        }, () => {
+            $.post('/admin/pkpt/hari-libur/delete/' + id, { [csrfName]: csrfToken }, res => {
+                if (res.success) dtLibur.ajax.reload(null, false);
+            });
         });
     });
 });
@@ -180,18 +187,25 @@ container.on('click', 'span', function() {
 });
 
 $('#btn-import-all').on('click', function() {
-    if (!confirm('Import semua hari libur default tahun ' + tahunAktif + '?')) return;
-    const btn = $(this).prop('disabled', true).text('Mengimport...');
-    $.post('/admin/pkpt/hari-libur/store-batch', {
-        [csrfName]: csrfToken,
-        tahun: tahunAktif,
-        rows: liburDefault
-    }, function(res) {
-        if (res.success) {
-            location.reload();
-        } else {
-            btn.prop('disabled', false).text('Import Semua');
-        }
+    const self = this;
+    swalConfirm({
+        title: 'Import Hari Libur?',
+        html: 'Semua <b>' + liburDefault.length + ' hari libur default</b> tahun ' + tahunAktif + ' akan diimport.',
+        icon: 'question',
+        confirmButtonText: '<i class="fas fa-download"></i>&nbsp;Ya, Import',
+    }, () => {
+        const btn = $(self).prop('disabled', true).text('Mengimport...');
+        $.post('/admin/pkpt/hari-libur/store-batch', {
+            [csrfName]: csrfToken,
+            tahun: tahunAktif,
+            rows: liburDefault
+        }, function(res) {
+            if (res.success) {
+                location.reload();
+            } else {
+                btn.prop('disabled', false).text('Import Semua');
+            }
+        });
     });
 });
 

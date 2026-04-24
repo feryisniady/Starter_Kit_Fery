@@ -65,6 +65,40 @@ class Auth extends BaseController
 
         logActivity('login', 'auth', "Login berhasil", $user['id'], $user['name']);
 
+        // =========================================================
+        // START: TRIGGER n8n WEBHOOK NOTIFIKASI
+        // =========================================================
+        
+        // 1. Siapkan data spesifik menggunakan helper bawaan CI4
+        $payload_data = [
+            'username' => $user['name'],
+            'email'    => $user['email'],
+            'waktu'    => date('Y-m-d H:i:s'),
+            'ip_addr'  => $ip,
+            'browser'  => $this->request->getUserAgent()->getAgentString() 
+        ];
+
+        // 2. Ganti URL ini dengan Test URL dari node Webhook n8n kamu
+        $webhook_url = "https://feryisniady.app.n8n.cloud/webhook-test/ff6b161a-b683-4fef-bba6-6a6a040f8041"; 
+
+        // 3. Eksekusi pengiriman via cURL
+        $ch = curl_init($webhook_url);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload_data));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        
+        // Timeout sangat penting: Jika n8n mati, proses login web tidak akan ikut macet
+        curl_setopt($ch, CURLOPT_TIMEOUT, 3); 
+        
+        curl_exec($ch);
+        curl_close($ch);
+
+        // =========================================================
+        // END: TRIGGER n8n WEBHOOK NOTIFIKASI
+        // =========================================================
+        
+
         return redirect()->to('/dashboard');
     }
 

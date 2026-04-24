@@ -182,10 +182,18 @@ $(function() {
 
     // Hapus
     $(document).on('click', '.btn-delete', function() {
-        if (!confirm('Hapus SDM ini?')) return;
-        $.post('/admin/master/sdm/delete/' + $(this).data('id'), { [csrfN]: csrfH }, res => {
-            if (res.success) dtReload('dt-sdm');
-            else alert(res.message);
+        const id = $(this).data('id');
+        swalConfirm({
+            title: 'Hapus SDM?',
+            html: 'Data SDM ini akan dihapus permanen dari sistem.',
+            icon: 'warning',
+            confirmButtonColor: '#ef4444',
+            confirmButtonText: '<i class="fas fa-trash"></i>&nbsp;Ya, Hapus',
+        }, () => {
+            $.post('/admin/master/sdm/delete/' + id, { [csrfN]: csrfH }, res => {
+                if (res.success) dtReload('dt-sdm');
+                else Swal.fire({ icon: 'error', title: 'Gagal', text: res.message, timer: 3000 });
+            });
         });
     });
 
