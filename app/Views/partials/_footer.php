@@ -3,6 +3,6 @@
         &copy; <?= date('Y') ?> <b>RBAC Starter Kit</b> — CodeIgniter 4
     </div>
     <div class="footer-right">
-        Fery Isniady ❤️
+        Fery Isniady, S.Kom ❤️
     </div>
 </footer>
