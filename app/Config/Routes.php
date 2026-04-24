@@ -108,6 +108,7 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	$routes->get('master/entitas', 'Admin\MasterEntitasController::index', ['filter' => 'permission:data_entitas.view']);
 	$routes->post('master/entitas/data',        'Admin\MasterEntitasController::getData', ['filter' => 'permission:data_entitas.view']);
 	$routes->post('master/entitas/store',       'Admin\MasterEntitasController::store');
+	$routes->get('master/entitas/users',        'Admin\MasterEntitasController::getUsers');
 	$routes->get('master/entitas/(:num)',       'Admin\MasterEntitasController::show/$1');
 	$routes->post('master/entitas/update/(:num)','Admin\MasterEntitasController::update/$1');
 	$routes->post('master/entitas/delete/(:num)','Admin\MasterEntitasController::delete/$1');
@@ -304,6 +305,15 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	$routes->post('spt/(:num)/nhp/(:num)/item/add',                  'Admin\NhpController::addItem/$1/$2');
 	$routes->post('spt/(:num)/nhp/(:num)/item/(:num)/tanggapi',      'Admin\NhpController::tanggapi/$1/$2/$3');
 	$routes->get( 'spt/(:num)/nhp/matriks',                         'Admin\NhpController::matriks/$1');
+	$routes->get( 'nhp/item-dokumen/(:num)/download',                'Admin\NhpController::downloadItemDokumen/$1');
+
+	// =====================================================================
+	// Tindak Lanjut — Verifikasi oleh BPKP
+	// =====================================================================
+	$routes->get( 'tl',                                              'Admin\TlVerifikasiController::index');
+	$routes->get( 'tl/(:num)',                                       'Admin\TlVerifikasiController::show/$1');
+	$routes->post('tl/(:num)/verifikasi',                            'Admin\TlVerifikasiController::verifikasi/$1');
+	$routes->get( 'tl/dokumen/(:num)/download',                      'Admin\TlVerifikasiController::downloadDokumen/$1');
 
 	// Demo / Simulasi
 	$routes->get('demo/km', 'Admin\DemoController::kmWorkflow');
