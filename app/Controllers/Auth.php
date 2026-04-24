@@ -65,6 +65,13 @@ class Auth extends BaseController
 
         logActivity('login', 'auth', "Login berhasil", $user['id'], $user['name']);
 
+        // Auditi user: redirect ke portal entitas
+        $entitas = \Config\Database::connect()
+            ->table('entitas')->where('user_id', $user['id'])->where('aktif', 1)->get()->getRowArray();
+        if ($entitas) {
+            return redirect()->to('/auditi/dashboard');
+        }
+
         return redirect()->to('/dashboard');
     }
 

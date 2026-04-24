@@ -510,4 +510,45 @@ if (!function_exists('canViewSptAudit')) {
                hasPermission('spt.manage_all');
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Auditi / Entitas Portal Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+if (!function_exists('getCurrentEntitas')) {
+    /** Ambil row entitas milik user yang sedang login (via entitas.user_id). */
+    function getCurrentEntitas(): ?array
+    {
+        static $cache = [];
+        $userId = (int) session()->get('user_id');
+        if (!$userId) return null;
+
+        if (!array_key_exists($userId, $cache)) {
+            $row = \Config\Database::connect()
+                ->table('entitas')
+                ->where('user_id', $userId)
+                ->where('aktif', 1)
+                ->get()->getRowArray();
+            $cache[$userId] = $row ?: null;
+        }
+        return $cache[$userId];
+    }
+}
+
+if (!function_exists('getCurrentEntitasId')) {
+    /** Ambil entitas.id milik user yang sedang login. */
+    function getCurrentEntitasId(): ?int
+    {
+        $entitas = getCurrentEntitas();
+        return $entitas ? (int)$entitas['id'] : null;
+    }
+}
+
+if (!function_exists('isAuditi')) {
+    /** Apakah user yang login adalah perwakilan entitas (auditi)? */
+    function isAuditi(): bool
+    {
+        return getCurrentEntitas() !== null;
+    }
+}
 }

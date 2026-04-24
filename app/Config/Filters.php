@@ -32,6 +32,7 @@ class Filters extends BaseFilters
         'auth'          => \App\Filters\AuthFilter::class,   // tambahkan ini
         'guest'         => \App\Filters\GuestFilter::class,  // tambahkan ini
         'permission'    => \App\Filters\PermissionFilter::class,
+        'auditi'        => \App\Filters\AuditiFilter::class,
         'invalidchars'  => InvalidChars::class,
         'secureheaders' => SecureHeaders::class,
         'cors'          => Cors::class,

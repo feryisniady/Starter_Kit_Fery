@@ -301,10 +301,26 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	// Demo / Simulasi
 	$routes->get('demo/km', 'Admin\DemoController::kmWorkflow');
 
-	// =====================================================================
-	// AUDITI — Dashboard Entitas (pihak yang diaudit)
-	// =====================================================================
-	$routes->get( 'auditi/dashboard',                        'Admin\AuditiController::dashboard');
-	$routes->get( 'auditi/nhp/(:num)',                       'Admin\AuditiController::showNhp/$1');
-	$routes->post('auditi/nhp-item/(:num)/tanggapi',         'Admin\AuditiController::tanggapi/$1');
+});
+
+// =====================================================================
+// PORTAL AUDITI — Akses entitas/OPD yang diaudit
+// =====================================================================
+$routes->group('auditi', ['filter' => 'auditi', 'namespace' => 'App\Controllers\Auditi'], function($routes) {
+	// Dashboard
+	$routes->get('dashboard',  'DashboardController::index');
+
+	// NHP — Notisi Hasil Pemeriksaan
+	$routes->get( 'nhp',                                     'NhpController::index');
+	$routes->get( 'nhp/(:num)',                              'NhpController::show/$1');
+	$routes->post('nhp/(:num)/item/(:num)/simpan',           'NhpController::simpanItem/$1/$2');
+	$routes->post('nhp/(:num)/item/(:num)/upload',           'NhpController::uploadDokumen/$1/$2');
+	$routes->post('nhp/dokumen/(:num)/hapus',                'NhpController::hapusDokumen/$1');
+	$routes->get( 'nhp/dokumen/(:num)/download',             'NhpController::downloadDokumen/$1');
+
+	// Tindak Lanjut
+	$routes->get( 'tl',                                      'TlController::index');
+	$routes->get( 'tl/(:num)',                               'TlController::show/$1');
+	$routes->post('tl/(:num)/kirim',                         'TlController::kirim/$1');
+	$routes->get( 'tl/dokumen/(:num)/download',              'TlController::downloadDokumen/$1');
 });
