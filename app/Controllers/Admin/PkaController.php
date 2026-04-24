@@ -4,20 +4,26 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\PkaModel;
+use App\Models\PkaTemplateModel;
 use App\Models\SptModel;
 
 class PkaController extends BaseController
 {
-    protected PkaModel $pkaModel;
-    protected SptModel $sptModel;
+    protected PkaModel         $pkaModel;
+    protected PkaTemplateModel $tplModel;
+    protected SptModel         $sptModel;
 
     public function __construct()
     {
         $this->pkaModel = new PkaModel();
+        $this->tplModel = new PkaTemplateModel();
         $this->sptModel = new SptModel();
     }
 
-    /** Daftar PKA untuk satu SPT */
+    // ──────────────────────────────────────────────────────────────────────
+    // Index — Daftar PKA per SPT, grouped by fase
+    // ──────────────────────────────────────────────────────────────────────
+
     public function index(int $sptId)
     {
         $spt = $this->sptModel->getDetail($sptId);
@@ -27,7 +33,7 @@ class PkaController extends BaseController
         $db      = \Config\Database::connect();
         $sdmList = $this->getSdmTim($sptId);
 
-        // Total HP Rencana (semua fase) per SDM dari KM-2 Anggaran Waktu
+        // Budget HP dari KM-2 per SDM
         $awRows = $db->table('spt_anggaran_waktu')
             ->select('sdm_id,
                 COALESCE(persiapan_rencana_hari,0) +
@@ -40,25 +46,38 @@ class PkaController extends BaseController
             $awBudgetMap[(int)$r['sdm_id']] = (float)$r['total_rencana'];
         }
 
-        // Map info SDM untuk JS (nama + peran_spt)
         $sdmInfoMap = [];
         foreach ($sdmList as $s) {
             $sdmInfoMap[(int)$s['id']] = ['nama' => $s['nama'], 'peran_spt' => $s['peran_spt']];
         }
 
+        // Hanya AT yang bisa di-assign prosedur
+        $atList = array_values(array_filter($sdmList, fn($s) => $s['peran_spt'] === 'Anggota Tim'));
+
+        // Template library
+        $templateList = $db->table('pka_template')
+            ->orderBy('jenis_audit')->orderBy('nama')
+            ->get()->getResultArray();
+
         return view('admin/pka/index', [
-            'title'       => 'Program Kerja Audit — ' . ($spt['nomor_naskah'] ?: '#' . $sptId),
-            'spt'         => $spt,
-            'pkaList'     => $this->pkaModel->getBySpt($sptId),
-            'sdmList'     => $sdmList,
-            'sdmInfoMap'  => $sdmInfoMap,
-            'awBudgetMap' => $awBudgetMap,
-            'stats'       => $this->pkaModel->getStatsBySpt($sptId),
-            'canEdit'     => canEditKmInSpt($sptId, 'km4'),
+            'title'        => 'Program Pengawasan (PKA) — ' . ($spt['nomor_naskah'] ?: '#' . $sptId),
+            'spt'          => $spt,
+            'pkaGrouped'   => $this->pkaModel->getBySptGrouped($sptId),
+            'pkaList'      => $this->pkaModel->getBySpt($sptId),
+            'sdmList'      => $sdmList,
+            'atList'       => $atList,
+            'sdmInfoMap'   => $sdmInfoMap,
+            'awBudgetMap'  => $awBudgetMap,
+            'stats'        => $this->pkaModel->getStatsBySpt($sptId),
+            'templateList' => $templateList,
+            'canEdit'      => canEditKmInSpt($sptId, 'km4'),
         ]);
     }
 
-    /** Tambah prosedur PKA */
+    // ──────────────────────────────────────────────────────────────────────
+    // Tambah prosedur
+    // ──────────────────────────────────────────────────────────────────────
+
     public function store(int $sptId)
     {
         $spt = $this->sptModel->find($sptId);
@@ -69,22 +88,32 @@ class PkaController extends BaseController
             return redirect()->back()->withInput()->with('error', implode('<br>', $this->validator->getErrors()));
         }
 
-        $this->pkaModel->insert([
-            'spt_id'           => $sptId,
-            'nomor_urut'       => $this->pkaModel->nextNomor($sptId),
-            'uraian_prosedur'  => $this->request->getPost('uraian_prosedur'),
-            'pic_sdm_id'       => $this->request->getPost('pic_sdm_id') ?: null,
-            'rencana_waktu'    => $this->request->getPost('rencana_waktu') ?: null,
-            'realisasi_waktu'  => null,
-            'status'           => 'belum',
-            'created_by'       => session()->get('user_id'),
+        $fase  = in_array($this->request->getPost('fase'), ['persiapan','pelaksanaan','pelaporan'])
+               ? $this->request->getPost('fase') : 'pelaksanaan';
+
+        $pkaId = $this->pkaModel->insert([
+            'spt_id'          => $sptId,
+            'fase'            => $fase,
+            'nomor_urut'      => $this->pkaModel->nextNomor($sptId, $fase),
+            'uraian_prosedur' => $this->request->getPost('uraian_prosedur'),
+            'rencana_waktu'   => $this->request->getPost('rencana_waktu') ?: null,
+            'status'          => 'belum',
+            'created_by'      => session()->get('user_id'),
         ]);
 
-        logActivity('pka.create', 'pka', "Tambah PKA untuk SPT id={$sptId}");
+        $sdmIds = array_filter((array)$this->request->getPost('assign_sdm_ids'), 'is_numeric');
+        if ($sdmIds) {
+            $this->pkaModel->saveAssignment((int)$pkaId, $sdmIds, (int)session()->get('user_id'));
+        }
+
+        logActivity('pka.create', 'pka', "Tambah PKA id={$pkaId} fase={$fase} SPT id={$sptId}");
         return redirect()->to('/admin/spt/' . $sptId . '/pka')->with('success', 'Prosedur PKA ditambahkan.');
     }
 
-    /** Update prosedur PKA (via POST/AJAX) */
+    // ──────────────────────────────────────────────────────────────────────
+    // Update prosedur (AJAX)
+    // ──────────────────────────────────────────────────────────────────────
+
     public function update(int $id)
     {
         $pka = $this->pkaModel->find($id);
@@ -93,12 +122,17 @@ class PkaController extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Hanya Ketua Tim atau Dalnis yang dapat mengedit PKA.']);
         }
 
+        $fase = in_array($this->request->getPost('fase'), ['persiapan','pelaksanaan','pelaporan'])
+              ? $this->request->getPost('fase') : ($pka['fase'] ?? 'pelaksanaan');
+
         $this->pkaModel->update($id, [
             'uraian_prosedur' => $this->request->getPost('uraian_prosedur'),
-            'pic_sdm_id'      => $this->request->getPost('pic_sdm_id') ?: null,
+            'fase'            => $fase,
             'rencana_waktu'   => $this->request->getPost('rencana_waktu') ?: null,
-            'realisasi_waktu' => $this->request->getPost('realisasi_waktu') ?: null,
         ]);
+
+        $sdmIds = array_filter((array)$this->request->getPost('assign_sdm_ids'), 'is_numeric');
+        $this->pkaModel->saveAssignment($id, $sdmIds, (int)session()->get('user_id'));
 
         logActivity('pka.update', 'pka', "Update PKA id={$id}");
 
@@ -108,7 +142,10 @@ class PkaController extends BaseController
         return redirect()->to('/admin/spt/' . $pka['spt_id'] . '/pka')->with('success', 'PKA diperbarui.');
     }
 
-    /** Tandai selesai / batalkan selesai */
+    // ──────────────────────────────────────────────────────────────────────
+    // Toggle dikerjakan
+    // ──────────────────────────────────────────────────────────────────────
+
     public function selesai(int $id)
     {
         $pka = $this->pkaModel->find($id);
@@ -120,11 +157,14 @@ class PkaController extends BaseController
         $newStatus = $pka['status'] === 'selesai' ? 'belum' : 'selesai';
         $this->pkaModel->update($id, ['status' => $newStatus]);
 
-        logActivity('pka.selesai', 'pka', "Toggle selesai PKA id={$id} → {$newStatus}");
+        logActivity('pka.selesai', 'pka', "Toggle PKA id={$id} → {$newStatus}");
         return $this->response->setJSON(['success' => true, 'status' => $newStatus]);
     }
 
-    /** Hapus prosedur PKA */
+    // ──────────────────────────────────────────────────────────────────────
+    // Hapus prosedur
+    // ──────────────────────────────────────────────────────────────────────
+
     public function delete(int $id)
     {
         $pka = $this->pkaModel->find($id);
@@ -134,15 +174,18 @@ class PkaController extends BaseController
         }
 
         $sptId = $pka['spt_id'];
+        $fase  = $pka['fase'] ?? 'pelaksanaan';
+
+        \Config\Database::connect()->table('pka_assignment')->where('pka_id', $id)->delete();
         $this->pkaModel->delete($id);
 
-        // Reorder nomor_urut
-        $rows = $this->pkaModel->where('spt_id', $sptId)->orderBy('nomor_urut')->findAll();
+        $rows = $this->pkaModel->where('spt_id', $sptId)->where('fase', $fase)
+            ->orderBy('nomor_urut')->findAll();
         foreach ($rows as $i => $r) {
             $this->pkaModel->update($r['id'], ['nomor_urut' => $i + 1]);
         }
 
-        logActivity('pka.delete', 'pka', "Hapus PKA id={$id} dari SPT id={$sptId}");
+        logActivity('pka.delete', 'pka', "Hapus PKA id={$id} SPT id={$sptId}");
 
         if ($this->request->isAJAX()) {
             return $this->response->setJSON(['success' => true]);
@@ -150,14 +193,57 @@ class PkaController extends BaseController
         return redirect()->to('/admin/spt/' . $sptId . '/pka')->with('success', 'Prosedur dihapus.');
     }
 
-    // ===================================================
-    // HELPERS
-    // ===================================================
+    // ──────────────────────────────────────────────────────────────────────
+    // Terapkan template ke SPT
+    // ──────────────────────────────────────────────────────────────────────
 
-    /**
-     * Ambil SDM yang ada di tim SPT saja (bukan semua SDM aktif).
-     * Dipakai untuk dropdown PIC di form PKA.
-     */
+    public function applyTemplate(int $sptId)
+    {
+        if (!canEditKmInSpt($sptId, 'km4')) return redirect()->back()->with('error', 'Akses ditolak.');
+
+        $templateId = (int)$this->request->getPost('template_id');
+        if (!$templateId) return redirect()->back()->with('error', 'Pilih template terlebih dahulu.');
+
+        $count = $this->tplModel->applyToSpt($templateId, $sptId, (int)session()->get('user_id'));
+
+        logActivity('pka.apply_template', 'pka', "Apply template id={$templateId} ke SPT id={$sptId}, {$count} prosedur");
+        return redirect()->to('/admin/spt/' . $sptId . '/pka')
+            ->with('success', "{$count} prosedur dari template berhasil ditambahkan ke PKA.");
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // Print Formulir KM-6
+    // ──────────────────────────────────────────────────────────────────────
+
+    public function printKm6(int $sptId)
+    {
+        $spt = $this->sptModel->getDetail($sptId);
+        if (!$spt) return redirect()->to('/admin/spt');
+        if (!canViewSptAudit($sptId)) return redirect()->to('/admin/spt')->with('error', 'Akses ditolak.');
+
+        $db  = \Config\Database::connect();
+        $km1 = $db->table('spt_km1')->where('spt_id', $sptId)->get()->getRowArray();
+
+        $pmSdm = null;
+        $ktSdm = null;
+        foreach (($spt['tim'] ?? []) as $t) {
+            if (!$pmSdm && in_array($t['peran_spt'], ['PJ','WPJ','Pengendali Mutu'])) $pmSdm = $t;
+            if (!$ktSdm && $t['peran_spt'] === 'Ketua Tim') $ktSdm = $t;
+        }
+
+        return view('admin/km/print_km6_pka', [
+            'spt'     => $spt,
+            'km1'     => $km1,
+            'grouped' => $this->pkaModel->getBySptGrouped($sptId),
+            'pmSdm'   => $pmSdm,
+            'ktSdm'   => $ktSdm,
+        ]);
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // Helpers
+    // ──────────────────────────────────────────────────────────────────────
+
     private function getSdmTim(int $sptId): array
     {
         return \Config\Database::connect()

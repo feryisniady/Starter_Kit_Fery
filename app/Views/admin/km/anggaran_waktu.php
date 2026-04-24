@@ -7,6 +7,9 @@
         <p>SPT: <?= esc($spt['nomor_naskah'] ?: '#'.$spt['id']) ?> — <?= esc($spt['irban_nama']) ?></p>
     </div>
     <div class="page-actions">
+        <a href="/admin/spt/<?= $spt['id'] ?>/km/2/print" target="_blank" class="btn btn-outline-primary">
+            <i class="fas fa-print"></i> Cetak Formulir KM-4
+        </a>
         <a href="/admin/spt/<?= $spt['id'] ?>/km" class="btn btn-secondary">
             <i class="fas fa-arrow-left"></i> Kembali ke KM
         </a>
@@ -269,14 +272,12 @@ foreach($displayList as $t):
 
                     <?php if($isKtDal && $aw && $canEditRealisasi && empty($aw['kt_verified'])): ?>
                     <div style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end">
-                        <form action="/admin/spt/<?= $spt['id'] ?>/km/2/verifikasi" method="POST" style="display:inline">
-                            <?= csrf_field() ?>
-                            <input type="hidden" name="sdm_id" value="<?= $t['sdm_id'] ?>">
-                            <button type="submit" class="btn btn-sm btn-success"
-                                    onclick="return confirm('Verifikasi realisasi anggaran waktu <?= esc($t['sdm_nama']) ?>?')">
-                                <i class="fas fa-check-double"></i> Verifikasi Realisasi
-                            </button>
-                        </form>
+                        <button type="button" class="btn btn-sm btn-success btn-verifikasi-aw"
+                                data-sdm-id="<?= $t['sdm_id'] ?>"
+                                data-sdm-nama="<?= esc($t['sdm_nama']) ?>"
+                                onclick="verifikasiAw(<?= $t['sdm_id'] ?>, '<?= esc($t['sdm_nama']) ?>')">
+                            <i class="fas fa-check-double"></i> Verifikasi Realisasi
+                        </button>
                     </div>
                     <?php endif; ?>
 
@@ -301,6 +302,32 @@ foreach($displayList as $t):
 <?= $this->endSection() ?>
 <?= $this->section('scripts') ?>
 <script>
+const _sptId    = <?= $spt['id'] ?>;
+const _csrfName = '<?= csrf_token() ?>';
+const _csrfHash = '<?= csrf_hash() ?>';
+
+function verifikasiAw(sdmId, sdmNama) {
+    if (!confirm('Verifikasi realisasi anggaran waktu ' + sdmNama + '?\n\nSetelah diverifikasi, data realisasi SDM ini tidak bisa diubah kembali.')) return;
+
+    const btn = document.querySelector(`.btn-verifikasi-aw[data-sdm-id="${sdmId}"]`);
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...'; }
+
+    const body = new URLSearchParams();
+    body.append('sdm_id', sdmId);
+    body.append(_csrfName, _csrfHash);
+
+    fetch(`/admin/spt/${_sptId}/km/2/verifikasi`, { method: 'POST', body })
+        .then(r => r.redirected ? r.url : r.text())
+        .then(() => {
+            // Refresh halaman agar badge "Terverifikasi KT" muncul
+            location.reload();
+        })
+        .catch(() => {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check-double"></i> Verifikasi Realisasi'; }
+            alert('Gagal menghubungi server. Coba lagi.');
+        });
+}
+
 function updateAwHpWidget(sdmId) {
     const get = (name) => parseFloat($(`input[name="${name}"]`).val()) || 0;
     const total = get(`persiapan_rencana_${sdmId}`)

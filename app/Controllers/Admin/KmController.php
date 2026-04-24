@@ -255,6 +255,76 @@ class KmController extends BaseController
         return redirect()->to('/admin/spt/' . $sptId . '/km')->with('success', 'Anggaran Waktu berhasil disimpan.');
     }
 
+    /** Print Formulir KM-4 Alokasi Waktu Pengawasan (BPKP standard) */
+    public function printKm4Aw(int $sptId)
+    {
+        $spt = $this->sptModel->getDetail($sptId);
+        if (!$spt) return redirect()->to('/admin/spt');
+        if (!canViewSptAudit($sptId)) return redirect()->to('/admin/spt')->with('error', 'Akses ditolak.');
+
+        $db  = \Config\Database::connect();
+        $km1 = $db->table('spt_km1')->where('spt_id', $sptId)->get()->getRowArray();
+
+        $awRows = $db->table('spt_anggaran_waktu aw')
+            ->select('aw.*, s.nama, s.nip, s.jabatan_struktural, st.peran_spt, st.urutan')
+            ->join('sdm s', 's.id = aw.sdm_id')
+            ->join('spt_tim st', 'st.spt_id = aw.spt_id AND st.sdm_id = aw.sdm_id', 'left')
+            ->where('aw.spt_id', $sptId)
+            ->orderBy('st.urutan')
+            ->get()->getResultArray();
+
+        // Mapping peran_spt ke kolom BPKP
+        $roleMap = [
+            'PJ'                => 'pm',
+            'WPJ'               => 'pm',
+            'Pengendali Mutu'   => 'pm',
+            'Dalnis'            => 'pt',
+            'Pengendali Teknis' => 'pt',
+            'Ketua Tim'         => 'kt',
+            'Anggota Tim'       => 'at',
+        ];
+
+        $phases = ['persiapan', 'pelaksanaan', 'penyelesaian'];
+        $agg    = ['pm' => [], 'pt' => [], 'kt' => [], 'at' => []];
+        $dates  = array_fill_keys($phases, ['start' => null, 'end' => null]);
+        $pmSdm  = null;
+        $ktSdm  = null;
+
+        foreach ($awRows as $row) {
+            $roleKey = $roleMap[$row['peran_spt']] ?? null;
+            if (!$roleKey) continue;
+
+            if ($roleKey === 'pm' && !$pmSdm) $pmSdm = $row;
+            if ($roleKey === 'kt' && !$ktSdm) $ktSdm = $row;
+
+            foreach ($phases as $phase) {
+                if (!isset($agg[$roleKey][$phase])) {
+                    $agg[$roleKey][$phase] = ['rencana' => 0.0, 'realisasi' => 0.0];
+                }
+                $agg[$roleKey][$phase]['rencana']   += (float)($row["{$phase}_rencana_hari"]   ?? 0);
+                $agg[$roleKey][$phase]['realisasi']  += (float)($row["{$phase}_realisasi_hari"] ?? 0);
+
+                // Ambil rentang tanggal dari KT; fallback ke siapa saja yang punya
+                if ($roleKey === 'kt' || !$dates[$phase]['start']) {
+                    if (!empty($row["{$phase}_start"])) {
+                        $dates[$phase]['start'] = $row["{$phase}_start"];
+                        $dates[$phase]['end']   = $row["{$phase}_end"];
+                    }
+                }
+            }
+        }
+
+        return view('admin/km/print_km4_aw', [
+            'spt'    => $spt,
+            'km1'    => $km1,
+            'agg'    => $agg,
+            'dates'  => $dates,
+            'pmSdm'  => $pmSdm,
+            'ktSdm'  => $ktSdm,
+            'phases' => $phases,
+        ]);
+    }
+
     /** KT verifikasi realisasi anggaran waktu */
     public function verifikasiAw(int $sptId)
     {

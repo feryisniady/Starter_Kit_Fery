@@ -4,22 +4,32 @@
 <?php
 $awBudgetMap = $awBudgetMap ?? [];
 $sdmInfoMap  = $sdmInfoMap  ?? [];
-// Hitung total HP PKA per PIC (server-side, untuk render awal)
+$atList      = $atList      ?? [];
+$faseLabel   = ['persiapan' => 'Persiapan', 'pelaksanaan' => 'Pelaksanaan', 'pelaporan' => 'Pelaporan'];
+$faseColor   = ['persiapan' => '#6366f1', 'pelaksanaan' => '#0ea5e9', 'pelaporan' => '#22c55e'];
+$faseIcon    = ['persiapan' => 'search', 'pelaksanaan' => 'tasks', 'pelaporan' => 'file-alt'];
+
+// Hitung total HP PKA per AT (server-side, untuk panel rekap)
 $pkaHpMap = [];
 foreach ($pkaList as $p) {
-    $pid = (int)($p['pic_sdm_id'] ?? 0);
-    if ($pid) $pkaHpMap[$pid] = ($pkaHpMap[$pid] ?? 0) + (float)($p['rencana_waktu'] ?? 0);
+    foreach (($p['assigned_sdm'] ?? []) as $a) {
+        $pid = (int)$a['sdm_id'];
+        $pkaHpMap[$pid] = ($pkaHpMap[$pid] ?? 0) + (float)($p['rencana_waktu'] ?? 0);
+    }
 }
 ?>
 
+<!-- ═══ Page Header ════════════════════════════════════════════════════ -->
 <div class="page-header">
     <div class="page-title">
-        <h1>Program Kerja Audit (PKA)</h1>
+        <h1><i class="fas fa-list-check"></i> Program Pengawasan (PKA)</h1>
         <p>SPT: <?= esc($spt['nomor_naskah'] ?: '#'.$spt['id']) ?> — <?= esc($spt['tujuan']) ?></p>
     </div>
     <div class="page-actions">
+        <a href="/admin/spt/<?= $spt['id'] ?>/pka/print-km6" target="_blank" class="btn btn-outline-primary">
+            <i class="fas fa-print"></i> Cetak KM-6
+        </a>
         <a href="/admin/spt/<?= $spt['id'] ?>" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Kembali</a>
-        <a href="/admin/spt/<?= $spt['id'] ?>/temuan" class="btn btn-primary"><i class="fas fa-exclamation-triangle"></i> Temuan</a>
     </div>
 </div>
 
@@ -30,7 +40,7 @@ foreach ($pkaList as $p) {
 <div class="alert-error-inline mb-3"><i class="fas fa-circle-exclamation"></i> <?= esc(session()->getFlashdata('error')) ?></div>
 <?php endif; ?>
 
-<!-- Statistik -->
+<!-- ═══ Statistik ════════════════════════════════════════════════════ -->
 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px">
     <div class="card" style="text-align:center">
         <div class="card-body" style="padding:16px">
@@ -41,7 +51,7 @@ foreach ($pkaList as $p) {
     <div class="card" style="text-align:center">
         <div class="card-body" style="padding:16px">
             <div style="font-size:28px;font-weight:700;color:#22c55e"><?= $stats['selesai'] ?></div>
-            <div style="font-size:12px;color:#64748b">Selesai</div>
+            <div style="font-size:12px;color:#64748b">Dikerjakan</div>
         </div>
     </div>
     <div class="card" style="text-align:center">
@@ -52,120 +62,154 @@ foreach ($pkaList as $p) {
     </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════
-     PANEL REKAP HP PER PIC
-     ═══════════════════════════════════════════════════════ -->
+<!-- ═══ Panel Rekap HP per AT ════════════════════════════════════════ -->
+<?php if (!empty($awBudgetMap)): ?>
 <div class="card mb-3">
     <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
-        <h3 class="card-title" style="margin:0"><i class="fas fa-chart-bar"></i> Rekap Alokasi HP per PIC</h3>
-        <span style="font-size:11px;color:#94a3b8"><i class="fas fa-info-circle"></i> Dibandingkan vs total Rencana KM-2</span>
+        <h3 class="card-title" style="margin:0"><i class="fas fa-chart-bar"></i> Rekap HP per Anggota Tim</h3>
+        <span style="font-size:11px;color:#94a3b8">Dibandingkan vs total Rencana KM-2</span>
     </div>
     <div class="card-body" style="padding:12px 16px">
-        <?php if (empty($awBudgetMap)): ?>
-        <div style="font-size:12px;color:#94a3b8;padding:6px 0">
-            <i class="fas fa-info-circle"></i>
-            KM-2 Anggaran Waktu belum diisi. Isi terlebih dahulu untuk menampilkan monitoring HP per PIC.
+    <div id="hp-summary-rows">
+    <?php foreach ($awBudgetMap as $sdmId => $budget):
+        $used = $pkaHpMap[$sdmId] ?? 0;
+        $sisa = $budget - $used;
+        $pct  = $budget > 0 ? min(100, round($used/$budget*100)) : ($used > 0 ? 100 : 0);
+        $info = $sdmInfoMap[$sdmId] ?? ['nama' => 'SDM #'.$sdmId, 'peran_spt' => ''];
+        if ($sisa < 0) { $barColor = '#ef4444'; $statusHtml = '<span style="color:#ef4444;font-weight:700"><i class="fas fa-triangle-exclamation"></i> Lebih '.number_format(abs($sisa),1).' HP</span>'; }
+        elseif ($pct >= 80) { $barColor = '#f59e0b'; $statusHtml = '<span style="color:#d97706;font-weight:600"><i class="fas fa-triangle-exclamation"></i> Mendekati batas</span>'; }
+        else { $barColor = '#22c55e'; $statusHtml = '<span style="color:#16a34a;font-weight:600"><i class="fas fa-check"></i> Sisa '.number_format($sisa,1).' HP</span>'; }
+    ?>
+    <div class="hp-summary-row" data-summary-sdm="<?= $sdmId ?>"
+         style="display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid #f1f5f9;flex-wrap:wrap">
+        <div style="width:28px;height:28px;border-radius:50%;background:#e0e7ff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#6366f1;flex-shrink:0">
+            <?= strtoupper(substr($info['nama'],0,1)) ?>
         </div>
-        <?php else: ?>
-        <div id="hp-summary-rows">
-        <?php foreach ($awBudgetMap as $sdmId => $budget):
-            $used = $pkaHpMap[$sdmId] ?? 0;
-            $sisa = $budget - $used;
-            $pct  = $budget > 0 ? min(100, round($used / $budget * 100)) : ($used > 0 ? 100 : 0);
-            $info = $sdmInfoMap[$sdmId] ?? ['nama' => 'SDM #'.$sdmId, 'peran_spt' => ''];
-            if ($sisa < 0) {
-                $barColor = '#ef4444';
-                $statusHtml = '<span style="color:#ef4444;font-weight:700"><i class="fas fa-triangle-exclamation"></i> Lebih '.number_format(abs($sisa),1).' HP</span>';
-            } elseif ($pct >= 80) {
-                $barColor = '#f59e0b';
-                $statusHtml = '<span style="color:#d97706;font-weight:600"><i class="fas fa-triangle-exclamation"></i> Mendekati batas</span>';
-            } else {
-                $barColor = '#22c55e';
-                $statusHtml = '<span style="color:#16a34a;font-weight:600"><i class="fas fa-check"></i> Sisa '.number_format($sisa,1).' HP</span>';
-            }
-        ?>
-        <div class="hp-summary-row" data-summary-sdm="<?= $sdmId ?>"
-             style="display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid #f1f5f9;flex-wrap:wrap">
-            <div style="width:28px;height:28px;border-radius:50%;background:#e0e7ff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#6366f1;flex-shrink:0">
-                <?= strtoupper(substr($info['nama'], 0, 1)) ?>
-            </div>
-            <div style="width:150px;min-width:0">
-                <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><?= esc($info['nama']) ?></div>
-                <div style="font-size:10px;color:#94a3b8"><?= esc($info['peran_spt']) ?></div>
-            </div>
-            <div style="font-size:11px;color:#64748b;white-space:nowrap">
-                Budget KM-2: <strong style="color:#1e293b"><?= number_format($budget, 1) ?> HP</strong>
-            </div>
-            <div style="font-size:11px;color:#64748b;white-space:nowrap">
-                PKA: <strong class="hp-used-val" style="color:#1e293b"><?= number_format($used, 1) ?> HP</strong>
-            </div>
-            <div style="flex:1;min-width:80px;max-width:160px;height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden">
-                <div class="hp-bar-fill" style="height:100%;width:<?= $pct ?>%;background:<?= $barColor ?>;border-radius:4px;transition:width .3s,background .3s"></div>
-            </div>
-            <div style="font-size:11px;min-width:110px" class="hp-status-text"><?= $statusHtml ?></div>
+        <div style="width:160px;min-width:0">
+            <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><?= esc($info['nama']) ?></div>
+            <div style="font-size:10px;color:#94a3b8"><?= esc($info['peran_spt']) ?></div>
         </div>
-        <?php endforeach; ?>
+        <div style="font-size:11px;color:#64748b;white-space:nowrap">Budget KM-2: <strong style="color:#1e293b"><?= number_format($budget,1) ?> HP</strong></div>
+        <div style="font-size:11px;color:#64748b;white-space:nowrap">PKA: <strong class="hp-used-val" style="color:#1e293b"><?= number_format($used,1) ?> HP</strong></div>
+        <div style="flex:1;min-width:80px;max-width:160px;height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden">
+            <div class="hp-bar-fill" style="height:100%;width:<?= $pct ?>%;background:<?= $barColor ?>;border-radius:4px;transition:width .3s,background .3s"></div>
         </div>
-        <?php endif; ?>
+        <div style="font-size:11px;min-width:120px" class="hp-status-text"><?= $statusHtml ?></div>
+    </div>
+    <?php endforeach; ?>
+    </div>
     </div>
 </div>
+<?php endif; ?>
 
-<!-- ═══════════════════════════════════════════════════════
-     TABEL PKA
-     ═══════════════════════════════════════════════════════ -->
+<!-- ═══ Gunakan Template ══════════════════════════════════════════════ -->
+<?php if ($canEdit && !empty($templateList)): ?>
+<div class="card mb-3" style="border:1px dashed #6366f1;background:#f8f7ff">
+    <div class="card-body" style="padding:12px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px">
+            <div style="font-size:12px;font-weight:700;color:#6366f1;margin-bottom:2px">
+                <i class="fas fa-magic"></i> Gunakan Template Prosedur
+            </div>
+            <div style="font-size:11px;color:#64748b">Isi prosedur PKA otomatis dari library template sesuai jenis audit</div>
+        </div>
+        <form action="/admin/spt/<?= $spt['id'] ?>/pka/apply-template" method="POST" style="display:flex;gap:8px;align-items:center">
+            <?= csrf_field() ?>
+            <select name="template_id" class="form-control form-control-sm" style="min-width:220px" required>
+                <option value="">— Pilih Template —</option>
+                <?php foreach($templateList as $tpl): ?>
+                <option value="<?= $tpl['id'] ?>">
+                    <?= esc($tpl['nama']) ?>
+                    <?php if($tpl['jenis_audit']): ?>(<?= esc($tpl['jenis_audit']) ?>)<?php endif; ?>
+                </option>
+                <?php endforeach; ?>
+            </select>
+            <button type="submit" class="btn btn-sm btn-primary"
+                    onclick="return confirm('Prosedur dari template akan ditambahkan ke PKA. Lanjutkan?')">
+                <i class="fas fa-download"></i> Terapkan
+            </button>
+        </form>
+        <a href="/admin/pka-template" target="_blank" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-cog"></i> Kelola Template
+        </a>
+    </div>
+</div>
+<?php endif; ?>
+
+<!-- ═══ PKA per Fase ════════════════════════════════════════════════ -->
+<?php foreach (['persiapan','pelaksanaan','pelaporan'] as $fase):
+    $rows = $pkaGrouped[$fase] ?? [];
+    $color = $faseColor[$fase];
+    $icon  = $faseIcon[$fase];
+    $label = $faseLabel[$fase];
+?>
 <div class="card mb-3">
-    <div class="card-header"><h3 class="card-title"><i class="fas fa-list-check"></i> Prosedur Audit</h3></div>
-    <div class="card-body">
-        <table id="dt-pka" class="w-100">
+    <div class="card-header" style="background:<?= $color ?>10;border-bottom:2px solid <?= $color ?>">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+            <h3 class="card-title" style="margin:0;color:<?= $color ?>">
+                <i class="fas fa-<?= $icon ?>"></i> <?= $label ?>
+                <span style="font-size:12px;font-weight:400;color:#64748b;margin-left:8px"><?= count($rows) ?> prosedur</span>
+            </h3>
+        </div>
+    </div>
+    <div class="card-body" style="padding:0">
+        <?php if (empty($rows)): ?>
+        <div style="padding:20px;text-align:center;color:#94a3b8;font-size:13px">
+            <i class="fas fa-inbox"></i> Belum ada prosedur pada fase ini.
+            <?php if($canEdit): ?> Tambah menggunakan form di bawah.<?php endif; ?>
+        </div>
+        <?php else: ?>
+        <table style="width:100%;border-collapse:collapse">
             <thead>
-                <tr>
-                    <th width="40">No</th>
-                    <th>Uraian Prosedur</th>
-                    <th width="160">PIC</th>
-                    <th width="90">Rencana (HP)</th>
-                    <th width="90">Realisasi</th>
-                    <th width="100">Status</th>
-                    <th width="120">Aksi</th>
+                <tr style="background:#f8fafc;border-bottom:1px solid #e2e8f0">
+                    <th style="padding:8px 12px;font-size:11px;color:#64748b;font-weight:600;width:40px">No</th>
+                    <th style="padding:8px 12px;font-size:11px;color:#64748b;font-weight:600">Uraian Prosedur</th>
+                    <th style="padding:8px 12px;font-size:11px;color:#64748b;font-weight:600;width:90px;text-align:center">Rencana (HP)</th>
+                    <th style="padding:8px 12px;font-size:11px;color:#64748b;font-weight:600;width:180px">Assigned AT</th>
+                    <th style="padding:8px 12px;font-size:11px;color:#64748b;font-weight:600;width:100px;text-align:center">Status</th>
+                    <th style="padding:8px 12px;font-size:11px;color:#64748b;font-weight:600;width:110px;text-align:center">Aksi</th>
                 </tr>
             </thead>
-            <tbody id="pka-tbody">
-            <?php foreach($pkaList as $row): ?>
-            <tr id="pka-row-<?= $row['id'] ?>"
-                data-pic-id="<?= (int)($row['pic_sdm_id'] ?? 0) ?>"
-                data-rencana="<?= (float)($row['rencana_waktu'] ?? 0) ?>">
-                <td><?= $row['nomor_urut'] ?></td>
-                <td><?= esc($row['uraian_prosedur']) ?></td>
-                <td><?= esc($row['pic_nama'] ?? '—') ?></td>
-                <td style="text-align:center"><?= $row['rencana_waktu'] ?? '—' ?></td>
-                <td style="text-align:center;color:#94a3b8;font-size:12px">
-                    <?php if ($row['realisasi_waktu'] !== null): ?>
-                    <span title="Diperbarui melalui KKA"><?= $row['realisasi_waktu'] ?> HP</span>
+            <tbody>
+            <?php foreach($rows as $row): ?>
+            <tr id="pka-row-<?= $row['id'] ?>" style="border-bottom:1px solid #f1f5f9"
+                onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+                <td style="padding:10px 12px;font-weight:600;color:#6366f1"><?= $row['nomor_urut'] ?></td>
+                <td style="padding:10px 12px;font-size:13px"><?= esc($row['uraian_prosedur']) ?></td>
+                <td style="padding:10px 12px;text-align:center;font-size:13px">
+                    <?= $row['rencana_waktu'] ? $row['rencana_waktu'].' HP' : '—' ?>
+                </td>
+                <td style="padding:10px 12px">
+                    <?php if (!empty($row['assigned_sdm'])): ?>
+                    <div style="display:flex;flex-wrap:wrap;gap:4px">
+                        <?php foreach($row['assigned_sdm'] as $a): ?>
+                        <span style="font-size:10px;background:#e0e7ff;color:#4338ca;padding:2px 7px;border-radius:99px;font-weight:600">
+                            <?= esc($a['nama']) ?>
+                        </span>
+                        <?php endforeach; ?>
+                    </div>
                     <?php else: ?>
-                    <span title="Belum ada realisasi">—</span>
+                    <span style="font-size:11px;color:#94a3b8"><i class="fas fa-user-slash"></i> Belum di-assign</span>
                     <?php endif; ?>
                 </td>
-                <td>
+                <td style="padding:10px 12px;text-align:center">
                     <span class="badge badge-<?= $row['status'] === 'selesai' ? 'success' : 'secondary' ?>" id="status-badge-<?= $row['id'] ?>">
                         <?= $row['status'] === 'selesai' ? 'Dikerjakan' : 'Belum' ?>
                     </span>
                 </td>
-                <td>
+                <td style="padding:10px 12px;text-align:center">
                     <?php if ($canEdit): ?>
-                    <button class="btn btn-xs btn-<?= $row['status'] === 'selesai' ? 'outline-secondary' : 'success' ?> btn-selesai"
+                    <button class="btn btn-xs btn-<?= $row['status']==='selesai' ? 'outline-secondary':'success' ?> btn-selesai"
                             data-id="<?= $row['id'] ?>"
-                            title="<?= $row['status'] === 'selesai' ? 'Batal tandai dikerjakan' : 'Tandai sudah dikerjakan' ?>"
+                            title="<?= $row['status']==='selesai' ? 'Batal tandai':'Tandai dikerjakan' ?>"
                             style="font-size:11px;padding:2px 7px">
-                        <?php if ($row['status'] === 'selesai'): ?>
-                        <i class="fas fa-undo"></i> Batal
-                        <?php else: ?>
-                        <i class="fas fa-check"></i> Dikerjakan
-                        <?php endif; ?>
+                        <?= $row['status']==='selesai' ? '<i class="fas fa-undo"></i> Batal' : '<i class="fas fa-check"></i> Dikerjakan' ?>
                     </button>
                     <button class="btn btn-xs btn-primary btn-edit-pka"
                             data-id="<?= $row['id'] ?>"
                             data-uraian="<?= esc($row['uraian_prosedur']) ?>"
-                            data-pic="<?= $row['pic_sdm_id'] ?? '' ?>"
-                            data-rencana="<?= $row['rencana_waktu'] ?? '' ?>">
+                            data-fase="<?= $row['fase'] ?>"
+                            data-rencana="<?= $row['rencana_waktu'] ?? '' ?>"
+                            data-assigned='<?= json_encode(array_column($row['assigned_sdm'], 'sdm_id')) ?>'>
                         <i class="fas fa-edit"></i>
                     </button>
                     <button class="btn btn-xs btn-danger btn-del-pka" data-id="<?= $row['id'] ?>">
@@ -179,57 +223,72 @@ foreach ($pkaList as $p) {
             <?php endforeach; ?>
             </tbody>
         </table>
+        <?php endif; ?>
     </div>
 </div>
+<?php endforeach; ?>
 
-<!-- ═══════════════════════════════════════════════════════
-     FORM TAMBAH PROSEDUR
-     ═══════════════════════════════════════════════════════ -->
+<!-- ═══ Form Tambah Prosedur ══════════════════════════════════════════ -->
 <?php if ($canEdit): ?>
-<div class="card">
+<div class="card mb-3">
     <div class="card-header"><h3 class="card-title"><i class="fas fa-plus"></i> Tambah Prosedur</h3></div>
     <div class="card-body">
         <form action="/admin/spt/<?= $spt['id'] ?>/pka/store" method="POST">
             <?= csrf_field() ?>
-            <div style="display:grid;grid-template-columns:1fr 200px 110px auto;gap:12px;align-items:start">
+            <div style="display:grid;grid-template-columns:1fr 130px 130px auto;gap:12px;align-items:start">
                 <div class="form-group mb-0">
-                    <label>Uraian Prosedur <span style="color:red">*</span></label>
-                    <textarea name="uraian_prosedur" class="form-control" rows="2" required placeholder="Deskripsikan prosedur audit..."></textarea>
+                    <label style="font-size:12px;font-weight:600">Uraian Prosedur <span style="color:red">*</span></label>
+                    <textarea name="uraian_prosedur" class="form-control" rows="2" required
+                              placeholder="Deskripsikan prosedur audit..."></textarea>
                 </div>
                 <div class="form-group mb-0">
-                    <label>PIC</label>
-                    <select name="pic_sdm_id" id="add-pic-sdm" class="form-control">
-                        <option value="">— Pilih SDM —</option>
-                        <?php foreach($sdmList as $s): ?>
-                        <option value="<?= $s['id'] ?>"><?= esc($s['nama']) ?></option>
-                        <?php endforeach; ?>
+                    <label style="font-size:12px;font-weight:600">Fase</label>
+                    <select name="fase" class="form-control">
+                        <option value="persiapan">Persiapan</option>
+                        <option value="pelaksanaan" selected>Pelaksanaan</option>
+                        <option value="pelaporan">Pelaporan</option>
                     </select>
-                    <div id="add-pic-widget" style="display:none;margin-top:4px"></div>
                 </div>
                 <div class="form-group mb-0">
-                    <label>Rencana (HP)</label>
-                    <input type="number" step="0.5" min="0" name="rencana_waktu" id="add-rencana-hp"
+                    <label style="font-size:12px;font-weight:600">Rencana (HP)</label>
+                    <input type="number" step="0.5" min="0" name="rencana_waktu"
                            class="form-control" placeholder="0">
                     <div style="font-size:10px;color:#94a3b8;margin-top:2px">Hari Pemeriksaan</div>
                 </div>
                 <div class="form-group mb-0">
-                    <label style="visibility:hidden">.</label>
+                    <label style="visibility:hidden;font-size:12px">.</label>
                     <button type="submit" class="btn btn-primary" style="display:block;width:100%">
                         <i class="fas fa-plus"></i> Tambah
                     </button>
                 </div>
             </div>
+
+            <?php if (!empty($atList)): ?>
+            <div style="margin-top:12px;padding:12px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0">
+                <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px">
+                    <i class="fas fa-user-check"></i> Assign ke Anggota Tim
+                    <span style="font-size:11px;font-weight:400;color:#94a3b8">(centang AT yang mengerjakan prosedur ini)</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:10px">
+                    <?php foreach($atList as $at): ?>
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:5px 10px;border-radius:6px;border:1px solid #e2e8f0;background:#fff;font-size:12px">
+                        <input type="checkbox" name="assign_sdm_ids[]" value="<?= $at['id'] ?>"
+                               style="width:14px;height:14px">
+                        <?= esc($at['nama']) ?>
+                    </label>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php endif; ?>
         </form>
     </div>
 </div>
 <?php endif; ?>
 
-<!-- ═══════════════════════════════════════════════════════
-     MODAL EDIT PKA
-     ═══════════════════════════════════════════════════════ -->
+<!-- ═══ Modal Edit PKA ════════════════════════════════════════════════ -->
 <?php if ($canEdit): ?>
 <div id="modal-edit-pka" class="modal-overlay" style="display:none">
-    <div class="modal-box" style="max-width:560px">
+    <div class="modal-box" style="max-width:600px">
         <div class="modal-header">
             <h3>Edit Prosedur PKA</h3>
             <button class="modal-close" onclick="$('#modal-edit-pka').hide()"><i class="fas fa-times"></i></button>
@@ -243,12 +302,11 @@ foreach ($pkaList as $p) {
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div class="form-group mb-0">
-                    <label>PIC</label>
-                    <select id="edit-pic" name="pic_sdm_id" class="form-control">
-                        <option value="">— Pilih SDM —</option>
-                        <?php foreach($sdmList as $s): ?>
-                        <option value="<?= $s['id'] ?>"><?= esc($s['nama']) ?></option>
-                        <?php endforeach; ?>
+                    <label>Fase</label>
+                    <select id="edit-fase" name="fase" class="form-control">
+                        <option value="persiapan">Persiapan</option>
+                        <option value="pelaksanaan">Pelaksanaan</option>
+                        <option value="pelaporan">Pelaporan</option>
                     </select>
                 </div>
                 <div class="form-group mb-0">
@@ -256,11 +314,27 @@ foreach ($pkaList as $p) {
                     <input type="number" step="0.5" min="0" id="edit-rencana" name="rencana_waktu" class="form-control">
                 </div>
             </div>
-            <div style="font-size:11px;color:#94a3b8;margin-top:6px">
-                <i class="fas fa-info-circle"></i> Realisasi waktu dicatat otomatis melalui KKA oleh Anggota Tim.
+            <div style="font-size:11px;color:#94a3b8;margin-top:6px;margin-bottom:12px">
+                <i class="fas fa-info-circle"></i> Realisasi dicatat melalui KKA oleh Anggota Tim.
             </div>
-            <!-- Widget HP di modal edit -->
-            <div id="edit-pic-widget" style="display:none;margin-top:10px"></div>
+
+            <?php if (!empty($atList)): ?>
+            <div style="padding:12px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0">
+                <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px">
+                    <i class="fas fa-user-check"></i> Assign ke Anggota Tim
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:10px">
+                    <?php foreach($atList as $at): ?>
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:5px 10px;border-radius:6px;border:1px solid #e2e8f0;background:#fff;font-size:12px">
+                        <input type="checkbox" class="edit-assign-cb" name="assign_sdm_ids[]"
+                               value="<?= $at['id'] ?>" style="width:14px;height:14px">
+                        <?= esc($at['nama']) ?>
+                    </label>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <div class="form-actions">
                 <button type="button" class="btn btn-secondary" onclick="$('#modal-edit-pka').hide()">Batal</button>
                 <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Simpan</button>
@@ -273,160 +347,63 @@ foreach ($pkaList as $p) {
 <?= $this->endSection() ?>
 <?= $this->section('scripts') ?>
 <script>
-const csrfToken  = '<?= csrf_hash() ?>';
-const csrfName   = '<?= csrf_token() ?>';
+const csrfToken   = '<?= csrf_hash() ?>';
+const csrfName    = '<?= csrf_token() ?>';
 const awBudgetMap = <?= json_encode(array_map('floatval', $awBudgetMap)) ?>;
 const sdmInfoMap  = <?= json_encode($sdmInfoMap) ?>;
 
-// ── Hitung total HP PKA per PIC dari baris tabel ─────────────────────────
-function getPkaHpMap(excludeRowId) {
-    const map = {};
-    $('#pka-tbody tr[data-pic-id]').each(function() {
-        if (excludeRowId && $(this).attr('id') === 'pka-row-' + excludeRowId) return;
-        const picId = parseInt($(this).data('pic-id'));
-        const hp    = parseFloat($(this).data('rencana')) || 0;
-        if (picId) map[picId] = (map[picId] || 0) + hp;
+// ── Toggle dikerjakan ─────────────────────────────────────────────────────
+$(document).on('click', '.btn-selesai', function() {
+    const id  = $(this).data('id');
+    const btn = $(this);
+    $.post('/admin/spt/pka/selesai/' + id, { [csrfName]: csrfToken }, res => {
+        if (!res.success) return;
+        const done = res.status === 'selesai';
+        $('#status-badge-' + id)
+            .removeClass('badge-secondary badge-success')
+            .addClass(done ? 'badge-success' : 'badge-secondary')
+            .text(done ? 'Dikerjakan' : 'Belum');
+        btn.removeClass('btn-success btn-outline-secondary')
+           .addClass(done ? 'btn-outline-secondary' : 'btn-success')
+           .html(done ? '<i class="fas fa-undo"></i> Batal' : '<i class="fas fa-check"></i> Dikerjakan');
     });
-    return map;
-}
+});
 
-// ── Render panel summary HP per PIC ──────────────────────────────────────
-function refreshSummaryPanel() {
-    const hpMap = getPkaHpMap();
-    $('.hp-summary-row').each(function() {
-        const sdmId  = parseInt($(this).data('summary-sdm'));
-        const budget = awBudgetMap[sdmId] || 0;
-        const used   = hpMap[sdmId] || 0;
-        const sisa   = budget - used;
-        const pct    = budget > 0 ? Math.min(100, Math.round(used / budget * 100)) : (used > 0 ? 100 : 0);
-
-        let barColor, statusHtml;
-        if (sisa < 0) {
-            barColor   = '#ef4444';
-            statusHtml = `<span style="color:#ef4444;font-weight:700"><i class="fas fa-triangle-exclamation"></i> Lebih ${Math.abs(sisa).toFixed(1)} HP</span>`;
-        } else if (pct >= 80) {
-            barColor   = '#f59e0b';
-            statusHtml = `<span style="color:#d97706;font-weight:600"><i class="fas fa-triangle-exclamation"></i> Mendekati batas</span>`;
-        } else {
-            barColor   = '#22c55e';
-            statusHtml = `<span style="color:#16a34a;font-weight:600"><i class="fas fa-check"></i> Sisa ${sisa.toFixed(1)} HP</span>`;
-        }
-
-        $(this).find('.hp-used-val').text(used.toFixed(1) + ' HP');
-        $(this).find('.hp-bar-fill').css({ width: pct + '%', background: barColor });
-        $(this).find('.hp-status-text').html(statusHtml);
+// ── Buka modal edit ───────────────────────────────────────────────────────
+$(document).on('click', '.btn-edit-pka', function() {
+    const rowId    = $(this).data('id');
+    const assigned = $(this).data('assigned') || [];
+    $('#edit-pka-id').val(rowId);
+    $('#edit-uraian').val($(this).data('uraian'));
+    $('#edit-fase').val($(this).data('fase') || 'pelaksanaan');
+    $('#edit-rencana').val($(this).data('rencana'));
+    // Set checkbox assignment
+    $('.edit-assign-cb').prop('checked', false);
+    assigned.forEach(sdmId => {
+        $(`.edit-assign-cb[value="${sdmId}"]`).prop('checked', true);
     });
-}
+    $('#modal-edit-pka').show();
+});
 
-// ── Mini widget di form tambah / modal edit ───────────────────────────────
-function renderMiniWidget(containerId, picId, newHp, excludeRowId) {
-    const container = $(containerId);
-    picId = parseInt(picId);
-    if (!picId || !awBudgetMap[picId]) { container.hide(); return; }
-
-    const budget = awBudgetMap[picId] || 0;
-    const prev   = getPkaHpMap(excludeRowId)[picId] || 0;
-    const total  = prev + newHp;
-    const sisa   = budget - total;
-    const pct    = budget > 0 ? Math.min(100, Math.round(total / budget * 100)) : (total > 0 ? 100 : 0);
-
-    let color, msg;
-    if (sisa < 0) {
-        color = '#ef4444';
-        msg   = `<i class="fas fa-triangle-exclamation"></i> Melebihi ${Math.abs(sisa).toFixed(1)} HP!`;
-    } else if (pct >= 80) {
-        color = '#f59e0b';
-        msg   = `<i class="fas fa-triangle-exclamation"></i> Mendekati batas`;
-    } else {
-        color = '#22c55e';
-        msg   = `<i class="fas fa-check"></i> Sisa ${sisa.toFixed(1)} HP`;
-    }
-
-    container.show().html(`
-        <div style="display:flex;align-items:center;gap:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:6px 10px;flex-wrap:wrap">
-            <span style="font-size:11px;color:#64748b;white-space:nowrap">Budget KM-2: <strong>${budget.toFixed(1)} HP</strong></span>
-            <span style="color:#e2e8f0">|</span>
-            <span style="font-size:11px;color:#64748b;white-space:nowrap">Total PKA: <strong style="color:#1e293b">${total.toFixed(1)} HP</strong></span>
-            <div style="flex:1;min-width:50px;max-width:120px;height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden">
-                <div style="height:100%;width:${pct}%;background:${color};border-radius:3px;transition:width .2s"></div>
-            </div>
-            <span style="font-size:11px;color:${color};font-weight:600;white-space:nowrap">${msg}</span>
-        </div>`);
-}
-
-// ── DataTable ─────────────────────────────────────────────────────────────
-let dt;
-$(function() {
-    dt = $('#dt-pka').DataTable({
-        paging: false, language: DT_LANG_ID, order: [],
-        columnDefs: [{ orderable: false, targets: [5, 6] }],
+// ── Submit edit via AJAX ──────────────────────────────────────────────────
+$('#form-edit-pka').on('submit', function(e) {
+    e.preventDefault();
+    const id   = $('#edit-pka-id').val();
+    const data = $(this).serialize() + '&' + csrfName + '=' + csrfToken;
+    $.post('/admin/spt/pka/update/' + id, data, res => {
+        if (res.success) location.reload();
+        else alert('Gagal menyimpan.');
     });
+});
 
-    // Toggle dikerjakan
-    $(document).on('click', '.btn-selesai', function() {
-        const id  = $(this).data('id');
-        const btn = $(this);
-        $.post('/admin/spt/pka/selesai/' + id, { [csrfName]: csrfToken }, res => {
-            if (!res.success) return;
-            const done = res.status === 'selesai';
-            $('#status-badge-' + id)
-                .removeClass('badge-secondary badge-success')
-                .addClass(done ? 'badge-success' : 'badge-secondary')
-                .text(done ? 'Dikerjakan' : 'Belum');
-            btn.removeClass('btn-success btn-outline-secondary')
-               .addClass(done ? 'btn-outline-secondary' : 'btn-success')
-               .attr('title', done ? 'Batal tandai dikerjakan' : 'Tandai sudah dikerjakan')
-               .html(done
-                   ? '<i class="fas fa-undo"></i> Batal'
-                   : '<i class="fas fa-check"></i> Dikerjakan');
-        });
-    });
-
-    // Buka modal edit
-    $(document).on('click', '.btn-edit-pka', function() {
-        const rowId = $(this).data('id');
-        $('#edit-pka-id').val(rowId);
-        $('#edit-uraian').val($(this).data('uraian'));
-        $('#edit-pic').val($(this).data('pic'));
-        $('#edit-rencana').val($(this).data('rencana'));
-        $('#edit-pic-widget').hide();
-        renderMiniWidget('#edit-pic-widget', $(this).data('pic'), parseFloat($(this).data('rencana')) || 0, rowId);
-        $('#modal-edit-pka').show();
-    });
-
-    // Live widget saat PIC/HP berubah di modal edit
-    $(document).on('change input', '#edit-pic, #edit-rencana', function() {
-        const rowId = $('#edit-pka-id').val();
-        renderMiniWidget('#edit-pic-widget', $('#edit-pic').val(), parseFloat($('#edit-rencana').val()) || 0, rowId);
-    });
-
-    // Submit edit via AJAX — reload agar panel summary ter-refresh
-    $('#form-edit-pka').on('submit', function(e) {
-        e.preventDefault();
-        const id   = $('#edit-pka-id').val();
-        const data = $(this).serialize() + '&' + csrfName + '=' + csrfToken;
-        $.post('/admin/spt/pka/update/' + id, data, res => {
-            if (res.success) location.reload();
-            else alert('Gagal menyimpan.');
-        });
-    });
-
-    // Hapus PKA — update panel summary setelah row dihapus
-    $(document).on('click', '.btn-del-pka', function() {
-        if (!confirm('Hapus prosedur ini?')) return;
-        const id  = $(this).data('id');
-        const row = $(this).closest('tr');
-        $.post('/admin/spt/pka/delete/' + id, { [csrfName]: csrfToken }, res => {
-            if (res.success) {
-                dt.row(row).remove().draw();
-                refreshSummaryPanel();
-            } else alert('Gagal menghapus.');
-        });
-    });
-
-    // Live widget form tambah — saat PIC atau HP berubah
-    $('#add-pic-sdm, #add-rencana-hp').on('change input', function() {
-        renderMiniWidget('#add-pic-widget', $('#add-pic-sdm').val(), parseFloat($('#add-rencana-hp').val()) || 0, null);
+// ── Hapus prosedur ────────────────────────────────────────────────────────
+$(document).on('click', '.btn-del-pka', function() {
+    if (!confirm('Hapus prosedur ini?')) return;
+    const id  = $(this).data('id');
+    const row = $(this).closest('tr');
+    $.post('/admin/spt/pka/delete/' + id, { [csrfName]: csrfToken }, res => {
+        if (res.success) location.reload();
+        else alert('Gagal menghapus.');
     });
 });
 </script>
