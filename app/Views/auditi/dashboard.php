@@ -44,7 +44,7 @@
     </div>
     <div class="stat-card green">
         <div class="stat-num" style="color:#16a34a"><?= $tlSummary['diterima'] ?></div>
-        <div class="stat-label"><i class="fas fa-circle-check"></i> Diterima BPKP</div>
+        <div class="stat-label"><i class="fas fa-circle-check"></i> Diterima Inspektorat</div>
     </div>
 </div>
 
@@ -100,7 +100,7 @@
     <div class="card-body" style="text-align:center;padding:48px;color:#94a3b8">
         <i class="fas fa-inbox" style="font-size:40px;display:block;margin-bottom:12px"></i>
         <div style="font-size:15px;font-weight:600;margin-bottom:6px">Belum Ada NHP</div>
-        <p style="font-size:13px">NHP dari BPKP akan muncul di sini saat dikirimkan.</p>
+        <p style="font-size:13px">NHP dari Inspektorat akan muncul di sini saat dikirimkan.</p>
     </div>
 </div>
 <?php endif; ?>
