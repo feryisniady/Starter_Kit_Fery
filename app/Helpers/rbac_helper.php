@@ -551,4 +551,3 @@ if (!function_exists('isAuditi')) {
         return getCurrentEntitas() !== null;
     }
 }
-}
