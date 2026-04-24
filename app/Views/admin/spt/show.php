@@ -30,7 +30,9 @@
 
         <?php if($spt['status'] === 'ditolak'): ?>
             <form action="/admin/spt/<?= $spt['id'] ?>/revisi" method="POST" style="display:inline"
-                  onsubmit="return confirm('Mulai revisi SPT? Status akan kembali ke Draft dan Anda bisa edit.')">
+                  data-confirm="Status SPT akan kembali ke <b>Draft</b> dan Anda dapat mengedit kembali."
+                  data-confirm-title="Mulai Revisi SPT?"
+                  data-confirm-btn="Ya, Mulai Revisi">
                 <?= csrf_field() ?>
                 <button type="submit" class="btn btn-warning">
                     <i class="fas fa-rotate-left"></i> Revisi SPT

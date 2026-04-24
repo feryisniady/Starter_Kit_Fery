@@ -137,10 +137,12 @@
                 </a>
                 <?php if($s['status'] === 'draft'): ?>
                     <?php if($s['nomor_pkpt'] && $s['tanggal_pkpt']): ?>
-                    <form action="/admin/pkpt/setting/approve/<?= $s['id'] ?>" method="POST" style="display:inline">
+                    <form action="/admin/pkpt/setting/approve/<?= $s['id'] ?>" method="POST" style="display:inline"
+                          data-confirm="Setujui PKPT tahun <b><?= $s['tahun'] ?></b>? Pastikan nomor dan tanggal sudah benar."
+                          data-confirm-title="Setujui PKPT?"
+                          data-confirm-btn="<i class='fas fa-check'></i>&nbsp;Ya, Setujui">
                         <?= csrf_field() ?>
-                        <button type="submit" class="btn btn-xs btn-success"
-                                onclick="return confirm('Setujui PKPT tahun <?= $s['tahun'] ?>? Pastikan nomor dan tanggal sudah benar.')">
+                        <button type="submit" class="btn btn-xs btn-success">
                             <i class="fas fa-check"></i> Setujui (Bupati)
                         </button>
                     </form>
@@ -148,10 +150,12 @@
                     <span style="font-size:12px;color:#f59e0b"><i class="fas fa-triangle-exclamation"></i> Isi nomor & tanggal untuk disetujui</span>
                     <?php endif; ?>
                 <?php else: ?>
-                    <form action="/admin/pkpt/setting/revok/<?= $s['id'] ?>" method="POST" style="display:inline">
+                    <form action="/admin/pkpt/setting/revok/<?= $s['id'] ?>" method="POST" style="display:inline"
+                          data-confirm="Persetujuan PKPT tahun <b><?= $s['tahun'] ?></b> akan dibatalkan. Status kembali ke Draft."
+                          data-confirm-title="Batalkan Persetujuan?"
+                          data-confirm-btn="<i class='fas fa-undo'></i>&nbsp;Ya, Batalkan">
                         <?= csrf_field() ?>
-                        <button type="submit" class="btn btn-xs btn-outline-secondary"
-                                onclick="return confirm('Batalkan persetujuan PKPT <?= $s['tahun'] ?>?')">
+                        <button type="submit" class="btn btn-xs btn-outline-secondary">
                             <i class="fas fa-undo"></i> Revok
                         </button>
                     </form>
@@ -194,9 +198,17 @@ $(function() {
 });
 
 $(document).on('click', '.btn-del', function() {
-    if (!confirm('Hapus Header PKPT ini? Semua PKPT per irban tahun ini akan terpengaruh.')) return;
-    $.post('/admin/pkpt/setting/delete/' + $(this).data('id'), { [csrfName]: csrfToken }, res => {
-        if (res.success) location.reload();
+    const id = $(this).data('id');
+    swalConfirm({
+        title: 'Hapus Header PKPT?',
+        html: 'Semua PKPT per irban pada tahun ini akan <b>terpengaruh</b>. Tindakan ini tidak bisa dibatalkan.',
+        icon: 'warning',
+        confirmButtonColor: '#ef4444',
+        confirmButtonText: '<i class="fas fa-trash"></i>&nbsp;Ya, Hapus',
+    }, () => {
+        $.post('/admin/pkpt/setting/delete/' + id, { [csrfName]: csrfToken }, res => {
+            if (res.success) location.reload();
+        });
     });
 });
 </script>

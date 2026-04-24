@@ -63,11 +63,18 @@ $(function() {
     });
 
     $(document).on('click', '.btn-delete', function() {
-        if (!confirm('Hapus irban ini? Pastikan tidak ada PKPT atau SDM yang terkait.')) return;
         const url = $(this).data('url');
-        $.post(url, { [csrfName]: csrfToken }, res => {
-            if (res.success) dt.ajax.reload();
-            else alert(res.message || 'Gagal menghapus.');
+        swalConfirm({
+            title: 'Hapus Irban?',
+            html: 'Pastikan tidak ada <b>PKPT atau SDM</b> yang terkait sebelum menghapus.',
+            icon: 'warning',
+            confirmButtonColor: '#ef4444',
+            confirmButtonText: '<i class="fas fa-trash"></i>&nbsp;Ya, Hapus',
+        }, () => {
+            $.post(url, { [csrfName]: csrfToken }, res => {
+                if (res.success) dt.ajax.reload();
+                else Swal.fire({ icon: 'error', title: 'Gagal', text: res.message || 'Gagal menghapus.', timer: 3000 });
+            });
         });
     });
 });

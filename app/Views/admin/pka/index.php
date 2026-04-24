@@ -112,7 +112,10 @@ foreach ($pkaList as $p) {
             </div>
             <div style="font-size:11px;color:#64748b">Isi prosedur PKA otomatis dari library template sesuai jenis audit</div>
         </div>
-        <form action="/admin/spt/<?= $spt['id'] ?>/pka/apply-template" method="POST" style="display:flex;gap:8px;align-items:center">
+        <form action="/admin/spt/<?= $spt['id'] ?>/pka/apply-template" method="POST" style="display:flex;gap:8px;align-items:center"
+              data-confirm="Prosedur dari template akan ditambahkan ke PKA. Prosedur yang sudah ada <b>tidak akan terhapus</b>."
+              data-confirm-title="Terapkan Template?"
+              data-confirm-btn="<i class='fas fa-download'></i>&nbsp;Ya, Terapkan">
             <?= csrf_field() ?>
             <select name="template_id" class="form-control form-control-sm" style="min-width:220px" required>
                 <option value="">— Pilih Template —</option>
@@ -123,8 +126,7 @@ foreach ($pkaList as $p) {
                 </option>
                 <?php endforeach; ?>
             </select>
-            <button type="submit" class="btn btn-sm btn-primary"
-                    onclick="return confirm('Prosedur dari template akan ditambahkan ke PKA. Lanjutkan?')">
+            <button type="submit" class="btn btn-sm btn-primary">
                 <i class="fas fa-download"></i> Terapkan
             </button>
         </form>
@@ -398,12 +400,18 @@ $('#form-edit-pka').on('submit', function(e) {
 
 // ── Hapus prosedur ────────────────────────────────────────────────────────
 $(document).on('click', '.btn-del-pka', function() {
-    if (!confirm('Hapus prosedur ini?')) return;
-    const id  = $(this).data('id');
-    const row = $(this).closest('tr');
-    $.post('/admin/spt/pka/delete/' + id, { [csrfName]: csrfToken }, res => {
-        if (res.success) location.reload();
-        else alert('Gagal menghapus.');
+    const id = $(this).data('id');
+    swalConfirm({
+        title: 'Hapus Prosedur?',
+        html: 'Prosedur ini akan dihapus dari PKA dan tidak bisa dipulihkan.',
+        icon: 'warning',
+        confirmButtonColor: '#ef4444',
+        confirmButtonText: '<i class="fas fa-trash"></i>&nbsp;Ya, Hapus',
+    }, () => {
+        $.post('/admin/spt/pka/delete/' + id, { [csrfName]: csrfToken }, res => {
+            if (res.success) location.reload();
+            else Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal menghapus prosedur.', timer: 2500 });
+        });
     });
 });
 </script>

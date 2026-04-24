@@ -290,6 +290,35 @@
 
     // AJAX Delete ditangani di admin.js (DT-aware reload)
   });
+
+// ── Global Swal Confirm Helper ────────────────────────────────────────────
+function swalConfirm(opts, onConfirm) {
+    Swal.fire(Object.assign({
+        icon: 'question',
+        title: 'Konfirmasi',
+        showCancelButton: true,
+        confirmButtonColor: '#4f46e5',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Ya, Lanjutkan',
+        cancelButtonText: 'Batal',
+        reverseButtons: true,
+    }, opts)).then(function(r) { if (r.isConfirmed) onConfirm(); });
+}
+
+// Intercept form[data-confirm] on submit (capture phase)
+document.addEventListener('submit', function(e) {
+    var form = e.target;
+    if (!form.dataset.confirm || form._swalOk) return;
+    e.preventDefault();
+    var isDel  = form.dataset.confirmType === 'delete';
+    swalConfirm({
+        title: form.dataset.confirmTitle || (isDel ? 'Hapus Data?' : 'Konfirmasi'),
+        html:  form.dataset.confirm,
+        icon:  isDel ? 'warning' : 'question',
+        confirmButtonColor: isDel ? '#ef4444' : '#4f46e5',
+        confirmButtonText:  isDel ? '<i class="fas fa-trash"></i>&nbsp;Ya, Hapus' : (form.dataset.confirmBtn || 'Ya, Lanjutkan'),
+    }, function() { form._swalOk = true; form.submit(); });
+}, true);
 </script>
 
 <!-- Notifikasi CSS -->

@@ -69,16 +69,20 @@ $sc = $skColors[$statusKka] ?? $skColors['draft'];
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
                 <?php if ($isAt && $statusKka === 'rejected'): ?>
                 <form action="/admin/kka/<?= $kka['id'] ?>/reopen" method="POST"
-                      onsubmit="return confirm('Buka KKA ini kembali untuk diperbaiki? Status akan direset ke Draft agar Anda dapat mengedit.')">
+                      data-confirm="Status KKA akan direset ke <b>Draft</b> agar Anda dapat mengedit dan mengirim ulang."
+                      data-confirm-title="Buka untuk Diperbaiki?"
+                      data-confirm-btn="Ya, Buka Kembali">
                     <?= csrf_field() ?>
-                    <button class="btn btn-warning btn-sm"><i class="fas fa-rotate-left"></i> Buka untuk Diperbaiki</button>
+                    <button type="submit" class="btn btn-warning btn-sm"><i class="fas fa-rotate-left"></i> Buka untuk Diperbaiki</button>
                 </form>
                 <?php endif; ?>
                 <?php if ($isAt && $kkaSelesai && in_array($statusKka,['draft','rejected'])): ?>
                 <form action="/admin/kka/<?= $kka['id'] ?>/submit" method="POST"
-                      onsubmit="return confirm('Kirim KKA ini ke Ketua Tim untuk direview?')">
+                      data-confirm="KKA ini akan dikirim ke <b>Ketua Tim</b> untuk direview. Pastikan semua isian sudah lengkap."
+                      data-confirm-title="Kirim ke Ketua Tim?"
+                      data-confirm-btn="<i class='fas fa-paper-plane'></i>&nbsp;Kirim Sekarang">
                     <?= csrf_field() ?>
-                    <button class="btn btn-primary btn-sm"><i class="fas fa-paper-plane"></i> Kirim ke Ketua Tim</button>
+                    <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-paper-plane"></i> Kirim ke Ketua Tim</button>
                 </form>
                 <?php endif; ?>
                 <?php if ($isKt && $statusKka === 'submitted'): ?>
@@ -391,7 +395,9 @@ $formId   = 'form-pka-' . $pka['id'];
 <?php if ($isEditable && $terisiCount > 0): ?>
 <div style="text-align:right;margin-top:4px;margin-bottom:24px">
     <form action="/admin/kka/<?= $kka['id'] ?>/selesaikan" method="POST"
-          onsubmit="return confirm('Tandai KKA ini selesai?\n\nSetelah selesai, Anda tidak bisa mengedit lagi dan dapat mengirimkan ke Ketua Tim.')">
+          data-confirm="Setelah selesai, Anda <b>tidak bisa mengedit</b> lagi dan dapat mengirimkan ke Ketua Tim."
+          data-confirm-title="Selesaikan KKA?"
+          data-confirm-btn="<i class='fas fa-check-double'></i>&nbsp;Ya, Selesaikan">
         <?= csrf_field() ?>
         <div style="font-size:12px;color:#64748b;margin-bottom:8px">
             <?= $terisiCount ?>/<?= $totalProsedur ?> prosedur sudah diisi

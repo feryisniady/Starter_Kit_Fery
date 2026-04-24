@@ -307,25 +307,27 @@ const _csrfName = '<?= csrf_token() ?>';
 const _csrfHash = '<?= csrf_hash() ?>';
 
 function verifikasiAw(sdmId, sdmNama) {
-    if (!confirm('Verifikasi realisasi anggaran waktu ' + sdmNama + '?\n\nSetelah diverifikasi, data realisasi SDM ini tidak bisa diubah kembali.')) return;
+    swalConfirm({
+        title: 'Verifikasi Realisasi?',
+        html: 'Verifikasi anggaran waktu <b>' + sdmNama + '</b>.<br><span style="color:#ef4444;font-size:12px">Setelah diverifikasi, data tidak bisa diubah kembali.</span>',
+        icon: 'question',
+        confirmButtonText: '<i class="fas fa-check-double"></i>&nbsp;Ya, Verifikasi',
+    }, () => {
+        const btn = document.querySelector(`.btn-verifikasi-aw[data-sdm-id="${sdmId}"]`);
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...'; }
 
-    const btn = document.querySelector(`.btn-verifikasi-aw[data-sdm-id="${sdmId}"]`);
-    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...'; }
+        const body = new URLSearchParams();
+        body.append('sdm_id', sdmId);
+        body.append(_csrfName, _csrfHash);
 
-    const body = new URLSearchParams();
-    body.append('sdm_id', sdmId);
-    body.append(_csrfName, _csrfHash);
-
-    fetch(`/admin/spt/${_sptId}/km/2/verifikasi`, { method: 'POST', body })
-        .then(r => r.redirected ? r.url : r.text())
-        .then(() => {
-            // Refresh halaman agar badge "Terverifikasi KT" muncul
-            location.reload();
-        })
-        .catch(() => {
-            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check-double"></i> Verifikasi Realisasi'; }
-            alert('Gagal menghubungi server. Coba lagi.');
-        });
+        fetch(`/admin/spt/${_sptId}/km/2/verifikasi`, { method: 'POST', body })
+            .then(r => r.redirected ? r.url : r.text())
+            .then(() => { location.reload(); })
+            .catch(() => {
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check-double"></i> Verifikasi Realisasi'; }
+                Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal menghubungi server. Coba lagi.', timer: 3000 });
+            });
+    });
 }
 
 function updateAwHpWidget(sdmId) {
