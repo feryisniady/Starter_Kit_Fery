@@ -168,13 +168,25 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	$routes->get('spt/(:num)/word',             'Admin\SptController::downloadWord/$1');
 
 	// =====================================================================
-	// PKA (Program Kerja Audit) — per SPT
+	// PKA (Program Pengawasan) — per SPT
 	// =====================================================================
-	$routes->get('spt/(:num)/pka',              'Admin\PkaController::index/$1');
-	$routes->post('spt/(:num)/pka/store',       'Admin\PkaController::store/$1');
-	$routes->post('spt/pka/update/(:num)',      'Admin\PkaController::update/$1');
-	$routes->post('spt/pka/delete/(:num)',      'Admin\PkaController::delete/$1');
-	$routes->post('spt/pka/selesai/(:num)',     'Admin\PkaController::selesai/$1');
+	$routes->get('spt/(:num)/pka',                 'Admin\PkaController::index/$1');
+	$routes->get('spt/(:num)/pka/print-km6',        'Admin\PkaController::printKm6/$1');
+	$routes->post('spt/(:num)/pka/store',          'Admin\PkaController::store/$1');
+	$routes->post('spt/(:num)/pka/apply-template', 'Admin\PkaController::applyTemplate/$1');
+	$routes->post('spt/pka/update/(:num)',          'Admin\PkaController::update/$1');
+	$routes->post('spt/pka/delete/(:num)',          'Admin\PkaController::delete/$1');
+	$routes->post('spt/pka/selesai/(:num)',         'Admin\PkaController::selesai/$1');
+
+	// =====================================================================
+	// PKA Template Library
+	// =====================================================================
+	$routes->get('pka-template',                    'Admin\PkaTemplateController::index');
+	$routes->get('pka-template/create',             'Admin\PkaTemplateController::create');
+	$routes->post('pka-template/store',             'Admin\PkaTemplateController::store');
+	$routes->get('pka-template/(:num)/edit',        'Admin\PkaTemplateController::edit/$1');
+	$routes->post('pka-template/(:num)/update',     'Admin\PkaTemplateController::update/$1');
+	$routes->post('pka-template/(:num)/delete',     'Admin\PkaTemplateController::delete/$1');
 
 	// =====================================================================
 	// TEMUAN — per SPT

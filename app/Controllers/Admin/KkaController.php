@@ -129,15 +129,16 @@ class KkaController extends BaseController
         $spt = $this->sptModel->getDetail($kka['spt_id']);
         $db  = \Config\Database::connect();
 
-        // PKA procedures: AT hanya lihat milik sendiri, KT/Dalnis/Admin lihat semua
+        // PKA procedures: AT hanya lihat yang di-assign ke dia (via pka_assignment)
+        // KT / Dalnis / Admin lihat semua prosedur SPT
         $pkaQuery = $db->table('pka p')
-            ->select('p.*, s.nama as pic_nama')
-            ->join('sdm s', 's.id = p.pic_sdm_id', 'left')
+            ->select('p.*')
             ->where('p.spt_id', $kka['spt_id']);
         if (!isAuditAdmin() && !isDalnisInSpt($kka['spt_id']) && !isKtInSpt($kka['spt_id'])) {
-            $pkaQuery->where('p.pic_sdm_id', $kka['sdm_id']);
+            $pkaQuery->join('pka_assignment pa', 'pa.pka_id = p.id')
+                     ->where('pa.sdm_id', $kka['sdm_id']);
         }
-        $pkaList = $pkaQuery->orderBy('p.nomor_urut')->get()->getResultArray();
+        $pkaList = $pkaQuery->orderBy('p.fase')->orderBy('p.nomor_urut')->get()->getResultArray();
 
         // Lookup kode temuan (untuk dropdown simpulan)
         $kodeTemuanList = $db->table('kode_temuan')
