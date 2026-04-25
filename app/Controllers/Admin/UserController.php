@@ -144,17 +144,21 @@ class UserController extends BaseController
 
         $this->userModel->syncRoles($userId, $this->request->getPost('roles') ?? []);
 
-        // Auto-create SDM record (bisa dilengkapi NIP/jabatan nanti)
-        $this->syncSdm($userId, $name, [
-            'nip'                => $this->request->getPost('nip'),
-            'jabatan_fungsional' => $this->request->getPost('jabatan_fungsional'),
-            'jabatan_struktural' => $this->request->getPost('jabatan_struktural'),
-            'pangkat_golongan'   => $this->request->getPost('pangkat_golongan'),
-            'irban_id'           => $this->request->getPost('irban_id') ?: null,
-        ]);
+        // Buat SDM HANYA jika user adalah staf inspektorat (irban atau NIP diisi)
+        $irbanId = $this->request->getPost('irban_id') ?: null;
+        $nip     = trim($this->request->getPost('nip') ?? '');
+        if ($irbanId || $nip) {
+            $this->syncSdm($userId, $name, [
+                'nip'                => $nip ?: null,
+                'jabatan_fungsional' => $this->request->getPost('jabatan_fungsional') ?: null,
+                'jabatan_struktural' => $this->request->getPost('jabatan_struktural') ?: null,
+                'pangkat_golongan'   => $this->request->getPost('pangkat_golongan') ?: null,
+                'irban_id'           => $irbanId,
+            ]);
+        }
 
         logActivity('user.create', 'user', "Tambah user baru: {$name} ({$email})");
-        return redirect()->to('/admin/users')->with('success', 'User berhasil ditambahkan dan data SDM otomatis terdaftar.');
+        return redirect()->to('/admin/users')->with('success', 'User berhasil ditambahkan.');
     }
 
     // Form edit user
@@ -215,14 +219,20 @@ class UserController extends BaseController
         $this->userModel->update($id, $dataUpdate);
         $this->userModel->syncRoles($id, $this->request->getPost('roles') ?? []);
 
-        // Sync SDM record (buat jika belum ada, update jika sudah)
-        $this->syncSdm($id, $name, [
-            'nip'                => $this->request->getPost('nip'),
-            'jabatan_fungsional' => $this->request->getPost('jabatan_fungsional'),
-            'jabatan_struktural' => $this->request->getPost('jabatan_struktural'),
-            'pangkat_golongan'   => $this->request->getPost('pangkat_golongan'),
-            'irban_id'           => $this->request->getPost('irban_id') ?: null,
-        ]);
+        // Sync SDM hanya jika sudah ada SDM record, atau ada data kepegawaian baru
+        $irbanId     = $this->request->getPost('irban_id') ?: null;
+        $nip         = trim($this->request->getPost('nip') ?? '');
+        $db          = \Config\Database::connect();
+        $existingSdm = $db->table('sdm')->where('user_id', $id)->get()->getRowArray();
+        if ($existingSdm || $irbanId || $nip) {
+            $this->syncSdm($id, $name, [
+                'nip'                => $nip ?: null,
+                'jabatan_fungsional' => $this->request->getPost('jabatan_fungsional') ?: null,
+                'jabatan_struktural' => $this->request->getPost('jabatan_struktural') ?: null,
+                'pangkat_golongan'   => $this->request->getPost('pangkat_golongan') ?: null,
+                'irban_id'           => $irbanId,
+            ]);
+        }
 
         logActivity('user.update', 'user', "Update user ID:{$id} — {$name}");
         return redirect()->to('/admin/users')->with('success', 'User berhasil diupdate!');
