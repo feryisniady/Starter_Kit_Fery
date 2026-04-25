@@ -231,12 +231,34 @@ class PkaController extends BaseController
             if (!$ktSdm && $t['peran_spt'] === 'Ketua Tim') $ktSdm = $t;
         }
 
+        // Realisasi dari kka_ikhtisar: per pka_id → pelaksana aktual + waktu
+        $ikhRows = $db->table('kka_ikhtisar ki')
+            ->select('ki.pka_id, ki.realisasi_waktu, ki.pelaksana_aktual_id, s.nama as pelaksana_nama')
+            ->join('kka k', 'k.id = ki.kka_id')
+            ->join('sdm s', 's.id = ki.pelaksana_aktual_id', 'left')
+            ->where('k.spt_id', $sptId)
+            ->whereNotNull('ki.pka_id')
+            ->get()->getResultArray();
+
+        $realisasiByPka = [];
+        foreach ($ikhRows as $r) {
+            $pid = (int)$r['pka_id'];
+            if (!isset($realisasiByPka[$pid])) {
+                $realisasiByPka[$pid] = ['names' => [], 'waktu' => 0];
+            }
+            if (!empty($r['pelaksana_nama']) && !in_array($r['pelaksana_nama'], $realisasiByPka[$pid]['names'])) {
+                $realisasiByPka[$pid]['names'][] = $r['pelaksana_nama'];
+            }
+            $realisasiByPka[$pid]['waktu'] += (int)($r['realisasi_waktu'] ?? 0);
+        }
+
         return view('admin/km/print_km6_pka', [
-            'spt'     => $spt,
-            'km1'     => $km1,
-            'grouped' => $this->pkaModel->getBySptGrouped($sptId),
-            'pmSdm'   => $pmSdm,
-            'ktSdm'   => $ktSdm,
+            'spt'            => $spt,
+            'km1'            => $km1,
+            'grouped'        => $this->pkaModel->getBySptGrouped($sptId),
+            'pmSdm'          => $pmSdm,
+            'ktSdm'          => $ktSdm,
+            'realisasiByPka' => $realisasiByPka,
         ]);
     }
 

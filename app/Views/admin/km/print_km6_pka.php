@@ -165,14 +165,17 @@ td.left { text-align:left; }
             <?php if (!empty($rows)): ?>
                 <?php foreach($rows as $row):
                     $assignedNames = implode(', ', array_column($row['assigned_sdm'] ?? [], 'nama'));
+                    $real = $realisasiByPka[(int)$row['id']] ?? null;
+                    $realNames = $real ? implode(', ', $real['names']) : '';
+                    $realWaktu = $real && $real['waktu'] > 0 ? $real['waktu'].' HP' : '';
                 ?>
                 <tr class="data-row">
                     <td><?= $row['nomor_urut'] ?></td>
                     <td class="left"><?= esc($row['uraian_prosedur']) ?></td>
                     <td style="font-size:7.5pt"><?= esc($assignedNames) ?></td>
                     <td><?= $row['rencana_waktu'] ? $row['rencana_waktu'].' HP' : '' ?></td>
-                    <td></td><!-- realisasi dilaksanakan oleh — diisi AT -->
-                    <td><?= $row['realisasi_waktu'] ? $row['realisasi_waktu'].' HP' : '' ?></td>
+                    <td style="font-size:7.5pt"><?= esc($realNames) ?></td>
+                    <td><?= esc($realWaktu) ?></td>
                     <td></td><!-- No KKP -->
                     <td></td><!-- Ket -->
                 </tr>

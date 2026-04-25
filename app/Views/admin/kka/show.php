@@ -1,35 +1,25 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
-
 <?php
 $statusKka   = $kka['status_kka'] ?? 'draft';
 $kkaSelesai  = $kka['status'] === 'selesai';
 $kkaApproved = $statusKka === 'approved';
-$isEditable  = $canEdit; // passed from controller: canEditKka && status != selesai && !approved
-
-// Progress: berapa prosedur yang sudah diisi (ada ikhtisar-nya)
-$totalProsedur  = count($prosedurData);
-$terisiCount    = count(array_filter($prosedurData, fn($p) => $p['ikhtisar'] !== null));
-$temuanCount    = count(array_filter($prosedurData, fn($p) => $p['simpulan']  !== null));
+$isEditable  = $canEdit;
+$totalProsedur = count($prosedurData);
+$terisiCount   = count(array_filter($prosedurData, fn($p) => $p['ikhtisar'] !== null));
+$temuanCount   = count(array_filter($prosedurData, fn($p) => $p['simpulan']  !== null));
 ?>
 
-<!-- ══ Page Header ══════════════════════════════════════════════════════ -->
 <div class="page-header">
     <div class="page-title">
         <h1><i class="fas fa-file-pen"></i> KKA — <?= esc($kka['nama']) ?></h1>
-        <p>
-            SPT: <?= esc($spt['nomor_naskah'] ?: '#'.$spt['id']) ?>
-            &nbsp;|&nbsp; Peran: <strong><?= esc($kka['peran_spt'] ?: 'Anggota Tim') ?></strong>
-        </p>
+        <p>SPT: <?= esc($spt['nomor_naskah'] ?: '#'.$spt['id']) ?> &nbsp;|&nbsp; Peran: <strong><?= esc($kka['peran_spt'] ?: 'Anggota Tim') ?></strong></p>
     </div>
     <div class="page-actions">
-        <a href="/admin/spt/<?= $spt['id'] ?>/kka" class="btn btn-secondary">
-            <i class="fas fa-arrow-left"></i> Kembali
-        </a>
+        <a href="/admin/spt/<?= $spt['id'] ?>/kka" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Kembali</a>
     </div>
 </div>
 
-<!-- Flash -->
 <?php if(session()->getFlashdata('success')): ?>
 <div class="alert-success-inline mb-3"><i class="fas fa-circle-check"></i> <?= esc(session()->getFlashdata('success')) ?></div>
 <?php endif; ?>
@@ -37,13 +27,12 @@ $temuanCount    = count(array_filter($prosedurData, fn($p) => $p['simpulan']  !=
 <div class="alert-error-inline mb-3"><i class="fas fa-circle-exclamation"></i> <?= esc(session()->getFlashdata('error')) ?></div>
 <?php endif; ?>
 
-<!-- ══ Panel Status Pengiriman ke KT ═══════════════════════════════════ -->
 <?php
 $skColors = [
-    'draft'     => ['bg'=>'#f8fafc','border'=>'#cbd5e1','icon'=>'clock',         'iconColor'=>'#64748b','title'=>'Belum Dikirim ke Ketua Tim','titleColor'=>'#374151'],
-    'submitted' => ['bg'=>'#fffbeb','border'=>'#fbbf24','icon'=>'paper-plane',   'iconColor'=>'#d97706','title'=>'Menunggu Review Ketua Tim','titleColor'=>'#92400e'],
-    'approved'  => ['bg'=>'#f0fdf4','border'=>'#22c55e','icon'=>'circle-check',  'iconColor'=>'#16a34a','title'=>'Disetujui Ketua Tim','titleColor'=>'#166534'],
-    'rejected'  => ['bg'=>'#fef2f2','border'=>'#ef4444','icon'=>'circle-xmark',  'iconColor'=>'#dc2626','title'=>'Dikembalikan — Perlu Perbaikan','titleColor'=>'#991b1b'],
+    'draft'     => ['bg'=>'#f8fafc','border'=>'#cbd5e1','icon'=>'clock',        'iconColor'=>'#64748b','title'=>'Belum Dikirim ke Ketua Tim',      'titleColor'=>'#374151'],
+    'submitted' => ['bg'=>'#fffbeb','border'=>'#fbbf24','icon'=>'paper-plane',  'iconColor'=>'#d97706','title'=>'Menunggu Review Ketua Tim',        'titleColor'=>'#92400e'],
+    'approved'  => ['bg'=>'#f0fdf4','border'=>'#22c55e','icon'=>'circle-check', 'iconColor'=>'#16a34a','title'=>'Disetujui Ketua Tim',              'titleColor'=>'#166534'],
+    'rejected'  => ['bg'=>'#fef2f2','border'=>'#ef4444','icon'=>'circle-xmark', 'iconColor'=>'#dc2626','title'=>'Dikembalikan — Perlu Perbaikan',   'titleColor'=>'#991b1b'],
 ];
 $sc = $skColors[$statusKka] ?? $skColors['draft'];
 ?>
@@ -116,11 +105,9 @@ $sc = $skColors[$statusKka] ?? $skColors['draft'];
     </div>
 </div>
 
-<!-- ══ Progress Bar ════════════════════════════════════════════════════ -->
 <div class="card mb-3" style="background:linear-gradient(135deg,#1e293b,#334155);color:#fff">
     <div class="card-body" style="padding:16px 20px">
         <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap">
-            <!-- Progress prosedur -->
             <div style="flex:1;min-width:200px">
                 <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px;opacity:.85">
                     <span><i class="fas fa-tasks"></i> Prosedur Terisi</span>
@@ -131,7 +118,6 @@ $sc = $skColors[$statusKka] ?? $skColors['draft'];
                     <div style="background:#34d399;height:100%;width:<?= $pct ?>%;border-radius:99px;transition:width .4s"></div>
                 </div>
             </div>
-            <!-- Mini stats -->
             <div style="display:flex;gap:20px">
                 <div style="text-align:center">
                     <div style="font-size:22px;font-weight:700;color:#34d399"><?= $terisiCount ?></div>
@@ -146,21 +132,14 @@ $sc = $skColors[$statusKka] ?? $skColors['draft'];
                     <div style="font-size:10px;opacity:.7">Belum</div>
                 </div>
             </div>
-            <!-- Status badge -->
             <div>
-                <?php
-                $stLabel = $statusLabel[$kka['status']] ?? $kka['status'];
-                $stColor = $statusColor[$kka['status']] ?? 'secondary';
-                ?>
-                <span class="badge badge-<?= $stColor ?>" style="font-size:12px;padding:5px 12px">
-                    <?= $stLabel ?>
-                </span>
+                <?php $stLabel = $statusLabel[$kka['status']] ?? $kka['status']; $stColor = $statusColor[$kka['status']] ?? 'secondary'; ?>
+                <span class="badge badge-<?= $stColor ?>" style="font-size:12px;padding:5px 12px"><?= $stLabel ?></span>
             </div>
         </div>
     </div>
 </div>
 
-<!-- ══ Catatan Dalnis ═══════════════════════════════════════════════════ -->
 <?php if ($isDalnis || !empty($kka['catatan_dalnis'])): ?>
 <div class="card mb-3" style="border-left:4px solid #6366f1">
     <div class="card-body" style="padding:14px 20px">
@@ -195,7 +174,6 @@ $sc = $skColors[$statusKka] ?? $skColors['draft'];
 </div>
 <?php endif; ?>
 
-<!-- ══ Kartu Per Prosedur PKA ══════════════════════════════════════════ -->
 <?php if (empty($prosedurData)): ?>
 <div class="card mb-3">
     <div class="card-body" style="text-align:center;padding:48px;color:#94a3b8">
@@ -208,206 +186,254 @@ $sc = $skColors[$statusKka] ?? $skColors['draft'];
 
 <?php foreach ($prosedurData as $idx => $pd): ?>
 <?php
-$pka      = $pd['pka'];
-$ikh      = $pd['ikhtisar'];  // existing kka_ikhtisar row or null
-$sp       = $pd['simpulan'];  // existing kka_simpulan row or null
-$filled   = $ikh !== null;
-$adaTemuan= $sp  !== null;
-$cardBg   = $filled ? ($adaTemuan ? '#fffbeb' : '#f0fdf4') : '#f8fafc';
-$cardBorder= $filled ? ($adaTemuan ? '#fbbf24' : '#22c55e') : '#e2e8f0';
-$formId   = 'form-pka-' . $pka['id'];
+$pka=$pd['pka']; $ikh=$pd['ikhtisar']; $sp=$pd['simpulan']; $dok=$pd['dokumen'];
+$filled=$ikh!==null; $adaTemuan=$sp!==null;
+$cardBg=$filled?($adaTemuan?'#fffbeb':'#f0fdf4'):'#f8fafc';
+$cardBorder=$filled?($adaTemuan?'#fbbf24':'#22c55e'):'#e2e8f0';
+$formId='form-pka-'.$pka['id'];
 ?>
-<div class="card mb-3" style="border-left:4px solid <?= $cardBorder ?>;background:<?= $cardBg ?>">
-
-    <!-- Card header: nomor + nama prosedur + status pill -->
-    <div class="card-header" style="background:transparent;border-bottom:1px solid <?= $cardBorder ?>44;cursor:pointer"
-         onclick="toggleCard('body-pka-<?= $pka['id'] ?>')">
-        <div style="display:flex;align-items:center;gap:12px">
-            <!-- Nomor -->
-            <div style="width:32px;height:32px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;
-                        background:<?= $filled ? $cardBorder : '#e2e8f0' ?>;color:<?= $filled ? '#fff' : '#94a3b8' ?>">
-                <?= $idx + 1 ?>
-            </div>
-            <!-- Nama prosedur -->
-            <div style="flex:1;min-width:0">
-                <div style="font-weight:600;font-size:13px;color:#1e293b"><?= esc($pka['uraian_prosedur']) ?></div>
-                <div style="font-size:11px;color:#64748b;margin-top:1px">
-                    Rencana: <?= $pka['rencana_waktu'] ?? '—' ?> HP
-                    <?php if (!empty($pka['pic_nama'])): ?>&nbsp;|&nbsp; PIC: <?= esc($pka['pic_nama']) ?><?php endif; ?>
-                </div>
-            </div>
-            <!-- Status pill -->
-            <?php if ($filled): ?>
-                <?php if ($adaTemuan): ?>
-                <span style="font-size:11px;background:#fef3c7;color:#92400e;padding:3px 10px;border-radius:99px;font-weight:600;flex-shrink:0">
-                    <i class="fas fa-triangle-exclamation"></i> Ada Temuan
-                </span>
-                <?php else: ?>
-                <span style="font-size:11px;background:#dcfce7;color:#166534;padding:3px 10px;border-radius:99px;font-weight:600;flex-shrink:0">
-                    <i class="fas fa-check"></i> Selesai
-                </span>
-                <?php endif; ?>
-            <?php else: ?>
-            <span style="font-size:11px;background:#f1f5f9;color:#94a3b8;padding:3px 10px;border-radius:99px;flex-shrink:0">
-                <i class="fas fa-pencil"></i> Belum Diisi
-            </span>
-            <?php endif; ?>
-            <!-- Expand icon -->
-            <i class="fas fa-chevron-down" id="chevron-pka-<?= $pka['id'] ?>"
-               style="color:#94a3b8;font-size:12px;flex-shrink:0;transition:transform .2s"></i>
+<div class="card mb-3" style="border-left:4px solid <?=$cardBorder?>;background:<?=$cardBg?>">
+  <div class="card-header" style="background:transparent;border-bottom:1px solid <?=$cardBorder?>44;cursor:pointer" onclick="toggleCard('body-pka-<?=$pka['id']?>')">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:32px;height:32px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;background:<?=$filled?$cardBorder:'#e2e8f0'?>;color:<?=$filled?'#fff':'#94a3b8'?>">
+        <?=$idx+1?>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:13px;color:#1e293b"><?=esc($pka['uraian_prosedur'])?></div>
+        <div style="font-size:11px;color:#64748b;margin-top:1px">
+          Rencana: <?=$pka['rencana_waktu']??'—'?> HP
+          <?php if(!empty($pka['pic_nama'])): ?>&nbsp;|&nbsp; PIC: <?=esc($pka['pic_nama'])?><?php endif; ?>
         </div>
+      </div>
+      <?php if($filled): ?>
+        <?php if($adaTemuan): ?>
+        <span style="font-size:11px;background:#fef3c7;color:#92400e;padding:3px 10px;border-radius:99px;font-weight:600;flex-shrink:0"><i class="fas fa-triangle-exclamation"></i> Ada Temuan</span>
+        <?php else: ?>
+        <span style="font-size:11px;background:#dcfce7;color:#166534;padding:3px 10px;border-radius:99px;font-weight:600;flex-shrink:0"><i class="fas fa-check"></i> Selesai</span>
+        <?php endif; ?>
+      <?php else: ?>
+      <span style="font-size:11px;background:#f1f5f9;color:#94a3b8;padding:3px 10px;border-radius:99px;flex-shrink:0"><i class="fas fa-pencil"></i> Belum Diisi</span>
+      <?php endif; ?>
+      <i class="fas fa-chevron-down" id="chevron-pka-<?=$pka['id']?>" style="color:#94a3b8;font-size:12px;flex-shrink:0;transition:transform .2s"></i>
     </div>
+  </div>
+  <div id="body-pka-<?=$pka['id']?>" style="<?=(!$filled&&!$isEditable)?'display:none':''?>">
+    <div class="card-body" style="padding:16px 20px">
 
-    <!-- Card body (collapsible) -->
-    <div id="body-pka-<?= $pka['id'] ?>" style="<?= (!$filled && !$isEditable) ? 'display:none' : '' ?>">
-        <div class="card-body" style="padding:16px 20px">
+    <?php if ($isEditable): ?>
+    <!-- ── Edit Form ───────────────────────────────────────────── -->
+    <form id="<?=$formId?>" action="/admin/kka/<?=$kka['id']?>/prosedur/save"
+          method="POST" enctype="multipart/form-data">
+        <?= csrf_field() ?>
+        <input type="hidden" name="pka_id" value="<?=$pka['id']?>">
 
-            <?php if ($isEditable): ?>
-            <!-- ── Form Edit ─────────────────────────────────────────── -->
-            <form id="<?= $formId ?>" action="/admin/kka/<?= $kka['id'] ?>/prosedur/save" method="POST">
-                <?= csrf_field() ?>
-                <input type="hidden" name="pka_id" value="<?= $pka['id'] ?>">
+        <!-- Hasil Observasi (Quill) -->
+        <div class="form-group" style="margin-bottom:14px">
+            <label style="font-size:12px;font-weight:700;color:#475569;letter-spacing:.3px">
+                HASIL OBSERVASI <span style="color:#ef4444">*</span>
+            </label>
+            <div id="quill-<?=$pka['id']?>-hasil_observasi" style="min-height:100px;border:1px solid #e2e8f0;border-radius:8px;background:#fff"></div>
+            <input type="hidden" name="hasil_observasi" id="hid-<?=$pka['id']?>-hasil_observasi">
+        </div>
 
-                <!-- Hasil Observasi -->
-                <div class="form-group" style="margin-bottom:14px">
-                    <label style="font-size:12px;font-weight:700;color:#475569;letter-spacing:.3px">
-                        HASIL OBSERVASI <span style="color:#ef4444">*</span>
-                    </label>
-                    <textarea name="hasil_observasi" class="form-control" rows="3" required
-                              placeholder="Fakta yang ditemukan di lapangan untuk prosedur ini..."><?= esc($ikh['hasil_observasi'] ?? '') ?></textarea>
+        <!-- Realisasi -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+            <div class="form-group">
+                <label style="font-size:12px;font-weight:700;color:#475569">REALISASI WAKTU (HP)</label>
+                <input type="number" name="realisasi_waktu" class="form-control" min="0"
+                       value="<?=$ikh['realisasi_waktu']??''?>" placeholder="Jam Penugasan terpakai">
+            </div>
+            <div class="form-group">
+                <label style="font-size:12px;font-weight:700;color:#475569">PELAKSANA AKTUAL</label>
+                <select name="pelaksana_aktual_id" class="form-control">
+                    <option value="">— Pilih SDM —</option>
+                    <?php foreach ($sdmTim as $st): ?>
+                    <option value="<?=$st['id']?>" <?=($ikh['pelaksana_aktual_id']??'')==$st['id']?'selected':''?>>
+                        <?=esc($st['nama'])?> (<?=esc($st['peran_spt'])?>)
+                    </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+        </div>
+
+        <!-- Toggle Ada Temuan -->
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 14px;border-radius:8px;
+                      background:rgba(255,255,255,.6);border:1px solid #e2e8f0;margin-bottom:12px;user-select:none">
+            <input type="checkbox" name="ada_temuan" value="1" id="chk-temuan-<?=$pka['id']?>"
+                   style="width:18px;height:18px;flex-shrink:0;cursor:pointer"
+                   <?=$adaTemuan?'checked':''?> onchange="toggleTemuan(<?=$pka['id']?>)">
+            <div>
+                <div style="font-weight:600;font-size:13px;color:#1e293b">Ada Temuan / Ketidaksesuaian</div>
+                <div style="font-size:11px;color:#64748b">Centang jika ditemukan penyimpangan yang perlu dicatat sebagai temuan audit</div>
+            </div>
+        </label>
+
+        <!-- Blok KKSA -->
+        <div id="blok-temuan-<?=$pka['id']?>" style="<?=$adaTemuan?'':'display:none'?>">
+            <div style="background:rgba(255,255,255,.7);border:1px solid #fde68a;border-radius:10px;padding:14px 16px;margin-bottom:12px">
+                <div style="font-size:11px;font-weight:700;color:#92400e;margin-bottom:12px;letter-spacing:.5px">
+                    <i class="fas fa-triangle-exclamation"></i> DETAIL TEMUAN (KONDISI — KRITERIA — SEBAB — AKIBAT)
                 </div>
-
-                <!-- Toggle Ada Temuan -->
-                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 14px;border-radius:8px;
-                              background:rgba(255,255,255,.6);border:1px solid #e2e8f0;margin-bottom:12px;user-select:none">
-                    <input type="checkbox" name="ada_temuan" value="1" id="chk-temuan-<?= $pka['id'] ?>"
-                           style="width:18px;height:18px;flex-shrink:0;cursor:pointer"
-                           <?= $adaTemuan ? 'checked' : '' ?>
-                           onchange="toggleTemuan(<?= $pka['id'] ?>)">
-                    <div>
-                        <div style="font-weight:600;font-size:13px;color:#1e293b">Ada Temuan / Ketidaksesuaian</div>
-                        <div style="font-size:11px;color:#64748b">Centang jika ditemukan penyimpangan yang perlu dicatat sebagai temuan audit</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                    <?php foreach(['kondisi'=>['Kondisi / Temuan','#475569'],'kriteria'=>['Kriteria','#475569'],
+                                   'sebab'=>['Sebab','#475569'],'akibat'=>['Akibat','#475569']] as $f=>[$lbl,$lc]): ?>
+                    <div class="form-group">
+                        <label style="font-size:11px;font-weight:700;color:<?=$lc?>"><?=strtoupper($lbl)?></label>
+                        <div id="quill-<?=$pka['id']?>-<?=$f?>" style="min-height:80px;border:1px solid #e2e8f0;border-radius:8px;background:#fff"></div>
+                        <input type="hidden" name="<?=$f?>" id="hid-<?=$pka['id']?>-<?=$f?>">
                     </div>
-                </label>
-
-                <!-- Blok KKSA (muncul jika ada temuan) -->
-                <div id="blok-temuan-<?= $pka['id'] ?>" style="<?= $adaTemuan ? '' : 'display:none' ?>">
-                    <div style="background:rgba(255,255,255,.7);border:1px solid #fde68a;border-radius:10px;padding:14px 16px;margin-bottom:12px">
-                        <div style="font-size:11px;font-weight:700;color:#92400e;margin-bottom:12px;letter-spacing:.5px">
-                            <i class="fas fa-triangle-exclamation"></i> DETAIL TEMUAN (KONDISI — KRITERIA — SEBAB — AKIBAT)
-                        </div>
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                            <?php foreach(['kondisi'=>['Kondisi / Temuan','Fakta/kondisi yang menyimpang...'],
-                                           'kriteria'=>['Kriteria','Standar/aturan yang berlaku...'],
-                                           'sebab'   =>['Sebab','Penyebab terjadinya kondisi...'],
-                                           'akibat'  =>['Akibat','Dampak yang ditimbulkan...']] as $f => [$lbl, $ph]): ?>
-                            <div class="form-group">
-                                <label style="font-size:11px;font-weight:700;color:#64748b"><?= strtoupper($lbl) ?></label>
-                                <textarea name="<?= $f ?>" class="form-control" rows="3"
-                                          placeholder="<?= $ph ?>"><?= esc($sp[$f] ?? '') ?></textarea>
-                            </div>
+                    <?php endforeach; ?>
+                </div>
+                <div class="form-group" style="margin-top:12px">
+                    <label style="font-size:11px;font-weight:700;color:#475569">REKOMENDASI AWAL</label>
+                    <div id="quill-<?=$pka['id']?>-rekomendasi_awal" style="min-height:70px;border:1px solid #e2e8f0;border-radius:8px;background:#fff"></div>
+                    <input type="hidden" name="rekomendasi_awal" id="hid-<?=$pka['id']?>-rekomendasi_awal">
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+                    <div class="form-group">
+                        <label style="font-size:11px;font-weight:700;color:#475569">KODE TEMUAN</label>
+                        <select name="kode_temuan_id" class="form-control">
+                            <option value="">— Pilih kode —</option>
+                            <?php foreach ($kodeTemuanList as $kt): ?>
+                            <option value="<?=$kt['id']?>" <?=($sp['kode_temuan_id']??'')==$kt['id']?'selected':''?>>
+                                <?=esc($kt['kode'])?> — <?=esc(mb_strimwidth($kt['uraian'],0,55,'…'))?>
+                            </option>
                             <?php endforeach; ?>
-                        </div>
-                        <div class="form-group" style="margin-top:12px">
-                            <label style="font-size:11px;font-weight:700;color:#64748b">REKOMENDASI AWAL</label>
-                            <textarea name="rekomendasi_awal" class="form-control" rows="2"
-                                      placeholder="Saran tindak lanjut yang direkomendasikan..."><?= esc($sp['rekomendasi_awal'] ?? '') ?></textarea>
-                        </div>
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
-                            <div class="form-group">
-                                <label style="font-size:11px;font-weight:700;color:#64748b">KODE TEMUAN</label>
-                                <select name="kode_temuan_id" class="form-control">
-                                    <option value="">— Pilih kode —</option>
-                                    <?php foreach ($kodeTemuanList as $kt): ?>
-                                    <option value="<?= $kt['id'] ?>" <?= ($sp['kode_temuan_id'] ?? '') == $kt['id'] ? 'selected' : '' ?>>
-                                        <?= esc($kt['kode']) ?> — <?= esc(mb_strimwidth($kt['uraian'],0,55,'…')) ?>
-                                    </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label style="font-size:11px;font-weight:700;color:#64748b">NILAI TEMUAN (Rp)</label>
-                                <input type="number" name="nilai_financial" class="form-control"
-                                       value="<?= $sp['nilai_financial'] ?? '' ?>"
-                                       placeholder="Kosongkan jika tidak ada">
-                            </div>
-                        </div>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-size:11px;font-weight:700;color:#475569">NILAI TEMUAN (Rp)</label>
+                        <input type="number" name="nilai_financial" class="form-control"
+                               value="<?=$sp['nilai_financial']??''?>" placeholder="Kosongkan jika tidak ada">
                     </div>
                 </div>
+            </div>
+        </div>
 
-                <div style="display:flex;justify-content:flex-end">
-                    <button type="submit" class="btn btn-primary btn-sm">
-                        <i class="fas fa-save"></i> Simpan Prosedur
+        <!-- Upload Dokumen Bukti -->
+        <div style="border:1px dashed #cbd5e1;border-radius:8px;padding:12px 14px;margin-bottom:12px;background:#f8fafc">
+            <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:8px">
+                <i class="fas fa-paperclip"></i> LAMPIRKAN BUKTI / DOKUMEN KERJA
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+                <div style="flex:1;min-width:160px">
+                    <input type="file" name="bukti_dokumen" class="form-control" style="font-size:12px"
+                           accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png">
+                </div>
+                <div style="flex:1;min-width:120px">
+                    <input type="text" name="keterangan_dokumen" class="form-control" style="font-size:12px"
+                           placeholder="Keterangan (opsional)">
+                </div>
+            </div>
+            <?php if (!empty($dok)): ?>
+            <div style="margin-top:10px;display:flex;flex-direction:column;gap:4px">
+                <?php foreach ($dok as $d): ?>
+                <div id="dok-row-<?=$d['id']?>" style="display:flex;align-items:center;gap:8px;font-size:12px;padding:5px 8px;background:#fff;border:1px solid #e2e8f0;border-radius:6px">
+                    <i class="fas fa-file" style="color:#6366f1"></i>
+                    <a href="/admin/kka/dokumen/<?=$d['id']?>/download" style="flex:1;color:#374151;text-decoration:none" target="_blank">
+                        <?=esc($d['nama_file'])?>
+                        <?php if ($d['ukuran']): ?><span style="color:#94a3b8">(<?=round($d['ukuran']/1024,1)?> KB)</span><?php endif; ?>
+                    </a>
+                    <?php if (!empty($d['keterangan'])): ?>
+                    <span style="color:#94a3b8">— <?=esc($d['keterangan'])?></span>
+                    <?php endif; ?>
+                    <button type="button" onclick="hapusDokumen(<?=$d['id']?>)"
+                            style="background:none;border:none;color:#ef4444;cursor:pointer;padding:2px 4px" title="Hapus">
+                        <i class="fas fa-times"></i>
                     </button>
                 </div>
-            </form>
-
-            <?php else: ?>
-            <!-- ── View-only (selesai / approved) ──────────────────── -->
-            <?php if ($filled): ?>
-            <div style="font-size:13px;white-space:pre-line;margin-bottom:<?= $adaTemuan ? '14px' : '0' ?>">
-                <span style="font-size:10px;font-weight:700;color:#64748b;display:block;margin-bottom:4px">HASIL OBSERVASI</span>
-                <?= esc($ikh['hasil_observasi'] ?? '—') ?>
-            </div>
-            <?php if ($adaTemuan): ?>
-            <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 14px">
-                <div style="font-size:10px;font-weight:700;color:#92400e;margin-bottom:10px">DETAIL TEMUAN</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-                    <?php foreach(['kondisi'=>'Kondisi','kriteria'=>'Kriteria','sebab'=>'Sebab','akibat'=>'Akibat','rekomendasi_awal'=>'Rekomendasi'] as $f => $lbl): ?>
-                    <?php if (!empty($sp[$f])): ?>
-                    <div>
-                        <div style="font-size:10px;font-weight:700;color:#64748b;margin-bottom:2px"><?= strtoupper($lbl) ?></div>
-                        <div style="font-size:12px;white-space:pre-line"><?= esc($sp[$f]) ?></div>
-                    </div>
-                    <?php endif; ?>
-                    <?php endforeach; ?>
-                    <?php if (!empty($sp['kode_temuan_kode'])): ?>
-                    <div>
-                        <div style="font-size:10px;font-weight:700;color:#64748b;margin-bottom:2px">KODE TEMUAN</div>
-                        <div style="font-size:12px"><?= esc($sp['kode_temuan_kode']) ?></div>
-                    </div>
-                    <?php endif; ?>
-                    <?php if (!empty($sp['nilai_financial'])): ?>
-                    <div>
-                        <div style="font-size:10px;font-weight:700;color:#64748b;margin-bottom:2px">NILAI</div>
-                        <div style="font-size:12px;color:#dc2626;font-weight:600">Rp <?= number_format($sp['nilai_financial'],0,',','.') ?></div>
-                    </div>
-                    <?php endif; ?>
-                </div>
+                <?php endforeach; ?>
             </div>
             <?php endif; ?>
-            <?php else: ?>
-            <div style="text-align:center;padding:24px;color:#94a3b8;font-size:13px">
-                <i class="fas fa-clock" style="display:block;font-size:24px;margin-bottom:6px"></i>
-                Prosedur ini belum diisi.
+        </div>
+
+        <div style="display:flex;justify-content:flex-end">
+            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-save"></i> Simpan Prosedur</button>
+        </div>
+    </form>
+
+    <?php else: ?>
+    <!-- ── View-only ────────────────────────────────────────────── -->
+    <?php if ($filled): ?>
+    <div style="margin-bottom:<?=$adaTemuan?'14px':'0'?>">
+        <div style="font-size:10px;font-weight:700;color:#64748b;margin-bottom:4px">HASIL OBSERVASI</div>
+        <div class="ql-editor" style="padding:0;font-size:13px"><?= $ikh['hasil_observasi'] ?? '—' ?></div>
+    </div>
+    <?php if (!empty($ikh['realisasi_waktu']) || !empty($ikh['pelaksana_aktual_id'])): ?>
+    <div style="display:flex;gap:16px;margin-bottom:10px;font-size:12px">
+        <?php if (!empty($ikh['realisasi_waktu'])): ?>
+        <div><span style="font-weight:700;color:#64748b">Realisasi:</span> <?=$ikh['realisasi_waktu']?> HP</div>
+        <?php endif; ?>
+        <?php if (!empty($ikh['pelaksana_aktual_id'])): ?>
+        <?php $pelaksana = array_filter($sdmTim, fn($s)=>$s['id']==$ikh['pelaksana_aktual_id']); $pelaksana = reset($pelaksana); ?>
+        <?php if ($pelaksana): ?>
+        <div><span style="font-weight:700;color:#64748b">Pelaksana:</span> <?=esc($pelaksana['nama'])?></div>
+        <?php endif; ?>
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
+    <?php if ($adaTemuan): ?>
+    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 14px;margin-bottom:10px">
+        <div style="font-size:10px;font-weight:700;color:#92400e;margin-bottom:10px">DETAIL TEMUAN</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <?php foreach(['kondisi'=>'Kondisi','kriteria'=>'Kriteria','sebab'=>'Sebab','akibat'=>'Akibat','rekomendasi_awal'=>'Rekomendasi'] as $f=>$lbl): ?>
+            <?php if (!empty($sp[$f])): ?>
+            <div>
+                <div style="font-size:10px;font-weight:700;color:#64748b;margin-bottom:2px"><?=strtoupper($lbl)?></div>
+                <div class="ql-editor" style="padding:0;font-size:12px"><?= $sp[$f] ?></div>
             </div>
             <?php endif; ?>
-            <?php endif; // isEditable ?>
-
+            <?php endforeach; ?>
+            <?php if (!empty($sp['kode_temuan_kode'])): ?>
+            <div><div style="font-size:10px;font-weight:700;color:#64748b;margin-bottom:2px">KODE TEMUAN</div>
+            <div style="font-size:12px"><?=esc($sp['kode_temuan_kode'])?></div></div>
+            <?php endif; ?>
+            <?php if (!empty($sp['nilai_financial'])): ?>
+            <div><div style="font-size:10px;font-weight:700;color:#64748b;margin-bottom:2px">NILAI</div>
+            <div style="font-size:12px;color:#dc2626;font-weight:600">Rp <?=number_format($sp['nilai_financial'],0,',','.')?></div></div>
+            <?php endif; ?>
         </div>
     </div>
-</div>
-<?php endforeach; ?>
+    <?php endif; ?>
+    <?php if (!empty($dok)): ?>
+    <div style="margin-top:8px">
+        <div style="font-size:10px;font-weight:700;color:#64748b;margin-bottom:6px">DOKUMEN BUKTI</div>
+        <?php foreach ($dok as $d): ?>
+        <a href="/admin/kka/dokumen/<?=$d['id']?>/download" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#6366f1;margin-right:10px;margin-bottom:4px" target="_blank">
+            <i class="fas fa-file-arrow-down"></i> <?=esc($d['nama_file'])?>
+        </a>
+        <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+    <?php else: ?>
+    <div style="text-align:center;padding:24px;color:#94a3b8;font-size:13px">
+        <i class="fas fa-clock" style="display:block;font-size:24px;margin-bottom:6px"></i>
+        Prosedur ini belum diisi.
+    </div>
+    <?php endif; ?>
+    <?php endif; // isEditable ?>
 
+    </div><!-- /.card-body -->
+  </div><!-- /.collapsible -->
+</div><!-- /.card -->
+<?php endforeach; ?>
 <?php endif; // prosedurData ?>
 
-<!-- ══ Tombol Selesaikan KKA ════════════════════════════════════════════ -->
+<!-- Selesaikan KKA -->
 <?php if ($isEditable && $terisiCount > 0): ?>
 <div style="text-align:right;margin-top:4px;margin-bottom:24px">
-    <form action="/admin/kka/<?= $kka['id'] ?>/selesaikan" method="POST"
+    <form action="/admin/kka/<?=$kka['id']?>/selesaikan" method="POST"
           data-confirm="Setelah selesai, Anda <b>tidak bisa mengedit</b> lagi dan dapat mengirimkan ke Ketua Tim."
           data-confirm-title="Selesaikan KKA?"
           data-confirm-btn="<i class='fas fa-check-double'></i>&nbsp;Ya, Selesaikan">
         <?= csrf_field() ?>
         <div style="font-size:12px;color:#64748b;margin-bottom:8px">
-            <?= $terisiCount ?>/<?= $totalProsedur ?> prosedur sudah diisi
+            <?=$terisiCount?>/<?=$totalProsedur?> prosedur sudah diisi
             <?php if ($terisiCount < $totalProsedur): ?>
-            &nbsp;<span style="color:#f59e0b"><i class="fas fa-triangle-exclamation"></i> <?= $totalProsedur - $terisiCount ?> belum diisi</span>
+            &nbsp;<span style="color:#f59e0b"><i class="fas fa-triangle-exclamation"></i> <?=$totalProsedur-$terisiCount?> belum diisi</span>
             <?php endif; ?>
         </div>
-        <button type="submit" class="btn btn-success">
-            <i class="fas fa-check-double"></i> Selesaikan KKA
-        </button>
+        <button type="submit" class="btn btn-success"><i class="fas fa-check-double"></i> Selesaikan KKA</button>
     </form>
 </div>
 <?php endif; ?>
@@ -437,7 +463,74 @@ $formId   = 'form-pka-' . $pka['id'];
 </div>
 <?php endif; ?>
 
+<?= $this->endSection() ?>
+
+<?= $this->section('scripts') ?>
+<link rel="stylesheet" href="https://cdn.quilljs.com/1.3.6/quill.snow.css">
+<script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
 <script>
+const csrfToken = '<?= csrf_hash() ?>';
+const csrfName  = '<?= csrf_token() ?>';
+
+// Registry semua Quill instance: key = "pkaId_fieldName"
+window.quillRegistry = {};
+
+function makeQuill(pkaId, field, content) {
+    const el = document.getElementById('quill-' + pkaId + '-' + field);
+    if (!el) return;
+    const q = new Quill(el, {
+        theme: 'snow',
+        modules: { toolbar: [['bold','italic','underline'],[{'list':'ordered'},{'list':'bullet'}],['clean']] }
+    });
+    if (content) q.root.innerHTML = content;
+    window.quillRegistry[pkaId + '_' + field] = { quill: q, hidId: 'hid-' + pkaId + '-' + field };
+}
+
+function syncQuillsForForm(formEl) {
+    const pkaId = formEl.querySelector('[name="pka_id"]').value;
+    const fields = ['hasil_observasi','kondisi','kriteria','sebab','akibat','rekomendasi_awal'];
+    fields.forEach(f => {
+        const reg = window.quillRegistry[pkaId + '_' + f];
+        if (reg) {
+            const hid = document.getElementById(reg.hidId);
+            if (hid) hid.value = reg.quill.root.innerHTML;
+        }
+    });
+}
+
+// Init Quill per prosedur card
+<?php foreach ($prosedurData as $pd): ?>
+<?php if ($isEditable): ?>
+<?php $p=$pd['pka']; $i=$pd['ikhtisar']; $s=$pd['simpulan']; ?>
+(function(){
+    var pid = <?=$p['id']?>;
+    makeQuill(pid, 'hasil_observasi', <?=json_encode($i['hasil_observasi']??'')?> );
+    makeQuill(pid, 'kondisi',         <?=json_encode($s['kondisi']??'')?> );
+    makeQuill(pid, 'kriteria',        <?=json_encode($s['kriteria']??'')?> );
+    makeQuill(pid, 'sebab',           <?=json_encode($s['sebab']??'')?> );
+    makeQuill(pid, 'akibat',          <?=json_encode($s['akibat']??'')?> );
+    makeQuill(pid, 'rekomendasi_awal',<?=json_encode($s['rekomendasi_awal']??'')?> );
+
+    var form = document.getElementById('form-pka-' + pid);
+    if (form) form.addEventListener('submit', function(){ syncQuillsForForm(form); });
+})();
+<?php endif; ?>
+<?php endforeach; ?>
+
+// Auto-expand kartu yang sudah diisi
+document.addEventListener('DOMContentLoaded', function() {
+    <?php foreach ($prosedurData as $pd): ?>
+    <?php if ($pd['ikhtisar'] !== null): ?>
+    (function(){
+        var body = document.getElementById('body-pka-<?=$pd['pka']['id']?>');
+        var chev = document.getElementById('chevron-pka-<?=$pd['pka']['id']?>');
+        if (body) body.style.display = '';
+        if (chev) chev.style.transform = 'rotate(180deg)';
+    })();
+    <?php endif; ?>
+    <?php endforeach; ?>
+});
+
 function togglePanel(id) {
     const el = document.getElementById(id);
     if (el) el.classList.toggle('d-none');
@@ -458,19 +551,22 @@ function toggleTemuan(pkaId) {
     if (blok) blok.style.display = chk.checked ? '' : 'none';
 }
 
-// Auto-expand kartu yang sudah diisi
-document.addEventListener('DOMContentLoaded', function() {
-    <?php foreach ($prosedurData as $pd): ?>
-    <?php if ($pd['ikhtisar'] !== null): ?>
-    (function(){
-        var body = document.getElementById('body-pka-<?= $pd['pka']['id'] ?>');
-        var chev = document.getElementById('chevron-pka-<?= $pd['pka']['id'] ?>');
-        if (body) { body.style.display = ''; }
-        if (chev) { chev.style.transform = 'rotate(180deg)'; }
-    })();
-    <?php endif; ?>
-    <?php endforeach; ?>
-});
+function hapusDokumen(dokId) {
+    if (!confirm('Hapus dokumen ini?')) return;
+    fetch('/admin/kka/dokumen/' + dokId + '/hapus', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: csrfName + '=' + csrfToken
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            const row = document.getElementById('dok-row-' + dokId);
+            if (row) row.remove();
+        } else {
+            alert(res.message || 'Gagal menghapus dokumen.');
+        }
+    });
+}
 </script>
-
 <?= $this->endSection() ?>
