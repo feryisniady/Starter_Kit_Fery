@@ -337,5 +337,6 @@ $routes->group('auditi', ['filter' => 'auditi', 'namespace' => 'App\Controllers\
 	$routes->get( 'tl',                                      'TlController::index');
 	$routes->get( 'tl/(:num)',                               'TlController::show/$1');
 	$routes->post('tl/(:num)/kirim',                         'TlController::kirim/$1');
+	$routes->post('tl/(:num)/upload-dokumen',                'TlController::uploadDokumen/$1');
 	$routes->get( 'tl/dokumen/(:num)/download',              'TlController::downloadDokumen/$1');
 });
