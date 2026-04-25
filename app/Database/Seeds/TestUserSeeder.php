@@ -55,7 +55,7 @@ class TestUserSeeder extends Seeder
         [
             'name'     => 'Kepala Irban I',
             'email'    => 'ka_irban@test.com',
-            'role'     => 'ka_irban',
+            'role'     => 'kepala_irban',
             'sdm'      => ['nip' => '198005052006051005', 'nama' => 'Kepala Irban I, S.E., M.M.', 'jabatan_struktural' => 'Kepala Irban I'],
         ],
         [
