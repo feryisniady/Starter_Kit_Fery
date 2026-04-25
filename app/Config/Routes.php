@@ -286,6 +286,10 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	// Catatan Dalnis
 	$routes->post('kka/(:num)/catatan-dalnis',            'Admin\KkaController::saveCatatanDalnis/$1');
 
+	// KKA Dokumen Bukti per Prosedur
+	$routes->get( 'kka/dokumen/(:num)/download',          'Admin\KkaController::downloadDokumen/$1');
+	$routes->post('kka/dokumen/(:num)/hapus',             'Admin\KkaController::hapusDokumen/$1');
+
 	// =====================================================================
 	// NHP — Notisi Hasil Pemeriksaan
 	// =====================================================================

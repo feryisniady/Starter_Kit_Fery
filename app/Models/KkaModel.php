@@ -179,8 +179,10 @@ class KkaModel
         }
 
         $ikhFields = [
-            'hasil_observasi' => $data['hasil_observasi'] ?? null,
-            'updated_at'      => $now,
+            'hasil_observasi'     => $data['hasil_observasi'] ?? null,
+            'realisasi_waktu'     => !empty($data['realisasi_waktu'])     ? (int)$data['realisasi_waktu']     : null,
+            'pelaksana_aktual_id' => !empty($data['pelaksana_aktual_id']) ? (int)$data['pelaksana_aktual_id'] : null,
+            'updated_at'          => $now,
         ];
 
         if ($existIkh) {
@@ -235,7 +237,7 @@ class KkaModel
     }
 
     /**
-     * Data per-prosedur PKA untuk view baru (ikhtisar + simpulan digabung per pka_id).
+     * Data per-prosedur PKA untuk view baru (ikhtisar + simpulan + dokumen digabung per pka_id).
      */
     public function getProsedurData(int $kkaId, array $pkaList): array
     {
@@ -243,8 +245,12 @@ class KkaModel
         $ikhRows = $this->db->table('kka_ikhtisar')
             ->where('kka_id', $kkaId)->get()->getResultArray();
         $ikhByPka = [];
+        $ikhIds   = [];
         foreach ($ikhRows as $r) {
-            if ($r['pka_id']) $ikhByPka[(int)$r['pka_id']] = $r;
+            if ($r['pka_id']) {
+                $ikhByPka[(int)$r['pka_id']] = $r;
+                $ikhIds[] = (int)$r['id'];
+            }
         }
 
         // Index simpulan by pka_id
@@ -258,13 +264,27 @@ class KkaModel
             if (!empty($r['pka_id'])) $spByPka[(int)$r['pka_id']] = $r;
         }
 
+        // Load dokumen grouped by kka_ikhtisar_id
+        $dokByIkh = [];
+        if (!empty($ikhIds)) {
+            $dokRows = $this->db->table('kka_prosedur_dokumen')
+                ->whereIn('kka_ikhtisar_id', $ikhIds)
+                ->orderBy('id')
+                ->get()->getResultArray();
+            foreach ($dokRows as $d) {
+                $dokByIkh[(int)$d['kka_ikhtisar_id']][] = $d;
+            }
+        }
+
         $result = [];
         foreach ($pkaList as $pka) {
-            $id = (int)$pka['id'];
+            $id  = (int)$pka['id'];
+            $ikh = $ikhByPka[$id] ?? null;
             $result[] = [
                 'pka'      => $pka,
-                'ikhtisar' => $ikhByPka[$id] ?? null,
-                'simpulan' => $spByPka[$id]  ?? null,
+                'ikhtisar' => $ikh,
+                'simpulan' => $spByPka[$id] ?? null,
+                'dokumen'  => $ikh ? ($dokByIkh[(int)$ikh['id']] ?? []) : [],
             ];
         }
         return $result;

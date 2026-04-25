@@ -4,6 +4,7 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\KkaModel;
+use App\Models\KkaProsedurDokumenModel;
 use App\Models\NhpModel;
 use App\Models\SptModel;
 
@@ -21,14 +22,16 @@ use App\Models\SptModel;
 class KkaController extends BaseController
 {
     protected KkaModel $kkaModel;
+    protected KkaProsedurDokumenModel $dokModel;
     protected NhpModel $nhpModel;
     protected SptModel $sptModel;
 
     public function __construct()
     {
-        $this->kkaModel = new KkaModel();
-        $this->nhpModel = new NhpModel();
-        $this->sptModel = new SptModel();
+        $this->kkaModel  = new KkaModel();
+        $this->dokModel  = new KkaProsedurDokumenModel();
+        $this->nhpModel  = new NhpModel();
+        $this->sptModel  = new SptModel();
     }
 
     // ──────────────────────────────────────────────────────────────────────
@@ -154,6 +157,15 @@ class KkaController extends BaseController
                       && in_array($kka['status'], ['draft','ikhtisar_selesai','simpulan_selesai'])
                       && !$kkaApproved;
 
+        // SDM tim untuk dropdown pelaksana aktual
+        $sdmTim = $db->table('spt_tim st')
+            ->select('s.id, s.nama, st.peran_spt')
+            ->join('sdm s', 's.id = st.sdm_id')
+            ->where('st.spt_id', $kka['spt_id'])
+            ->whereIn('st.peran_spt', ['Ketua Tim', 'Anggota Tim'])
+            ->orderBy('st.urutan')
+            ->get()->getResultArray();
+
         return view('admin/kka/show', [
             'title'            => 'KKA — ' . $kka['nama'],
             'kka'              => $kka,
@@ -161,6 +173,7 @@ class KkaController extends BaseController
             'prosedurData'     => $this->kkaModel->getProsedurData($kkaId, $pkaList),
             'pkaList'          => $pkaList,
             'kodeTemuanList'   => $kodeTemuanList,
+            'sdmTim'           => $sdmTim,
             'statusLabel'      => KkaModel::$statusLabel,
             'statusColor'      => KkaModel::$statusColor,
             'statusKkaLabel'   => KkaModel::$statusKkaLabel,
@@ -190,8 +203,79 @@ class KkaController extends BaseController
         }
 
         $this->kkaModel->saveProsedurUnified($kkaId, $this->request->getPost());
+
+        // Handle file upload per prosedur
+        $file = $this->request->getFile('bukti_dokumen');
+        if ($file && $file->isValid() && !$file->hasMoved()) {
+            $pkaId  = (int)$this->request->getPost('pka_id');
+            $db     = \Config\Database::connect();
+            $ikhRow = $db->table('kka_ikhtisar')
+                ->where('kka_id', $kkaId)->where('pka_id', $pkaId)
+                ->get()->getRowArray();
+
+            if ($ikhRow) {
+                $uploadPath = WRITEPATH . 'uploads/kka-dokumen/';
+                if (!is_dir($uploadPath)) mkdir($uploadPath, 0755, true);
+
+                $newName = $file->getRandomName();
+                $file->move($uploadPath, $newName);
+
+                $this->dokModel->insert([
+                    'kka_ikhtisar_id' => (int)$ikhRow['id'],
+                    'nama_file'       => $file->getClientName(),
+                    'path_file'       => $newName,
+                    'ukuran'          => $file->getSize(),
+                    'keterangan'      => $this->request->getPost('keterangan_dokumen'),
+                    'uploaded_by'     => user_id(),
+                ]);
+            }
+        }
+
         logActivity('kka.prosedur.save', 'kka', "Save prosedur unified kka_id={$kkaId}");
         return redirect()->to('/admin/kka/' . $kkaId)->with('success', 'Prosedur berhasil disimpan.');
+    }
+
+    public function hapusDokumen(int $dokId)
+    {
+        $dok = $this->dokModel->find($dokId);
+        if (!$dok) return $this->response->setJSON(['success' => false, 'message' => 'Tidak ditemukan.']);
+
+        // Cek otorisasi via kka_ikhtisar → kka
+        $db  = \Config\Database::connect();
+        $ikh = $db->table('kka_ikhtisar')->where('id', $dok['kka_ikhtisar_id'])->get()->getRowArray();
+        if (!$ikh) return $this->response->setJSON(['success' => false, 'message' => 'Data tidak valid.']);
+
+        $kka = $this->kkaModel->find((int)$ikh['kka_id']);
+        if (!$kka || !$this->canEditKka($kka)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Akses ditolak.']);
+        }
+
+        $filePath = WRITEPATH . 'uploads/kka-dokumen/' . $dok['path_file'];
+        if (is_file($filePath)) unlink($filePath);
+
+        $this->dokModel->delete($dokId);
+        logActivity('kka.dokumen.hapus', 'kka_prosedur_dokumen', "Hapus dokumen id={$dokId}");
+        return $this->response->setJSON(['success' => true]);
+    }
+
+    public function downloadDokumen(int $dokId)
+    {
+        $dok = $this->dokModel->find($dokId);
+        if (!$dok) return redirect()->back()->with('error', 'Dokumen tidak ditemukan.');
+
+        $db  = \Config\Database::connect();
+        $ikh = $db->table('kka_ikhtisar')->where('id', $dok['kka_ikhtisar_id'])->get()->getRowArray();
+        if (!$ikh) return redirect()->back()->with('error', 'Data tidak valid.');
+
+        $kka = $this->kkaModel->find((int)$ikh['kka_id']);
+        if (!$kka || !$this->canAccessKka($kka)) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+
+        $filePath = WRITEPATH . 'uploads/kka-dokumen/' . $dok['path_file'];
+        if (!is_file($filePath)) return redirect()->back()->with('error', 'File tidak ditemukan di server.');
+
+        return $this->response->download($filePath, null)->setFileName($dok['nama_file']);
     }
 
     /** AT menyelesaikan KKA (draft → selesai) */
