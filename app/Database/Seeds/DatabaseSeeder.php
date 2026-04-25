@@ -8,26 +8,27 @@ class DatabaseSeeder extends Seeder
 {
     public function run()
     {
-        // Core RBAC
+        // ── 1. User admin default ─────────────────────────────────────────────
         $this->call('UserSeeder');
-        $this->call('RoleSeeder');
-        $this->call('PermissionSeeder');
-        $this->call('UserRoleSeeder');
-        $this->call('RolePermissionSeeder');
-        $this->call('MenuSeeder');
 
-        // Modul Pengawasan Inspektorat
-        // (permissions → roles → role-permissions → menus)
-        $this->call('PengawasanSeeder');
+        // ── 2. RBAC: semua roles + permissions (satu sumber kebenaran) ────────
+        //    Menggantikan: RoleSeeder, PermissionSeeder, PkptPermissionSeeder,
+        //    InspektoratRoleSeeder, PengawasanSeeder, RolePermissionSeeder,
+        //    UserRoleSeeder, FixAuditorRolePermissionSeeder
+        $this->call('StandardRoleSeeder');
 
-        // Roles & permissions lengkap Inspektorat (upsert — aman dijalankan ulang)
-        $this->call('PkptPermissionSeeder');
-        $this->call('InspektoratRoleSeeder');
+        // ── 3. Menu navigasi (satu sumber kebenaran) ──────────────────────────
+        //    Menggantikan: MenuSeeder, PkptMenuSeeder, PengawasanSeeder (menus),
+        //    ProfileMenuSeeder
+        $this->call('StandardMenuSeeder');
 
-        // Referensi kode temuan (89 kode PermenpanRB 41/2011)
+        // ── 4. Referensi kode temuan (89 kode PermenpanRB 41/2011) ───────────
         $this->call('KodetemuanSeeder');
 
-        // Test users untuk development (admin, inspektur, dalnis, KT, AT, dst)
-        $this->call('TestUserSeeder');
+        // ── 5. Test users untuk development ───────────────────────────────────
+        //    Hanya jalankan di environment development!
+        if (ENVIRONMENT === 'development') {
+            $this->call('TestUserSeeder');
+        }
     }
 }
