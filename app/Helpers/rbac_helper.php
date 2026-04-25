@@ -3,6 +3,12 @@
 if (!function_exists('hasPermission')) {
     function hasPermission(string $permission): bool
     {
+        // Superadmin bypass — selalu punya semua permission
+        $roles = session()->get('roles');
+        if (is_array($roles) && in_array('superadmin', $roles)) {
+            return true;
+        }
+
         // PRIORITAS: ambil dari session
         $permissions = session()->get('user_permissions');
 
