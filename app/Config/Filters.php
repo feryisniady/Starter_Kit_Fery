@@ -75,7 +75,12 @@ class Filters extends BaseFilters
     public array $globals = [
         'before' => [
             // 'honeypot',
-            // 'csrf',
+            'csrf' => [
+                'except' => [
+                    // Whitelist endpoint publik yang tidak bisa mengirim CSRF token (mis. webhook pihak-ke-3).
+                    // Tambahkan pattern di sini bila perlu, contoh: 'api/webhook/*'
+                ],
+            ],
             // 'invalidchars',
         ],
         'after' => [

@@ -70,8 +70,14 @@ class Security extends BaseConfig
      * --------------------------------------------------------------------------
      *
      * Regenerate CSRF Token on every submission.
+     *
+     * Catatan (fery@rbac-starter): di-set `false` agar token stabil per sesi
+     * sehingga AJAX yang meng-cache `csrf_hash()` saat page load (DataTables
+     * server-side, fetch() di `auditi/nhp`, `admin/km/anggaran_waktu`, dll)
+     * tetap valid untuk POST berikutnya tanpa perlu refresh. Perlindungan
+     * tetap kuat karena `tokenRandomize=true` (nilai render acak per request).
      */
-    public bool $regenerate = true;
+    public bool $regenerate = false;
 
     /**
      * --------------------------------------------------------------------------

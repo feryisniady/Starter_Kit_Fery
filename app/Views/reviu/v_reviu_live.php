@@ -45,6 +45,7 @@
                 </div>
                 <div class="card-body p-4">
                     <form id="formReviu" enctype="multipart/form-data">
+                        <?= csrf_field() ?>
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold">Jenis Dokumen (Master):</label>
