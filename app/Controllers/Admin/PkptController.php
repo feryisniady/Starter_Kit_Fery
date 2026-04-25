@@ -84,7 +84,11 @@ class PkptController extends BaseController
 
         if (!$isAdmin) {
             $irbanId = $this->getUserIrbanId($userId);
-            if ($irbanId) $baseQ->where('p.irban_id', $irbanId);
+            if (!$irbanId) {
+                // User tidak punya SDM atau irban — tidak tampilkan data apapun
+                return $this->dtResponse($draw, 0, 0, []);
+            }
+            $baseQ->where('p.irban_id', $irbanId);
         }
 
         $total = (clone $baseQ)->countAllResults(false);
@@ -124,7 +128,7 @@ class PkptController extends BaseController
     {
         $pkpt = $this->pkptModel->getWithIrban($id);
         if (!$pkpt) return redirect()->to('/admin/pkpt')->with('error', 'PKPT tidak ditemukan.');
-        if (!$this->canAccessPkpt($pkpt)) return redirect()->to('/admin/pkpt')->with('error', 'Akses ditolak.');
+        if (!$this->canViewPkpt($pkpt)) return redirect()->to('/admin/pkpt')->with('error', 'Akses ditolak. Pastikan akun Anda sudah terhubung ke SDM dengan Irban yang sesuai.');
 
         $setting          = $this->settingModel->getByTahun((int)$pkpt['tahun']);
         $hpGlobalTerpakai = $this->kegiatanModel->getTotalHpByTahun((int)$pkpt['tahun']);
@@ -307,7 +311,7 @@ class PkptController extends BaseController
         if (!$kegiatan) return $this->response->setJSON(['success' => false, 'message' => 'Tidak ditemukan.']);
 
         $pkpt = $this->pkptModel->getWithIrban($kegiatan['pkpt_id']);
-        if (!$this->canAccessPkpt($pkpt)) return $this->response->setStatusCode(403);
+        if (!$this->canViewPkpt($pkpt)) return $this->response->setStatusCode(403);
 
         $db   = \Config\Database::connect();
         $spts = $db->table('spt')
@@ -407,7 +411,7 @@ class PkptController extends BaseController
         if (!$this->request->isAJAX()) return $this->response->setStatusCode(403);
 
         $pkpt = $this->pkptModel->getWithIrban($pkptId);
-        if (!$pkpt || !$this->canAccessPkpt($pkpt)) return $this->response->setStatusCode(403);
+        if (!$pkpt || !$this->canViewPkpt($pkpt)) return $this->response->setStatusCode(403);
 
         ['draw'=>$draw,'start'=>$start,'length'=>$length,'search'=>$search,'order'=>$order] = $this->dtRequest();
 
@@ -738,14 +742,29 @@ class PkptController extends BaseController
 
     private function getUserIrbanId(int $userId): ?int
     {
-        $sdm = $this->sdmModel->where('user_id', $userId)->first();
-        return $sdm ? (int)$sdm['irban_id'] : null;
+        $sdm     = $this->sdmModel->where('user_id', $userId)->first();
+        $irbanId = $sdm['irban_id'] ?? null;
+        return $irbanId ? (int)$irbanId : null;
     }
 
-    private function canAccessPkpt(array $pkpt): bool
+    /**
+     * Cek hak BACA PKPT (butuh pkpt.view + irban cocok, atau admin).
+     */
+    private function canViewPkpt(array $pkpt): bool
     {
         if ($this->isAdmin()) return true;
         $irbanId = $this->getUserIrbanId(session()->get('user_id'));
-        return $irbanId && (int)$pkpt['irban_id'] === $irbanId;
+        return $irbanId !== null && (int)$pkpt['irban_id'] === $irbanId;
+    }
+
+    /**
+     * Cek hak TULIS PKPT (butuh pkpt.input/pkpt.manage + irban cocok, atau admin).
+     */
+    private function canAccessPkpt(array $pkpt): bool
+    {
+        if ($this->isAdmin()) return true;
+        if (!hasPermission('pkpt.input') && !hasPermission('pkpt.manage')) return false;
+        $irbanId = $this->getUserIrbanId(session()->get('user_id'));
+        return $irbanId !== null && (int)$pkpt['irban_id'] === $irbanId;
     }
 }
