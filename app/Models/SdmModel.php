@@ -15,7 +15,7 @@ class SdmModel extends Model
     {
         return $this->db->table('sdm s')
             ->select('s.*, i.nama as irban_nama')
-            ->join('irban i', 'i.id = s.irban_id', 'left')
+            ->join('irban i', 'i.id = s.irban_id')
             ->where('s.aktif', 1)
             ->orderBy('i.kode, s.nama')
             ->get()->getResultArray();
