@@ -8,9 +8,11 @@
     </div>
     <div class="page-actions">
         <a href="/admin/pkpt" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Kembali</a>
+        <?php if ($canWrite ?? false): ?>
         <a href="/admin/pkpt/<?= $pkpt['id'] ?>/kegiatan/create" class="btn btn-primary">
             <i class="fas fa-plus"></i> Tambah Kegiatan
         </a>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -192,7 +194,9 @@ function viewKegiatan(id) {
             </table>
             ${sptHtml}
             <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;padding-top:10px;border-top:1px solid #f1f5f9">
+                <?php if ($canWrite ?? false): ?>
                 <a href="/admin/pkpt/kegiatan/edit/${d.id}" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i> Edit</a>
+                <?php endif; ?>
                 <a href="/admin/spt/create/${d.id}" class="btn btn-sm btn-success">
                     <i class="fas fa-${d.spts && d.spts.length > 0 ? 'users-between-lines' : 'file-signature'}"></i>
                     ${d.spts && d.spts.length > 0 ? 'Buat Tim Baru' : 'Buat SPT'}

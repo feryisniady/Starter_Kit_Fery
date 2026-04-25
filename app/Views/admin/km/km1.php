@@ -66,9 +66,12 @@ $totalRealisasi = fn($t) => (float)($t['persiapan_realisasi_hari'] ?? 0)
                         <div style="flex:0 0 180px">
                             <label style="font-size:11px;color:#64748b;display:block;margin-bottom:3px">No. Kartu Penugasan</label>
                             <input type="text" name="no_kartu" class="form-control form-control-sm"
-                                   value="<?= old('no_kartu', $row['no_kartu'] ?? '') ?>"
+                                   value="<?= old('no_kartu', $row['no_kartu'] ?? $autoNoKartu ?? '') ?>"
                                    placeholder="KP-001/IRB1/2025"
                                    <?= !$canEdit ? 'disabled' : '' ?>>
+                            <?php if (empty($row['no_kartu']) && !empty($autoNoKartu)): ?>
+                            <small class="text-muted" style="font-size:10px">auto-generate, dapat diubah</small>
+                            <?php endif; ?>
                         </div>
                         <div style="flex:1;min-width:160px">
                             <label style="font-size:11px;color:#64748b;display:block;margin-bottom:3px">Tujuan / Nama Satker</label>
@@ -86,12 +89,19 @@ $totalRealisasi = fn($t) => (float)($t['persiapan_realisasi_hari'] ?? 0)
                 <td style="padding:10px 12px;border:1px solid #e2e8f0;text-align:center;font-weight:700;background:#f8fafc;color:#475569">3</td>
                 <td style="padding:10px 12px;border:1px solid #e2e8f0;color:#475569">Tingkat Risiko</td>
                 <td style="padding:10px 12px;border:1px solid #e2e8f0">
+                    <?php
+                    // Urutan prioritas: yang sudah disimpan > dari PKPT kegiatan > kosong
+                    $selectedRisiko = $row['tingkat_risiko'] ?? $pkptRisiko ?? '';
+                    ?>
                     <select name="tingkat_risiko" class="form-control form-control-sm" style="max-width:200px" <?= !$canEdit ? 'disabled' : '' ?>>
                         <option value="">— Pilih —</option>
                         <?php foreach(['Sangat Tinggi','Tinggi','Sedang','Rendah'] as $opt): ?>
-                        <option value="<?= $opt ?>" <?= ($row['tingkat_risiko'] ?? '') === $opt ? 'selected' : '' ?>><?= $opt ?></option>
+                        <option value="<?= $opt ?>" <?= $selectedRisiko === $opt ? 'selected' : '' ?>><?= $opt ?></option>
                         <?php endforeach; ?>
                     </select>
+                    <?php if (empty($row['tingkat_risiko']) && !empty($pkptRisiko)): ?>
+                    <small class="text-muted" style="font-size:10px">dari PKPT: <?= esc($pkptRisiko) ?></small>
+                    <?php endif; ?>
                 </td>
             </tr>
 

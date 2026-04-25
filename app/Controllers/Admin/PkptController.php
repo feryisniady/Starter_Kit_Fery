@@ -142,6 +142,7 @@ class PkptController extends BaseController
             'setting'         => $setting,
             'hpEfektif'       => $hpEfektif,
             'hpGlobalTerpakai'=> $hpGlobalTerpakai,
+            'canWrite'        => $this->canAccessPkpt($pkpt),
         ]);
     }
 

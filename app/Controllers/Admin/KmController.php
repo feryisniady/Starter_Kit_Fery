@@ -59,6 +59,34 @@ class KmController extends BaseController
         $row = $db->table('spt_km1')->where('spt_id', $sptId)->get()->getRowArray();
         $km6 = $db->table('spt_km6')->where('spt_id', $sptId)->get()->getRowArray();
 
+        // Ambil risiko_audit dari pkpt_kegiatan untuk pre-fill tingkat_risiko
+        $pkptRisiko = null;
+        if (!empty($spt['pkpt_kegiatan_id'])) {
+            $pk = $db->table('pkpt_kegiatan')
+                ->select('risiko_audit')
+                ->where('id', $spt['pkpt_kegiatan_id'])
+                ->get()->getRowArray();
+            $pkptRisiko = $pk['risiko_audit'] ?? null;
+        }
+
+        // Auto-generate no_kartu jika belum pernah disimpan
+        $autoNoKartu = null;
+        if (empty($row['no_kartu'])) {
+            $irbanId   = $spt['irban_id'] ?? null;
+            $tahun     = $spt['tahun']    ?? date('Y');
+            $irban     = $irbanId ? $db->table('irban')->where('id', $irbanId)->get()->getRowArray() : [];
+            $irbanKode = $irban['kode'] ?? 'IRB';
+            // Hitung KM-1 yang sudah ada untuk irban ini di tahun ini
+            $seq = $db->table('spt_km1 k')
+                ->join('spt s', 's.id = k.spt_id')
+                ->join('pkpt_kegiatan pk', 'pk.id = s.pkpt_kegiatan_id', 'left')
+                ->join('pkpt p', 'p.id = pk.pkpt_id', 'left')
+                ->where('COALESCE(p.irban_id, s.irban_id)', $irbanId)
+                ->where('YEAR(s.tanggal_mulai)', $tahun)
+                ->countAllResults();
+            $autoNoKartu = sprintf('KP-%03d/%s/%s', $seq + 1, strtoupper($irbanKode), $tahun);
+        }
+
         // HP per anggota dari spt_tim + realisasi dari anggaran_waktu
         $timAw = $db->table('spt_tim st')
             ->select('st.sdm_id, st.peran_spt, st.hp_desk, st.hp_field,
@@ -71,17 +99,18 @@ class KmController extends BaseController
             ->orderBy('st.urutan')
             ->get()->getResultArray();
 
-        // Cek km5b (entry meeting) untuk status realisasi
         $km5bAda = !empty($km6);
 
         return view('admin/km/km1', [
-            'title'    => 'KM-1 — Kartu Penugasan',
-            'spt'      => $spt,
-            'row'      => $row,
-            'km6'      => $km6,
-            'timAw'    => $timAw,
-            'km5bAda'  => $km5bAda,
-            'canEdit'  => canEditKmInSpt($sptId, 'km1'),
+            'title'       => 'KM-1 — Kartu Penugasan',
+            'spt'         => $spt,
+            'row'         => $row,
+            'km6'         => $km6,
+            'timAw'       => $timAw,
+            'km5bAda'     => $km5bAda,
+            'canEdit'     => canEditKmInSpt($sptId, 'km1'),
+            'autoNoKartu' => $autoNoKartu,
+            'pkptRisiko'  => $pkptRisiko,
         ]);
     }
 
