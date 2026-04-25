@@ -18,12 +18,12 @@ class FixAuditorRolePermissionSeeder extends Seeder
      * Semua role auditor inspektorat butuh minimal pkpt.view + spt.view.
      */
     private array $rolePermissions = [
-        'auditor'    => ['master.view', 'pkpt.view', 'spt.view', 'spt.create'],
-        'kt'         => ['master.view', 'pkpt.view', 'spt.view', 'spt.create'],
-        'ketua_tim'  => ['master.view', 'pkpt.view', 'spt.view', 'spt.create'],
-        'anggota_tim'=> ['master.view', 'pkpt.view', 'spt.view', 'spt.create'],
-        'at'         => ['master.view', 'pkpt.view', 'spt.view', 'spt.create'],
-        'dalnis'     => ['master.view', 'pkpt.view', 'spt.view', 'spt.manage_all'],
+        'auditor'    => ['master.view', 'pkpt.view', 'pkpt.input', 'spt.view', 'spt.create'],
+        'kt'         => ['master.view', 'pkpt.view', 'pkpt.input', 'spt.view', 'spt.create'],
+        'ketua_tim'  => ['master.view', 'pkpt.view', 'pkpt.input', 'spt.view', 'spt.create'],
+        'anggota_tim'=> ['master.view', 'pkpt.view', 'pkpt.input', 'spt.view', 'spt.create'],
+        'at'         => ['master.view', 'pkpt.view', 'pkpt.input', 'spt.view', 'spt.create'],
+        'dalnis'     => ['master.view', 'pkpt.view', 'pkpt.input', 'spt.view', 'spt.manage_all'],
     ];
 
     /** Label default jika role belum ada di DB (akan dibuat otomatis). */
