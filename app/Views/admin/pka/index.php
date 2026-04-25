@@ -29,6 +29,9 @@ foreach ($pkaList as $p) {
         <a href="/admin/spt/<?= $spt['id'] ?>/pka/print-km6" target="_blank" class="btn btn-outline-primary">
             <i class="fas fa-print"></i> Cetak KM-6
         </a>
+        <a href="/admin/spt/<?= $spt['id'] ?>/km/print-km7b" target="_blank" class="btn btn-outline-secondary">
+            <i class="fas fa-print"></i> Formulir 7b
+        </a>
         <a href="/admin/spt/<?= $spt['id'] ?>" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Kembali</a>
     </div>
 </div>

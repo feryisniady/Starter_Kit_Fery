@@ -756,4 +756,68 @@ class KmController extends BaseController
         logActivity('spt.km11.save', 'spt_km11', "Simpan KM-11 SPT id={$sptId}");
         return redirect()->to('/admin/spt/' . $sptId . '/km')->with('success', 'KM-11 Reviu Laporan berhasil disimpan.');
     }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // Formulir 7b — Pertanggungjawaban Jam Penugasan
+    // ──────────────────────────────────────────────────────────────────────
+
+    public function printKm7b(int $sptId)
+    {
+        $spt = $this->sptModel->getDetail($sptId);
+        if (!$spt) return redirect()->to('/admin/spt');
+        if (!canViewSptAudit($sptId)) return redirect()->to('/admin/spt')->with('error', 'Akses ditolak.');
+
+        $db  = \Config\Database::connect();
+        $km1 = $db->table('spt_km1')->where('spt_id', $sptId)->get()->getRowArray();
+
+        // Auditor tim (Ketua Tim + Anggota Tim)
+        $timRows = $db->table('spt_tim st')
+            ->select('s.id as sdm_id, s.nama, s.nip, s.jabatan_struktural, s.jabatan_fungsional, st.peran_spt, st.urutan')
+            ->join('sdm s', 's.id = st.sdm_id')
+            ->where('st.spt_id', $sptId)
+            ->whereIn('st.peran_spt', ['Ketua Tim', 'Anggota Tim'])
+            ->orderBy('st.urutan')
+            ->get()->getResultArray();
+
+        $sdmIds = array_column($timRows, 'sdm_id');
+
+        // Anggaran waktu per sdm = SUM(pka.rencana_waktu) dari pka_assignment
+        $awRows = $db->table('pka_assignment pa')
+            ->select('pa.sdm_id, SUM(p.rencana_waktu) as anggaran')
+            ->join('pka p', 'p.id = pa.pka_id')
+            ->where('p.spt_id', $sptId)
+            ->whereIn('pa.sdm_id', empty($sdmIds) ? [0] : $sdmIds)
+            ->groupBy('pa.sdm_id')
+            ->get()->getResultArray();
+        $awBySdm = array_column($awRows, 'anggaran', 'sdm_id');
+
+        // Realisasi waktu per sdm = SUM(kka_ikhtisar.realisasi_waktu)
+        $realRows = $db->table('kka_ikhtisar ki')
+            ->select('k.sdm_id, SUM(ki.realisasi_waktu) as realisasi')
+            ->join('kka k', 'k.id = ki.kka_id')
+            ->where('k.spt_id', $sptId)
+            ->whereIn('k.sdm_id', empty($sdmIds) ? [0] : $sdmIds)
+            ->groupBy('k.sdm_id')
+            ->get()->getResultArray();
+        $realBySdm = array_column($realRows, 'realisasi', 'sdm_id');
+
+        // NHP sebagai "Data Dokumen Hasil"
+        $nhp = $db->table('nhp')->where('spt_id', $sptId)->orderBy('id', 'DESC')->get()->getRowArray();
+
+        // Pejabat PM (untuk tanda tangan)
+        $pmSdm = null;
+        foreach (($spt['tim'] ?? []) as $t) {
+            if (!$pmSdm && in_array($t['peran_spt'], ['PJ','WPJ','Pengendali Mutu'])) { $pmSdm = $t; break; }
+        }
+
+        return view('admin/km/print_km7b', [
+            'spt'       => $spt,
+            'km1'       => $km1,
+            'timRows'   => $timRows,
+            'awBySdm'   => $awBySdm,
+            'realBySdm' => $realBySdm,
+            'nhp'       => $nhp,
+            'pmSdm'     => $pmSdm,
+        ]);
+    }
 }
