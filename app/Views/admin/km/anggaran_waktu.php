@@ -306,6 +306,25 @@ const _sptId    = <?= $spt['id'] ?>;
 const _csrfName = '<?= csrf_token() ?>';
 const _csrfHash = '<?= csrf_hash() ?>';
 
+// Hari libur nasional + cuti bersama dari DB (format YYYY-MM-DD)
+const HOLIDAYS = new Set(<?= json_encode($hariLibur ?? []) ?>);
+
+function countWorkingDays(startStr, endStr) {
+    if (!startStr || !endStr) return 0;
+    const start = new Date(startStr + 'T00:00:00');
+    const end   = new Date(endStr   + 'T00:00:00');
+    if (end < start) return 0;
+    let count = 0;
+    const cur = new Date(start);
+    while (cur <= end) {
+        const dow = cur.getDay(); // 0=Sun, 6=Sat
+        const ymd = cur.toISOString().slice(0, 10);
+        if (dow !== 0 && dow !== 6 && !HOLIDAYS.has(ymd)) count++;
+        cur.setDate(cur.getDate() + 1);
+    }
+    return count;
+}
+
 function verifikasiAw(sdmId, sdmNama) {
     swalConfirm({
         title: 'Verifikasi Realisasi?',
@@ -362,11 +381,37 @@ function updateAwHpWidget(sdmId) {
 }
 
 $(function() {
-    // Live update saat nilai rencana diubah
+    // Live update saat nilai rencana diubah manual
     $(document).on('input change', 'input[name^="persiapan_rencana_"], input[name^="pelaksanaan_rencana_"], input[name^="penyelesaian_rencana_"]', function() {
-        const name  = $(this).attr('name');
-        const sdmId = name.split('_').pop();
+        const sdmId = $(this).attr('name').split('_').pop();
         updateAwHpWidget(sdmId);
+    });
+
+    // Auto-hitung rencana hari saat tanggal mulai/selesai dipilih (tanpa sabtu/minggu/libur)
+    $(document).on('change', 'input[type="date"][name^="persiapan_"], input[type="date"][name^="pelaksanaan_"], input[type="date"][name^="penyelesaian_"]', function() {
+        const name  = $(this).attr('name');
+        // name format: {fase}_start_{sdmId} atau {fase}_end_{sdmId}
+        if (!name.includes('_start_') && !name.includes('_end_')) return;
+
+        const isStart = name.includes('_start_');
+        const sdmId   = name.split(isStart ? '_start_' : '_end_').pop();
+        const fase    = name.split(isStart ? '_start_' : '_end_')[0];
+
+        const startVal = $(`input[name="${fase}_start_${sdmId}"]`).val();
+        const endVal   = $(`input[name="${fase}_end_${sdmId}"]`).val();
+
+        if (!startVal || !endVal) return;
+
+        const days = countWorkingDays(startVal, endVal);
+        const rencanaInput = $(`input[name="${fase}_rencana_${sdmId}"]`);
+
+        rencanaInput.val(days);
+        rencanaInput.addClass('aw-auto-filled');
+        updateAwHpWidget(sdmId);
+
+        // Hint visual singkat
+        rencanaInput.css('border-color', '#22c55e');
+        setTimeout(() => rencanaInput.css('border-color', ''), 2000);
     });
 });
 </script>
