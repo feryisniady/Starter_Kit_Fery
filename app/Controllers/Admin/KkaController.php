@@ -203,6 +203,7 @@ class KkaController extends BaseController
         }
 
         $this->kkaModel->saveProsedurUnified($kkaId, $this->request->getPost());
+        $this->kkaModel->syncAwFromKka($kkaId);
 
         // Handle file upload per prosedur
         $file = $this->request->getFile('bukti_dokumen');
@@ -292,6 +293,7 @@ class KkaController extends BaseController
         }
 
         if ($this->kkaModel->selesaikanKka($kkaId)) {
+            $this->kkaModel->syncAwFromKka($kkaId);
             logActivity('kka.selesai', 'kka', "KKA selesai kka_id={$kkaId}");
             return redirect()->to('/admin/kka/' . $kkaId)->with('success', 'KKA selesai. Silakan kirim ke Ketua Tim.');
         }

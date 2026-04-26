@@ -294,6 +294,56 @@ class KkaModel
     // Ikhtisar CRUD
     // ──────────────────────────────────────────────────────────────────────
 
+    /**
+     * Sinkronkan realisasi spt_anggaran_waktu dari KKA ikhtisar.
+     * Dipanggil setiap kali AT menyimpan prosedur, agar AW realisasi selalu up-to-date.
+     * Mapping fase: pka.fase('pelaporan') → spt_anggaran_waktu('penyelesaian_realisasi_hari')
+     */
+    public function syncAwFromKka(int $kkaId): void
+    {
+        $kka = $this->db->table('kka')->where('id', $kkaId)->get()->getRowArray();
+        if (!$kka) return;
+
+        $faseMap = [
+            'persiapan'   => 'persiapan_realisasi_hari',
+            'pelaksanaan' => 'pelaksanaan_realisasi_hari',
+            'pelaporan'   => 'penyelesaian_realisasi_hari',
+        ];
+
+        $rows = $this->db->table('kka_ikhtisar ki')
+            ->select('p.fase, SUM(ki.realisasi_waktu) as total')
+            ->join('pka p', 'p.id = ki.pka_id')
+            ->where('ki.kka_id', $kkaId)
+            ->whereNotNull('ki.pka_id')
+            ->whereNotNull('ki.realisasi_waktu')
+            ->groupBy('p.fase')
+            ->get()->getResultArray();
+
+        if (empty($rows)) return;
+
+        $updateData = [];
+        foreach ($rows as $row) {
+            $col = $faseMap[$row['fase']] ?? null;
+            if ($col) $updateData[$col] = (float)$row['total'];
+        }
+
+        if (!empty($updateData)) {
+            $exists = $this->db->table('spt_anggaran_waktu')
+                ->where('spt_id', $kka['spt_id'])
+                ->where('sdm_id', $kka['sdm_id'])
+                ->countAllResults();
+
+            if ($exists) {
+                $this->db->table('spt_anggaran_waktu')
+                    ->where('spt_id', $kka['spt_id'])
+                    ->where('sdm_id', $kka['sdm_id'])
+                    ->update(array_merge($updateData, ['updated_at' => date('Y-m-d H:i:s')]));
+            }
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+
     public function getIkhtisarByKka(int $kkaId): array
     {
         return $this->db->table('kka_ikhtisar ki')

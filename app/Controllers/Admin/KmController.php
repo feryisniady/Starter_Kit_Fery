@@ -386,6 +386,24 @@ class KmController extends BaseController
         return redirect()->back()->with('success', 'Realisasi anggaran waktu berhasil diverifikasi.');
     }
 
+    /** KT/Admin sinkronkan realisasi AW dari seluruh KKA dalam SPT */
+    public function syncAwFromKka(int $sptId)
+    {
+        if (!isAuditAdmin() && !isKtInSpt($sptId) && !isDalnisInSpt($sptId)) {
+            return redirect()->back()->with('error', 'Hanya Ketua Tim atau Dalnis yang dapat melakukan sinkronisasi.');
+        }
+
+        $kkaModel = new \App\Models\KkaModel();
+        $kkaList  = $kkaModel->getBySpt($sptId);
+
+        foreach ($kkaList as $kka) {
+            $kkaModel->syncAwFromKka((int)$kka['id']);
+        }
+
+        logActivity('spt.aw.sync_kka', 'spt_anggaran_waktu', "Sync AW dari KKA SPT id={$sptId}");
+        return redirect()->back()->with('success', 'Realisasi anggaran waktu berhasil disinkronkan dari KKA.');
+    }
+
     // ──────────────────────────────────────────────────────────────────────
     // KM-3 — Dokumen SPT (auto-prefill, read-only, semua tim bisa lihat)
     // ──────────────────────────────────────────────────────────────────────
