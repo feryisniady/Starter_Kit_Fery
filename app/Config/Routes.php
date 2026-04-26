@@ -177,7 +177,8 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	$routes->post('spt/(:num)/pka/apply-template', 'Admin\PkaController::applyTemplate/$1');
 	$routes->post('spt/pka/update/(:num)',          'Admin\PkaController::update/$1');
 	$routes->post('spt/pka/delete/(:num)',          'Admin\PkaController::delete/$1');
-	$routes->post('spt/pka/selesai/(:num)',         'Admin\PkaController::selesai/$1');
+	$routes->post('spt/pka/selesai/(:num)',                 'Admin\PkaController::selesai/$1');
+	$routes->post('spt/(:num)/pka/save-assignments',        'Admin\PkaController::saveAssignments/$1');
 
 	// =====================================================================
 	// PKA Template Library
@@ -290,6 +291,7 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	// KKA Dokumen Bukti per Prosedur
 	$routes->get( 'kka/dokumen/(:num)/download',          'Admin\KkaController::downloadDokumen/$1');
 	$routes->post('kka/dokumen/(:num)/hapus',             'Admin\KkaController::hapusDokumen/$1');
+	$routes->get( 'kka/(:num)/print',                     'Admin\KkaController::printKka/$1');
 
 	// =====================================================================
 	// NHP — Notisi Hasil Pemeriksaan
