@@ -63,7 +63,7 @@ class KkaModel
     {
         $tim = $this->db->table('spt_tim')
             ->where('spt_id', $sptId)
-            ->whereIn('peran_spt', ['Ketua Tim', 'Anggota Tim'])
+            ->where('peran_spt', 'Anggota Tim')
             ->get()->getResultArray();
 
         $created = 0;
@@ -94,7 +94,7 @@ class KkaModel
     // GET helpers
     // ──────────────────────────────────────────────────────────────────────
 
-    /** Semua KKA per SPT (untuk KT / Dalnis) — hanya KT dan Anggota Tim */
+    /** Semua KKA per SPT (untuk KT / Dalnis) — hanya Anggota Tim */
     public function getBySpt(int $sptId): array
     {
         return $this->db->table('kka k')
@@ -102,7 +102,7 @@ class KkaModel
             ->join('sdm s', 's.id = k.sdm_id')
             ->join('spt_tim st', 'st.spt_id = k.spt_id AND st.sdm_id = k.sdm_id')
             ->where('k.spt_id', $sptId)
-            ->whereIn('st.peran_spt', ['Ketua Tim', 'Anggota Tim'])
+            ->where('st.peran_spt', 'Anggota Tim')
             ->orderBy('st.urutan')
             ->get()->getResultArray();
     }
@@ -457,7 +457,7 @@ class KkaModel
         $draftCount = $this->db->table('kka k')
             ->join('spt_tim st', 'st.spt_id = k.spt_id AND st.sdm_id = k.sdm_id')
             ->where('k.spt_id', $sptId)
-            ->whereIn('st.peran_spt', ['Ketua Tim', 'Anggota Tim'])
+            ->where('st.peran_spt', 'Anggota Tim')
             ->whereNotIn('k.status', ['selesai'])
             ->countAllResults();
 
