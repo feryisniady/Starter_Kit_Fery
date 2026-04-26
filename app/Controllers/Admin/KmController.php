@@ -213,6 +213,14 @@ class KmController extends BaseController
             $pkptTimMap = array_column($pkptTim, null, 'sdm_id');
         }
 
+        // Load hari libur untuk auto-hitung hari kerja di client
+        $tahun      = (int)($spt['tahun'] ?? date('Y'));
+        $hariLibur  = $db->table('hari_libur')
+            ->select('tanggal')
+            ->whereIn('tahun', [$tahun - 1, $tahun, $tahun + 1])
+            ->get()->getResultArray();
+        $hariLibur  = array_column($hariLibur, 'tanggal');
+
         return view('admin/km/anggaran_waktu', [
             'title'             => 'KM-2 — Formulir Anggaran Waktu',
             'spt'               => $spt,
@@ -225,6 +233,7 @@ class KmController extends BaseController
             'km10Ada'           => $km10Ada,
             'isKtDal'           => $isAdmin || $isKtDal,
             'mySdmId'           => $sdmId,
+            'hariLibur'         => $hariLibur,
         ]);
     }
 
