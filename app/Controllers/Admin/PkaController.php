@@ -59,18 +59,31 @@ class PkaController extends BaseController
             ->orderBy('jenis_audit')->orderBy('nama')
             ->get()->getResultArray();
 
+        $pkaGrouped = $this->pkaModel->getBySptGrouped($sptId);
+        $pkaList    = $this->pkaModel->getBySpt($sptId);
+
+        // Build assignment map: pka_id → [sdm_id1, sdm_id2, ...]
+        $assignmentMap = [];
+        foreach ($pkaGrouped as $rows) {
+            foreach ($rows as $row) {
+                $assignmentMap[(int)$row['id']] = array_column($row['assigned_sdm'] ?? [], 'sdm_id');
+            }
+        }
+
         return view('admin/pka/index', [
-            'title'        => 'Program Pengawasan (PKA) — ' . ($spt['nomor_naskah'] ?: '#' . $sptId),
-            'spt'          => $spt,
-            'pkaGrouped'   => $this->pkaModel->getBySptGrouped($sptId),
-            'pkaList'      => $this->pkaModel->getBySpt($sptId),
-            'sdmList'      => $sdmList,
-            'atList'       => $atList,
-            'sdmInfoMap'   => $sdmInfoMap,
-            'awBudgetMap'  => $awBudgetMap,
-            'stats'        => $this->pkaModel->getStatsBySpt($sptId),
-            'templateList' => $templateList,
-            'canEdit'      => canEditKmInSpt($sptId, 'km4'),
+            'title'         => 'Program Pengawasan (PKA) — ' . ($spt['nomor_naskah'] ?: '#' . $sptId),
+            'spt'           => $spt,
+            'pkaGrouped'    => $pkaGrouped,
+            'pkaList'       => $pkaList,
+            'sdmList'       => $sdmList,
+            'atList'        => $atList,
+            'sdmInfoMap'    => $sdmInfoMap,
+            'awBudgetMap'   => $awBudgetMap,
+            'stats'         => $this->pkaModel->getStatsBySpt($sptId),
+            'templateList'  => $templateList,
+            'canEdit'       => canEditKmInSpt($sptId, 'km4'),
+            'jenisAudit'    => $spt['jenis_pengawasan'] ?? null,
+            'assignmentMap' => $assignmentMap,
         ]);
     }
 
@@ -191,6 +204,36 @@ class PkaController extends BaseController
             return $this->response->setJSON(['success' => true]);
         }
         return redirect()->to('/admin/spt/' . $sptId . '/pka')->with('success', 'Prosedur dihapus.');
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // Bulk save assignments dari Tab Penugasan (AJAX)
+    // ──────────────────────────────────────────────────────────────────────
+
+    public function saveAssignments(int $sptId)
+    {
+        if (!canEditKmInSpt($sptId, 'km4')) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Akses ditolak.']);
+        }
+
+        $assignments = $this->request->getPost('assignments') ?? [];
+        if (!is_array($assignments)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Data tidak valid.']);
+        }
+
+        $userId = (int)session()->get('user_id');
+        $saved  = 0;
+
+        foreach ($assignments as $pkaId => $sdmIds) {
+            $pka = $this->pkaModel->find((int)$pkaId);
+            if (!$pka || (int)$pka['spt_id'] !== $sptId) continue;
+            $sdmIds = array_filter((array)$sdmIds, 'is_numeric');
+            $this->pkaModel->saveAssignment((int)$pkaId, $sdmIds, $userId);
+            $saved++;
+        }
+
+        logActivity('pka.assignments.save', 'pka', "Bulk save assignments SPT id={$sptId}, {$saved} prosedur");
+        return $this->response->setJSON(['success' => true, 'message' => "Penugasan {$saved} prosedur berhasil disimpan."]);
     }
 
     // ──────────────────────────────────────────────────────────────────────

@@ -584,6 +584,49 @@ class KkaController extends BaseController
     }
 
     // ──────────────────────────────────────────────────────────────────────
+    // Cetak KKA per AT (format BPKP)
+    // ──────────────────────────────────────────────────────────────────────
+
+    public function printKka(int $kkaId)
+    {
+        $kka = $this->kkaModel->find($kkaId);
+        if (!$kka) return redirect()->back()->with('error', 'KKA tidak ditemukan.');
+        if (!$this->canAccessKka($kka)) return redirect()->to('/admin/spt')->with('error', 'Akses ditolak.');
+
+        $spt = $this->sptModel->getDetail($kka['spt_id']);
+        $db  = \Config\Database::connect();
+
+        $sdm = $db->table('sdm')->where('id', $kka['sdm_id'])->get()->getRowArray();
+
+        $ktSdm = $dalnisSdm = null;
+        foreach (($spt['tim'] ?? []) as $t) {
+            if (!$ktSdm && $t['peran_spt'] === 'Ketua Tim') $ktSdm = $t;
+            if (!$dalnisSdm && $t['peran_spt'] === 'Pengendali Teknis') $dalnisSdm = $t;
+        }
+
+        $pkaList = $db->table('pka p')
+            ->select('p.*')
+            ->join('pka_assignment pa', 'pa.pka_id = p.id')
+            ->where('p.spt_id', $kka['spt_id'])
+            ->where('pa.sdm_id', $kka['sdm_id'])
+            ->orderBy('p.fase')->orderBy('p.nomor_urut')
+            ->get()->getResultArray();
+
+        $km1 = $db->table('spt_km1')->where('spt_id', $kka['spt_id'])->get()->getRowArray();
+
+        return view('admin/kka/print_kka', [
+            'kka'          => $kka,
+            'spt'          => $spt,
+            'sdm'          => $sdm,
+            'ktSdm'        => $ktSdm,
+            'dalnisSdm'    => $dalnisSdm,
+            'prosedurData' => $this->kkaModel->getProsedurData($kkaId, $pkaList),
+            'simpulan'     => $this->kkaModel->getSimpulanByKka($kkaId),
+            'km1'          => $km1,
+        ]);
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
     // Private helpers
     // ──────────────────────────────────────────────────────────────────────
 

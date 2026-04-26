@@ -46,7 +46,7 @@ class PkptController extends BaseController
         $isAdmin = $this->isAdmin();
 
         $myPkpt = null;
-        if (!$isAdmin) {
+        if (!$isAdmin && !$this->canViewAllIrban()) {
             $irbanId = $this->getUserIrbanId(session()->get('user_id'));
             if ($irbanId) {
                 $myPkpt = $this->pkptModel->getByIrbanTahun($irbanId, $tahun);
@@ -83,12 +83,15 @@ class PkptController extends BaseController
         ->where('p.tahun', $tahun);
 
         if (!$isAdmin) {
-            $irbanId = $this->getUserIrbanId($userId);
-            if (!$irbanId) {
-                // User tidak punya SDM atau irban — tidak tampilkan data apapun
-                return $this->dtResponse($draw, 0, 0, []);
+            if ($this->canViewAllIrban()) {
+                // inspektur / sekretaris / evlap / dalnis → lihat semua irban
+            } else {
+                $irbanId = $this->getUserIrbanId($userId);
+                if (!$irbanId) {
+                    return $this->dtResponse($draw, 0, 0, []);
+                }
+                $baseQ->where('p.irban_id', $irbanId);
             }
-            $baseQ->where('p.irban_id', $irbanId);
         }
 
         $total = (clone $baseQ)->countAllResults(false);
@@ -847,6 +850,12 @@ class PkptController extends BaseController
         return hasRole('superadmin') || hasRole('admin') || hasPermission('pkpt.manage_all');
     }
 
+    /** Role yang bisa melihat SEMUA PKPT lintas irban (read-only, tanpa filter irban_id). */
+    private function canViewAllIrban(): bool
+    {
+        return hasRole('inspektur') || hasRole('sekretaris') || hasRole('evlap') || hasRole('dalnis');
+    }
+
     private function getUserIrbanId(int $userId): ?int
     {
         $sdm     = $this->sdmModel->where('user_id', $userId)->first();
@@ -855,11 +864,15 @@ class PkptController extends BaseController
     }
 
     /**
-     * Cek hak BACA PKPT (butuh pkpt.view + irban cocok, atau admin).
+     * Cek hak BACA PKPT:
+     * - Admin/manage_all → semua irban
+     * - inspektur/sekretaris/evlap/dalnis → semua irban (read-only)
+     * - staf biasa → hanya irban sendiri
      */
     private function canViewPkpt(array $pkpt): bool
     {
         if ($this->isAdmin()) return true;
+        if ($this->canViewAllIrban()) return true;
         $irbanId = $this->getUserIrbanId(session()->get('user_id'));
         return $irbanId !== null && (int)$pkpt['irban_id'] === $irbanId;
     }
