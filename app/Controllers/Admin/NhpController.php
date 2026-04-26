@@ -164,11 +164,24 @@ class NhpController extends BaseController
             $item['dokumen'] = $dokByItem[$item['id']] ?? [];
         }
 
+        // Load entitas yang terkait dengan kegiatan PKPT ini
+        $db          = \Config\Database::connect();
+        $entitasList = [];
+        $pkptKegId   = $spt['pkpt_kegiatan_id'] ?? null;
+        if ($pkptKegId) {
+            $entitasList = $db->table('pkpt_entitas pe')
+                ->select('e.id, e.nama, e.kode, e.kepala')
+                ->join('entitas e', 'e.id = pe.entitas_id')
+                ->where('pe.pkpt_kegiatan_id', $pkptKegId)
+                ->get()->getResultArray();
+        }
+
         return view('admin/nhp/show', [
             'title'          => 'Detail NHP — ' . ($nhp['nomor_nhp'] ?: '#' . $nhpId),
             'spt'            => $spt,
             'nhp'            => $nhp,
             'items'          => $items,
+            'entitasList'    => $entitasList,
             'canManage'      => $this->canManage($sptId),
             'statusLabel'    => NhpModel::$statusLabel,
             'statusColor'    => NhpModel::$statusColor,
