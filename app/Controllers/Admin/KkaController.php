@@ -190,6 +190,35 @@ class KkaController extends BaseController
         }
 
         $this->kkaModel->saveProsedurUnified($kkaId, $this->request->getPost());
+        $this->kkaModel->syncAwFromKka($kkaId);
+
+        // Handle file upload per prosedur
+        $file = $this->request->getFile('bukti_dokumen');
+        if ($file && $file->isValid() && !$file->hasMoved()) {
+            $pkaId  = (int)$this->request->getPost('pka_id');
+            $db     = \Config\Database::connect();
+            $ikhRow = $db->table('kka_ikhtisar')
+                ->where('kka_id', $kkaId)->where('pka_id', $pkaId)
+                ->get()->getRowArray();
+
+            if ($ikhRow) {
+                $uploadPath = WRITEPATH . 'uploads/kka-dokumen/';
+                if (!is_dir($uploadPath)) mkdir($uploadPath, 0755, true);
+
+                $newName = $file->getRandomName();
+                $file->move($uploadPath, $newName);
+
+                $this->dokModel->insert([
+                    'kka_ikhtisar_id' => (int)$ikhRow['id'],
+                    'nama_file'       => $file->getClientName(),
+                    'path_file'       => $newName,
+                    'ukuran'          => $file->getSize(),
+                    'keterangan'      => $this->request->getPost('keterangan_dokumen'),
+                    'uploaded_by'     => user_id(),
+                ]);
+            }
+        }
+
         logActivity('kka.prosedur.save', 'kka', "Save prosedur unified kka_id={$kkaId}");
         return redirect()->to('/admin/kka/' . $kkaId)->with('success', 'Prosedur berhasil disimpan.');
     }
@@ -208,6 +237,7 @@ class KkaController extends BaseController
         }
 
         if ($this->kkaModel->selesaikanKka($kkaId)) {
+            $this->kkaModel->syncAwFromKka($kkaId);
             logActivity('kka.selesai', 'kka', "KKA selesai kka_id={$kkaId}");
             return redirect()->to('/admin/kka/' . $kkaId)->with('success', 'KKA selesai. Silakan kirim ke Ketua Tim.');
         }

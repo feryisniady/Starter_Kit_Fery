@@ -235,6 +235,14 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	$routes->post('spt/(:num)/km/2/verifikasi',           'Admin\KmController::verifikasiAw/$1',                   ['filter' => 'permission:spt.approve']);
 	$routes->get('spt/(:num)/km/anggaran-waktu',          'Admin\KmController::anggaranWaktu/$1',                  ['filter' => 'permission:spt.view']);   // backward compat
 	$routes->post('spt/(:num)/km/anggaran-waktu/save',    'Admin\KmController::saveAnggaranWaktu/$1',              ['filter' => 'permission:spt.create']);
+	$routes->get('spt/(:num)/km/2',                       'Admin\KmController::anggaranWaktu/$1');
+	$routes->get('spt/(:num)/km/2/print',                 'Admin\KmController::printKm4Aw/$1');
+	$routes->get('spt/(:num)/km/print-km7b',              'Admin\KmController::printKm7b/$1');
+	$routes->post('spt/(:num)/km/2/save',                 'Admin\KmController::saveAnggaranWaktu/$1');
+	$routes->post('spt/(:num)/km/2/verifikasi',           'Admin\KmController::verifikasiAw/$1');
+	$routes->post('spt/(:num)/km/2/sync-from-kka',        'Admin\KmController::syncAwFromKka/$1');
+	$routes->get('spt/(:num)/km/anggaran-waktu',          'Admin\KmController::anggaranWaktu/$1');   // backward compat
+	$routes->post('spt/(:num)/km/anggaran-waktu/save',    'Admin\KmController::saveAnggaranWaktu/$1');
 	// KM-3: Dokumen SPT (auto-prefill)
 	$routes->get('spt/(:num)/km/3',                       'Admin\KmController::km3/$1',                            ['filter' => 'permission:spt.view']);
 	// KM-4: Lembar Perencanaan (form pendukung PKA)

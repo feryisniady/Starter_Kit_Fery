@@ -7,6 +7,15 @@
         <p>SPT: <?= esc($spt['nomor_naskah'] ?: '#'.$spt['id']) ?> — <?= esc($spt['irban_nama']) ?></p>
     </div>
     <div class="page-actions">
+        <?php if($isKtDal): ?>
+        <form action="/admin/spt/<?= $spt['id'] ?>/km/2/sync-from-kka" method="POST" style="display:inline"
+              onsubmit="return confirm('Sinkronkan realisasi AW dari data KKA seluruh AT?\n(Nilai realisasi akan dihitung ulang dari KKA yang sudah diisi)')">
+            <?= csrf_field() ?>
+            <button type="submit" class="btn btn-outline-success">
+                <i class="fas fa-rotate"></i> Sinkronkan dari KKA
+            </button>
+        </form>
+        <?php endif; ?>
         <a href="/admin/spt/<?= $spt['id'] ?>/km/2/print" target="_blank" class="btn btn-outline-primary">
             <i class="fas fa-print"></i> Cetak Formulir KM-4
         </a>
@@ -54,9 +63,9 @@ if (!$isKtDal && empty($displayList)) {
         <div style="background:#eff6ff;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#1d4ed8">
             <i class="fas fa-info-circle"></i>
             <?php if($isKtDal): ?>
-            Isi rencana jadwal dan hari untuk setiap anggota tim. Kolom <strong>Realisasi Hari</strong> diisi setelah Entry Meeting (KM-5b) selesai.
+            Isi rencana jadwal dan hari untuk setiap anggota tim. Kolom <strong>Realisasi Hari</strong> otomatis terisi dari KKA saat AT menyimpan prosedur, atau gunakan tombol <strong>Sinkronkan dari KKA</strong>.
             <?php else: ?>
-            Isi rencana jadwal dan jumlah hari untuk setiap fase penugasan Anda.
+            Isi rencana jadwal dan jumlah hari untuk setiap fase penugasan Anda. <strong>Realisasi HP akan otomatis terisi</strong> dari data yang Anda isi di KKA (Realisasi Waktu per prosedur).
             <?php endif; ?>
         </div>
         <?php endif; ?>
