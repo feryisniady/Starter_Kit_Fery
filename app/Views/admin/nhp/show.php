@@ -10,12 +10,17 @@
     </div>
     <div class="page-actions">
         <?php if ($canManage && $nhp['status'] === 'draft'): ?>
+        <?php
+        $entitasNama = !empty($entitasList)
+            ? implode(', ', array_column($entitasList, 'nama'))
+            : '(entitas belum diset di PKPT Kegiatan)';
+        ?>
         <form method="POST" action="/admin/spt/<?= $spt['id'] ?>/nhp/<?= $nhp['id'] ?>/kirim" style="display:inline"
-              data-confirm="NHP ini akan ditandai sebagai <b>terkirim ke entitas</b>. Lanjutkan?"
+              data-confirm="NHP ini akan dikirim ke:<br><b><?= esc($entitasNama) ?></b><br><br>Lanjutkan?"
               data-confirm-title="Kirim ke Entitas?"
               data-confirm-btn="<i class='fas fa-paper-plane'></i>&nbsp;Ya, Kirim">
             <?= csrf_field() ?>
-            <button type="submit" class="btn btn-info">
+            <button type="submit" class="btn btn-info" <?= empty($entitasList) ? 'title="Tambahkan entitas di PKPT Kegiatan terlebih dahulu"' : '' ?>>
                 <i class="fas fa-paper-plane"></i> Kirim ke Entitas
             </button>
         </form>
@@ -64,6 +69,22 @@
             <div style="flex:1;min-width:200px">
                 <div style="font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase">Perihal</div>
                 <div style="font-size:14px;margin-top:4px"><?= esc($nhp['perihal'] ?: '—') ?></div>
+            </div>
+            <div style="min-width:180px">
+                <div style="font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase">Entitas / OPD</div>
+                <div style="font-size:13px;margin-top:4px">
+                    <?php if (!empty($entitasList)): ?>
+                        <?php foreach($entitasList as $ent): ?>
+                        <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+                            <i class="fas fa-building" style="color:#6366f1;font-size:11px"></i>
+                            <span style="font-weight:600"><?= esc($ent['nama']) ?></span>
+                            <?php if($ent['kode']): ?><span style="font-size:10px;color:#94a3b8">(<?= esc($ent['kode']) ?>)</span><?php endif; ?>
+                        </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <span style="color:#f59e0b;font-size:12px"><i class="fas fa-triangle-exclamation"></i> Belum diset di PKPT Kegiatan</span>
+                    <?php endif; ?>
+                </div>
             </div>
             <div style="text-align:center">
                 <div style="font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase">Item Temuan</div>
