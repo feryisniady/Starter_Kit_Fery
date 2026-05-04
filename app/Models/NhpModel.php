@@ -17,15 +17,17 @@ class NhpModel
 
     public static array $statusLabel = [
         'draft'       => 'Draft',
-        'terkirim'    => 'Terkirim',
+        'diajukan'    => 'Menunggu Persetujuan',
+        'terkirim'    => 'Terkirim ke Entitas',
         'ditanggapi'  => 'Ditanggapi',
         'selesai'     => 'Selesai',
     ];
 
     public static array $statusColor = [
         'draft'       => 'secondary',
+        'diajukan'    => 'warning',
         'terkirim'    => 'info',
-        'ditanggapi'  => 'warning',
+        'ditanggapi'  => 'primary',
         'selesai'     => 'success',
     ];
 
@@ -44,6 +46,53 @@ class NhpModel
     public function __construct()
     {
         $this->db = \Config\Database::connect();
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // Dashboard stats
+    // ──────────────────────────────────────────────────────────────────────
+
+    /** Jumlah NHP sudah terkirim yang masih ada item pending tanggapan */
+    public function getPendingTanggapanCount(): int
+    {
+        $row = $this->db->query("
+            SELECT COUNT(DISTINCT n.id) AS cnt
+            FROM nhp n
+            JOIN nhp_item ni ON ni.nhp_id = n.id AND ni.status_tanggapan = 'pending'
+            WHERE n.status = 'terkirim'
+        ")->getRowArray();
+        return (int) ($row['cnt'] ?? 0);
+    }
+
+    /** Jumlah rekomendasi yang sudah melewati batas waktu dan belum selesai */
+    public function getOverdueTlCount(): int
+    {
+        $row = $this->db->query("
+            SELECT COUNT(r.id) AS cnt
+            FROM rekomendasi r
+            WHERE r.batas_waktu IS NOT NULL
+              AND r.batas_waktu < CURDATE()
+              AND r.status != 'selesai'
+        ")->getRowArray();
+        return (int) ($row['cnt'] ?? 0);
+    }
+
+    /**
+     * Dapatkan user_id entitas yang terkait dengan NHP (untuk notifikasi).
+     * Melalui: nhp → spt → pkpt_kegiatan → pkpt_entitas → entitas.user_id
+     */
+    public function getEntitasUserIdsByNhp(int $nhpId): array
+    {
+        $rows = $this->db->query("
+            SELECT DISTINCT e.user_id
+            FROM nhp n
+            JOIN spt sp ON sp.id = n.spt_id
+            JOIN pkpt_kegiatan pk ON pk.id = sp.pkpt_kegiatan_id
+            JOIN pkpt_entitas pe ON pe.pkpt_kegiatan_id = pk.id
+            JOIN entitas e ON e.id = pe.entitas_id
+            WHERE n.id = ? AND e.user_id IS NOT NULL
+        ", [$nhpId])->getResultArray();
+        return array_column($rows, 'user_id');
     }
 
     // ──────────────────────────────────────────────────────────────────────
@@ -107,10 +156,32 @@ class NhpModel
         return 'NHP-' . $year . '-' . str_pad($count + 1, 3, '0', STR_PAD_LEFT);
     }
 
-    public function kirim(int $id): bool
+    public function ajukan(int $id): bool
     {
         $nhp = $this->find($id);
         if (!$nhp || $nhp['status'] !== 'draft') return false;
+        $this->db->table('nhp')->where('id', $id)->update([
+            'status'     => 'diajukan',
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        return true;
+    }
+
+    public function kembalikan(int $id): bool
+    {
+        $nhp = $this->find($id);
+        if (!$nhp || $nhp['status'] !== 'diajukan') return false;
+        $this->db->table('nhp')->where('id', $id)->update([
+            'status'     => 'draft',
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        return true;
+    }
+
+    public function kirim(int $id): bool
+    {
+        $nhp = $this->find($id);
+        if (!$nhp || !in_array($nhp['status'], ['draft','diajukan'])) return false;
         $this->db->table('nhp')->where('id', $id)->update([
             'status'      => 'terkirim',
             'updated_at'  => date('Y-m-d H:i:s'),
@@ -290,11 +361,11 @@ class NhpModel
                       kt.kode as kode_temuan_kode, kt.uraian as kode_temuan_uraian')
             ->join('nhp n', 'n.id = ni.nhp_id')
             ->join('spt sp', 'sp.id = n.spt_id')
-            ->join('pkpt_kegiatan pk', 'pk.id = sp.pkpt_kegiatan_id')
-            ->join('pkpt_entitas pe', 'pe.pkpt_kegiatan_id = pk.id')
+            ->join('pkpt_kegiatan pk', 'pk.id = sp.pkpt_kegiatan_id', 'left')
+            ->join('pkpt_entitas pe', 'pe.pkpt_kegiatan_id = pk.id', 'left')
             ->join('kka_simpulan ks', 'ks.id = ni.kka_simpulan_id', 'left')
             ->join('kode_temuan kt', 'kt.id = ks.kode_temuan_id', 'left')
-            ->where('pe.entitas_id', $entitasId)
+            ->where('(pe.entitas_id = ' . $entitasId . ' OR sp.entitas_id = ' . $entitasId . ')')
             ->where('n.status !=', 'draft')
             ->orderBy('n.tanggal_nhp', 'DESC')
             ->orderBy('ni.nomor_urut')
@@ -311,10 +382,10 @@ class NhpModel
                       SUM(CASE WHEN ni.status_tanggapan="sesuai" THEN 1 ELSE 0 END) as jumlah_sesuai,
                       SUM(CASE WHEN ni.status_tanggapan="tidak_sesuai" THEN 1 ELSE 0 END) as jumlah_tidak_sesuai')
             ->join('spt sp', 'sp.id = n.spt_id')
-            ->join('pkpt_kegiatan pk', 'pk.id = sp.pkpt_kegiatan_id')
-            ->join('pkpt_entitas pe', 'pe.pkpt_kegiatan_id = pk.id')
+            ->join('pkpt_kegiatan pk', 'pk.id = sp.pkpt_kegiatan_id', 'left')
+            ->join('pkpt_entitas pe', 'pe.pkpt_kegiatan_id = pk.id', 'left')
             ->join('nhp_item ni', 'ni.nhp_id = n.id', 'left')
-            ->where('pe.entitas_id', $entitasId)
+            ->where('(pe.entitas_id = ' . $entitasId . ' OR sp.entitas_id = ' . $entitasId . ')')
             ->where('n.status !=', 'draft')
             ->groupBy('n.id')
             ->orderBy('n.tanggal_nhp', 'DESC')

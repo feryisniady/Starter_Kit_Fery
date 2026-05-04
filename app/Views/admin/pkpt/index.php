@@ -214,13 +214,6 @@
 
 <?= $this->endSection() ?>
 <?= $this->section('scripts') ?>
-<style>
-@keyframes pulse-dot {
-    0%   { box-shadow: 0 0 0 0 rgba(34,197,94,.5); }
-    70%  { box-shadow: 0 0 0 7px rgba(34,197,94,0); }
-    100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
-}
-</style>
 <script>
 const csrfToken = '<?= csrf_hash() ?>';
 const csrfName  = '<?= csrf_token() ?>';

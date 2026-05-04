@@ -78,15 +78,6 @@
     </form>
 </div>
 
-<style>
-.modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200; }
-.modal-box     { position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:16px;width:500px;max-width:95vw;z-index:201;box-shadow:0 20px 60px rgba(0,0,0,.2); }
-.modal-header  { display:flex;justify-content:space-between;align-items:center;padding:20px 24px;border-bottom:1px solid #f1f5f9; }
-.modal-header h3{ font-size:16px;font-weight:600;color:#1e293b; }
-.modal-body    { padding:24px; }
-.modal-footer  { display:flex;justify-content:flex-end;gap:10px;padding:16px 24px;border-top:1px solid #f1f5f9; }
-</style>
-
 <?= $this->section('scripts') ?>
 <script>
 // Dipanggil dari tombol Edit di DataTables server-side (baca data-* attributes)

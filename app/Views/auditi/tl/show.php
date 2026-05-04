@@ -5,7 +5,7 @@
 $latestTl   = !empty($tls) ? $tls[0] : null;
 $canKirim   = !$latestTl || $latestTl['status_verifikasi'] === 'revisi';
 $batas      = $rek['batas_waktu'];
-$overdue    = $batas && strtotime($batas) < time() && $latestTl?->['status_verifikasi'] !== 'diterima';
+$overdue    = $batas && strtotime($batas) < time() && ($latestTl['status_verifikasi'] ?? '') !== 'diterima';
 ?>
 
 <div class="page-header">
@@ -21,7 +21,7 @@ $overdue    = $batas && strtotime($batas) < time() && $latestTl?->['status_verif
 <!-- Info Temuan & Rekomendasi -->
 <div class="card" style="border-left:4px solid #7c3aed">
     <div class="card-header">
-        <span class="card-title"><i class="fas fa-exclamation-triangle" style="color:#7c3aed"></i> Temuan & Rekomendasi BPKP</span>
+        <span class="card-title"><i class="fas fa-exclamation-triangle" style="color:#7c3aed"></i> Temuan & Rekomendasi APIP</span>
     </div>
     <div class="card-body">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
@@ -49,7 +49,7 @@ $overdue    = $batas && strtotime($batas) < time() && $latestTl?->['status_verif
             <?php endif; ?>
         </div>
         <div style="margin-top:14px;padding:14px;background:#f3f0ff;border-radius:10px;border-left:4px solid #7c3aed">
-            <div style="font-size:10px;font-weight:700;color:#7c3aed;text-transform:uppercase;margin-bottom:4px">Rekomendasi BPKP</div>
+            <div style="font-size:10px;font-weight:700;color:#7c3aed;text-transform:uppercase;margin-bottom:4px">Rekomendasi APIP</div>
             <div style="font-size:14px;line-height:1.7;font-weight:500"><?= nl2br(esc($rek['isi_rekomendasi'])) ?></div>
             <?php if ($batas): ?>
             <div style="margin-top:8px;font-size:12px;<?= $overdue?'color:#ef4444;font-weight:700':'color:#64748b' ?>">
@@ -76,20 +76,21 @@ $overdue    = $batas && strtotime($batas) < time() && $latestTl?->['status_verif
         <div class="alert alert-warning" style="margin-bottom:16px">
             <i class="fas fa-rotate-left"></i>
             <div>
-                <strong>BPKP meminta perbaikan:</strong>
+                <strong>APIP meminta perbaikan:</strong>
                 <?= nl2br(esc($latestTl['catatan_verifikasi'])) ?>
             </div>
         </div>
         <?php endif; ?>
 
         <form action="/auditi/tl/<?= $rek['id'] ?>/kirim" method="POST" enctype="multipart/form-data"
-              data-confirm="Tindak lanjut ini akan dikirim ke BPKP untuk diverifikasi. Lanjutkan?"
+              data-confirm="Tindak lanjut ini akan dikirim ke APIP untuk diverifikasi. Lanjutkan?"
               data-confirm-btn="<i class='fas fa-paper-plane'></i>&nbsp;Ya, Kirim">
             <?= csrf_field() ?>
             <div class="form-group">
                 <label>Uraian Tindak Lanjut <span style="color:#ef4444">*</span></label>
                 <textarea name="uraian" class="form-control" rows="5" required
-                          placeholder="Jelaskan langkah-langkah yang telah dilakukan untuk menindaklanjuti rekomendasi ini. Contoh: &#10;1. Telah melakukan rekonsiliasi SPJ BBM dengan bendahara&#10;2. SPJ ditemukan dan dilampirkan (terlampir)&#10;3. Telah ditetapkan SOP pengelolaan BBM sebagai tindakan korektif"></textarea>
+                          data-wysiwyg data-wysiwyg-height="130px"
+                          placeholder="Jelaskan langkah-langkah yang telah dilakukan untuk menindaklanjuti rekomendasi ini..."></textarea>
             </div>
             <div class="form-group">
                 <label><i class="fas fa-paperclip"></i> Lampiran Bukti Dukung</label>
@@ -104,7 +105,7 @@ $overdue    = $batas && strtotime($batas) < time() && $latestTl?->['status_verif
                 <div id="preview-files" style="margin-top:8px"></div>
             </div>
             <button type="submit" class="btn btn-primary w-full" style="justify-content:center">
-                <i class="fas fa-paper-plane"></i> Kirim Tindak Lanjut ke BPKP
+                <i class="fas fa-paper-plane"></i> Kirim Tindak Lanjut ke APIP
             </button>
         </form>
     </div>
@@ -113,7 +114,7 @@ $overdue    = $batas && strtotime($batas) < time() && $latestTl?->['status_verif
 <div class="alert alert-info" style="margin-bottom:20px">
     <i class="fas fa-clock" style="font-size:18px"></i>
     <div>
-        <strong>Tindak lanjut sedang diverifikasi BPKP.</strong><br>
+        <strong>Tindak lanjut sedang diverifikasi APIP.</strong><br>
         Dikirim pada <?= date('d M Y H:i', strtotime($latestTl['created_at'])) ?>. Silakan tunggu hasil verifikasi.
     </div>
 </div>
@@ -121,7 +122,7 @@ $overdue    = $batas && strtotime($batas) < time() && $latestTl?->['status_verif
 <div class="alert alert-success" style="margin-bottom:20px">
     <i class="fas fa-trophy" style="font-size:18px"></i>
     <div>
-        <strong>Tindak lanjut diterima oleh BPKP!</strong><br>
+        <strong>Tindak lanjut diterima oleh APIP!</strong><br>
         Rekomendasi ini telah diselesaikan. Terima kasih.
     </div>
 </div>
@@ -140,7 +141,7 @@ $overdue    = $batas && strtotime($batas) < time() && $latestTl?->['status_verif
             <div class="tl-dot <?= $tl['status_verifikasi'] ?>"></div>
             <div class="tl-date"><?= date('d M Y H:i', strtotime($tl['created_at'])) ?></div>
             <div class="tl-body">
-                <div class="tl-uraian"><?= nl2br(esc($tl['uraian'])) ?></div>
+                <div class="tl-uraian"><?= renderContent($tl['uraian']) ?></div>
 
                 <!-- Dokumen -->
                 <?php if (!empty($tl['dokumen'])): ?>
@@ -165,7 +166,7 @@ $overdue    = $batas && strtotime($batas) < time() && $latestTl?->['status_verif
                 </span>
                 <?php if (!empty($tl['catatan_verifikasi'])): ?>
                 <div class="tl-catatan">
-                    <strong>Catatan BPKP:</strong> <?= nl2br(esc($tl['catatan_verifikasi'])) ?>
+                    <strong>Catatan APIP:</strong> <?= nl2br(esc($tl['catatan_verifikasi'])) ?>
                 </div>
                 <?php endif; ?>
             </div>

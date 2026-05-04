@@ -735,3 +735,106 @@ table.dataTable tbody tr:last-child { border-bottom: none; }
 .d-block        { display: block !important; }
 .d-flex         { display: flex !important; }
 .d-inline-block { display: inline-block !important; }
+
+/* ===================== PRINT (Global) ===================== */
+@media print {
+    .no-print,
+    .sidebar, nav, .sidebar-overlay, .topbar { display: none !important; }
+    .print-only { display: block !important; }
+    .main-content { margin-left: 0 !important; }
+    .page-header .page-actions { display: none !important; }
+    .card { box-shadow: none; border: 1px solid #e2e8f0; }
+    body, table { font-size: 10px; }
+    table { min-width: unset !important; }
+}
+@media screen { .print-only { display: none; } }
+
+/* ===================== ANIMATIONS ===================== */
+@keyframes modalSlideIn {
+    from { opacity: 0; transform: translateY(-16px) scale(.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes pulse-dot {
+    0%   { box-shadow: 0 0 0 0 rgba(34,197,94,.5); }
+    70%  { box-shadow: 0 0 0 7px rgba(34,197,94,0); }
+    100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+}
+
+/* ===================== TIM ROWS (PKPT Kegiatan) ===================== */
+#tim-rows tr.tim-row td {
+    padding: 10px 8px;
+    vertical-align: middle;
+    border-bottom: 1px solid #e2e8f0;
+}
+#tim-rows tr.tim-row:last-child td { border-bottom: none; }
+#tim-rows tr.tim-row:hover td { background: #f8fafc; }
+#tim-rows tr.tim-row td:first-child {
+    border-left: 3px solid #e2e8f0;
+    transition: border-color .2s;
+}
+#tim-rows tr.tim-row:hover td:first-child { border-left-color: #6366f1; }
+
+/* ===================== MONITORING SDM ===================== */
+.monitor-stat-card {
+    background: #fff;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.monitor-stat-card .stat-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #94a3b8;
+    font-weight: 600;
+}
+.monitor-stat-card .stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.1;
+}
+.monitor-stat-card .stat-sub { font-size: 11px; color: #94a3b8; }
+.hp-bar-wrap {
+    height: 6px;
+    background: #f1f5f9;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 4px;
+    min-width: 60px;
+}
+.hp-bar-inner { height: 100%; border-radius: 4px; transition: width .4s ease; }
+.badge-aman       { background: #dcfce7; color: #166534; border-radius: 20px; padding: 3px 10px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.badge-peringatan { background: #fef9c3; color: #854d0e; border-radius: 20px; padding: 3px 10px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.badge-melebihi   { background: #fee2e2; color: #991b1b; border-radius: 20px; padding: 3px 10px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+
+/* ===================== TABLE DETAIL ===================== */
+.table-detail { width: 100%; border-collapse: collapse; }
+.table-detail th,
+.table-detail td { padding: 8px 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+.table-detail th { color: #64748b; font-weight: 500; white-space: nowrap; vertical-align: top; }
+
+/* ===================== APPROVAL STEPS ===================== */
+.approval-steps { display: flex; flex-direction: column; gap: 12px; }
+.approval-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+.approval-step.done     { background: #f0fdf4; }
+.approval-step.rejected { background: #fef2f2; }
+.step-icon {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    flex-shrink: 0;
+}
+.done .step-icon     { background: #16a34a; color: #fff; }
+.rejected .step-icon { background: #dc2626; color: #fff; }

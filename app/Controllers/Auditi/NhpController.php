@@ -133,13 +133,14 @@ class NhpController extends BaseAuditi
         if (!$dok) return $this->jsonError('Dokumen tidak ditemukan.');
 
         // Pastikan milik entitas ini
+        $eid  = $this->entitasId;
         $item = \Config\Database::connect()->table('nhp_item ni')
             ->join('nhp n', 'n.id = ni.nhp_id')
             ->join('spt sp', 'sp.id = n.spt_id')
-            ->join('pkpt_kegiatan pk', 'pk.id = sp.pkpt_kegiatan_id')
-            ->join('pkpt_entitas pe', 'pe.pkpt_kegiatan_id = pk.id')
+            ->join('pkpt_kegiatan pk', 'pk.id = sp.pkpt_kegiatan_id', 'left')
+            ->join('pkpt_entitas pe', 'pe.pkpt_kegiatan_id = pk.id', 'left')
             ->where('ni.id', $dok['nhp_item_id'])
-            ->where('pe.entitas_id', $this->entitasId)
+            ->where("(pe.entitas_id = $eid OR sp.entitas_id = $eid)")
             ->get()->getRowArray();
 
         if (!$item) return $this->jsonError('Akses ditolak.');
@@ -171,14 +172,15 @@ class NhpController extends BaseAuditi
 
     private function getNhpOrFail(int $nhpId): array
     {
+        $eid = $this->entitasId;
         $db  = \Config\Database::connect();
         $nhp = $db->table('nhp n')
             ->select('n.*, sp.nomor_naskah as spt_nomor, sp.id as spt_id')
             ->join('spt sp', 'sp.id = n.spt_id')
-            ->join('pkpt_kegiatan pk', 'pk.id = sp.pkpt_kegiatan_id')
-            ->join('pkpt_entitas pe', 'pe.pkpt_kegiatan_id = pk.id')
+            ->join('pkpt_kegiatan pk', 'pk.id = sp.pkpt_kegiatan_id', 'left')
+            ->join('pkpt_entitas pe', 'pe.pkpt_kegiatan_id = pk.id', 'left')
             ->where('n.id', $nhpId)
-            ->where('pe.entitas_id', $this->entitasId)
+            ->where("(pe.entitas_id = $eid OR sp.entitas_id = $eid)")
             ->where('n.status !=', 'draft')
             ->get()->getRowArray();
 

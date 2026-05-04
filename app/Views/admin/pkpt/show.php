@@ -181,6 +181,30 @@ function viewKegiatan(id) {
             sptHtml += `</div></div>`;
         }
 
+        // Cek apakah ada SPT yang sudah terbit
+        const hasTerbit = d.spts && d.spts.some(s => s.status === 'terbit');
+        const hasAnySpt = d.spts && d.spts.length > 0;
+
+        // Tombol Edit: tersembunyi jika ada SPT terbit
+        let editBtn = '';
+        <?php if ($canWrite ?? false): ?>
+        if (!hasTerbit) {
+            editBtn = `<a href="/admin/pkpt/kegiatan/edit/${d.id}" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i> Edit Kegiatan</a>`;
+        } else {
+            editBtn = `<span style="font-size:11px;color:#94a3b8;padding:5px 10px;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0;display:inline-flex;align-items:center;gap:5px"><i class="fas fa-lock"></i> Terkunci — SPT Terbit</span>`;
+        }
+        <?php endif; ?>
+
+        // Tombol SPT: ganti teks & style berdasarkan kondisi
+        let sptBtn = '';
+        if (!hasTerbit) {
+            sptBtn = `<a href="/admin/spt/create/${d.id}" class="btn btn-sm btn-success">
+                <i class="fas fa-${hasAnySpt ? 'users-between-lines' : 'file-signature'}"></i>
+                ${hasAnySpt ? 'Buat Tim Baru' : 'Buat SPT'}
+            </a>`;
+        }
+        // Jika SPT sudah terbit: tidak perlu tombol buat SPT di modal (sudah ada di SPT list)
+
         $('#dk-body').html(`
             <table style="width:100%;border-collapse:collapse;font-size:13px">
                 <tr style="border-bottom:1px solid #f1f5f9"><th style="padding:7px 10px;color:#64748b;font-weight:500;width:130px;white-space:nowrap">Kode</th><td style="padding:7px 10px"><span class="badge badge-primary">${d.kode_kegiatan}</span></td></tr>
@@ -192,15 +216,11 @@ function viewKegiatan(id) {
                 <tr style="border-bottom:1px solid #f1f5f9"><th style="padding:7px 10px;color:#64748b;font-weight:500">Ruang Lingkup</th><td style="padding:7px 10px;font-size:12px">${d.ruang_lingkup || '—'}</td></tr>
                 <tr><th style="padding:7px 10px;color:#64748b;font-weight:500">Jml Laporan</th><td style="padding:7px 10px">${d.jumlah_laporan || 1}</td></tr>
             </table>
+            ${hasTerbit ? `<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:6px;padding:8px 12px;margin-top:12px;font-size:12px;color:#15803d;display:flex;align-items:center;gap:8px"><i class="fas fa-circle-check"></i> <strong>Audit Aktif</strong> — SPT sudah terbit dan tim sedang bertugas di lapangan.</div>` : ''}
             ${sptHtml}
             <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;padding-top:10px;border-top:1px solid #f1f5f9">
-                <?php if ($canWrite ?? false): ?>
-                <a href="/admin/pkpt/kegiatan/edit/${d.id}" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i> Edit</a>
-                <?php endif; ?>
-                <a href="/admin/spt/create/${d.id}" class="btn btn-sm btn-success">
-                    <i class="fas fa-${d.spts && d.spts.length > 0 ? 'users-between-lines' : 'file-signature'}"></i>
-                    ${d.spts && d.spts.length > 0 ? 'Buat Tim Baru' : 'Buat SPT'}
-                </a>
+                ${editBtn}
+                ${sptBtn}
             </div>
         `);
         $('#modal-detail-kegiatan').show();

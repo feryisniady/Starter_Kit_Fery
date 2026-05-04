@@ -125,6 +125,14 @@ foreach ($pkaList as $p) {
     </div>
     <?php endif; ?>
 
+    <!-- Info auto-status dari KKA -->
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#1d4ed8">
+        <i class="fas fa-info-circle"></i>
+        Status <strong>Dikerjakan</strong> otomatis berubah saat Anggota Tim menyimpan hasil observasi di KKA.
+        Kolom <strong>Realisasi HP</strong> pada Formulir KM-6 juga terisi otomatis.
+        <?php if ($canEdit): ?>Gunakan tombol <i class="fas fa-undo"></i> jika perlu membatalkan status secara manual.<?php endif; ?>
+    </div>
+
     <!-- Prosedur per Fase -->
     <?php foreach (['persiapan','pelaksanaan','pelaporan'] as $fase):
         $rows  = $pkaGrouped[$fase] ?? [];
@@ -165,7 +173,7 @@ foreach ($pkaList as $p) {
                 <tr id="pka-row-<?= $row['id'] ?>" style="border-bottom:1px solid #f1f5f9"
                     onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
                     <td style="padding:9px 10px;font-weight:600;color:<?= $color ?>"><?= $row['nomor_urut'] ?></td>
-                    <td style="padding:9px 10px;font-size:13px"><?= esc($row['uraian_prosedur']) ?></td>
+                    <td style="padding:9px 10px;font-size:13px"><?= esc(strip_tags($row['uraian_prosedur'])) ?></td>
                     <td style="padding:9px 10px;text-align:center;font-size:13px">
                         <?= $row['rencana_waktu'] ? $row['rencana_waktu'].' HP' : '—' ?>
                     </td>
@@ -176,10 +184,20 @@ foreach ($pkaList as $p) {
                     </td>
                     <?php if($canEdit): ?>
                     <td style="padding:9px 10px;text-align:center">
-                        <button class="btn btn-xs btn-<?= $row['status']==='selesai' ? 'outline-secondary':'success' ?> btn-selesai"
-                                data-id="<?= $row['id'] ?>" style="font-size:11px;padding:2px 6px">
-                            <?= $row['status']==='selesai' ? '<i class="fas fa-undo"></i>':'<i class="fas fa-check"></i>' ?>
+                        <?php if ($row['status'] !== 'selesai'): ?>
+                        <button class="btn btn-xs btn-success btn-selesai"
+                                data-id="<?= $row['id'] ?>" style="font-size:11px;padding:2px 6px"
+                                title="Tandai dikerjakan">
+                            <i class="fas fa-check"></i>
                         </button>
+                        <?php else: ?>
+                        <button class="btn btn-xs btn-outline-secondary btn-selesai"
+                                data-id="<?= $row['id'] ?>" style="font-size:11px;padding:2px 6px"
+                                title="Batalkan (revert ke belum)">
+                            <i class="fas fa-undo"></i>
+                        </button>
+                        <?php endif; ?>
+                        <?php if ($row['status'] !== 'selesai'): ?>
                         <button class="btn btn-xs btn-primary btn-edit-pka"
                                 data-id="<?= $row['id'] ?>"
                                 data-uraian="<?= esc($row['uraian_prosedur']) ?>"
@@ -188,6 +206,7 @@ foreach ($pkaList as $p) {
                                 data-assigned='<?= json_encode(array_column($row['assigned_sdm'] ?? [], 'sdm_id')) ?>'>
                             <i class="fas fa-edit"></i>
                         </button>
+                        <?php endif; ?>
                         <button class="btn btn-xs btn-danger btn-del-pka" data-id="<?= $row['id'] ?>">
                             <i class="fas fa-trash"></i>
                         </button>
@@ -202,21 +221,22 @@ foreach ($pkaList as $p) {
             <!-- Inline Add Form per Fase -->
             <?php if ($canEdit): ?>
             <div style="padding:10px 12px;background:#f8fafc;border-top:1px solid #e2e8f0">
-                <form action="/admin/spt/<?= $spt['id'] ?>/pka/store" method="POST"
-                      style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+                <form action="/admin/spt/<?= $spt['id'] ?>/pka/store" method="POST">
                     <?= csrf_field() ?>
                     <input type="hidden" name="fase" value="<?= $fase ?>">
-                    <div style="flex:1;min-width:200px">
-                        <input type="text" name="uraian_prosedur" class="form-control form-control-sm"
-                               placeholder="Tambah prosedur <?= $label ?>..." required>
+                    <div class="form-group" style="margin-bottom:8px">
+                        <textarea name="uraian_prosedur" class="form-control form-control-sm"
+                                  data-wysiwyg data-wysiwyg-height="80px"
+                                  placeholder="Tambah prosedur <?= $label ?>..." required></textarea>
                     </div>
-                    <div style="width:90px">
+                    <div style="display:flex;gap:8px;align-items:center">
                         <input type="number" step="0.5" min="0" name="rencana_waktu"
-                               class="form-control form-control-sm" placeholder="HP">
+                               class="form-control form-control-sm" placeholder="Rencana HP"
+                               style="width:110px">
+                        <button type="submit" class="btn btn-sm" style="background:<?= $color ?>;color:#fff;white-space:nowrap">
+                            <i class="fas fa-plus"></i> Tambah Prosedur
+                        </button>
                     </div>
-                    <button type="submit" class="btn btn-sm" style="background:<?= $color ?>;color:#fff;white-space:nowrap">
-                        <i class="fas fa-plus"></i> Tambah
-                    </button>
                 </form>
             </div>
             <?php endif; ?>
@@ -323,7 +343,7 @@ foreach ($pkaList as $p) {
                     <tr style="border-bottom:1px solid #f1f5f9" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
                         <td style="padding:8px 10px;border:1px solid #e2e8f0">
                             <span style="color:<?= $faseColor[$row['fase']] ?>;font-weight:700;margin-right:6px"><?= $row['nomor_urut'] ?></span>
-                            <?= esc($row['uraian_prosedur']) ?>
+                            <?= esc(strip_tags($row['uraian_prosedur'])) ?>
                         </td>
                         <td style="padding:8px 6px;text-align:center;border:1px solid #e2e8f0;color:#64748b;font-size:11px">
                             <?= $row['rencana_waktu'] ?? '—' ?>
@@ -372,39 +392,102 @@ foreach ($pkaList as $p) {
 
 <!-- ═══ Modal Edit PKA ════════════════════════════════════════════════ -->
 <?php if ($canEdit): ?>
-<div id="modal-edit-pka" class="modal-overlay" style="display:none">
-    <div class="modal-box" style="max-width:560px">
-        <div class="modal-header">
-            <h3>Edit Prosedur PKA</h3>
-            <button class="modal-close" onclick="$('#modal-edit-pka').hide()"><i class="fas fa-times"></i></button>
+<div id="modal-edit-pka" style="display:none;position:fixed;inset:0;z-index:1050;
+     background:rgba(15,23,42,.55);backdrop-filter:blur(3px);
+     display:none;align-items:center;justify-content:center;padding:16px">
+    <div style="background:#fff;border-radius:16px;width:100%;max-width:540px;
+                box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden;
+                animation:modalSlideIn .2s ease">
+        <!-- Header -->
+        <div style="background:linear-gradient(135deg,#6366f1,#4f46e5);padding:18px 24px;
+                    display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:10px">
+                <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.2);
+                            display:flex;align-items:center;justify-content:center">
+                    <i class="fas fa-edit" style="color:#fff;font-size:16px"></i>
+                </div>
+                <div>
+                    <div style="color:#fff;font-weight:700;font-size:15px">Edit Prosedur PKA</div>
+                    <div style="color:rgba(255,255,255,.7);font-size:11px">Program Pengawasan Audit</div>
+                </div>
+            </div>
+            <button onclick="closePkaModal()"
+                    style="background:rgba(255,255,255,.15);border:none;border-radius:8px;
+                           width:32px;height:32px;cursor:pointer;color:#fff;font-size:14px;
+                           display:flex;align-items:center;justify-content:center;
+                           transition:background .15s"
+                    onmouseover="this.style.background='rgba(255,255,255,.25)'"
+                    onmouseout="this.style.background='rgba(255,255,255,.15)'">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
-        <form id="form-edit-pka">
+
+        <!-- Body -->
+        <form id="form-edit-pka" style="padding:24px">
             <?= csrf_field() ?>
             <input type="hidden" id="edit-pka-id">
-            <div class="form-group">
-                <label>Uraian Prosedur</label>
-                <textarea id="edit-uraian" name="uraian_prosedur" class="form-control" rows="3"></textarea>
+
+            <div class="form-group" style="margin-bottom:18px">
+                <label style="font-size:12px;font-weight:700;color:#475569;text-transform:uppercase;
+                              letter-spacing:.5px;margin-bottom:6px;display:block">
+                    Uraian Prosedur <span style="color:#ef4444">*</span>
+                </label>
+                <textarea id="edit-uraian" name="uraian_prosedur" class="form-control" rows="4"
+                          style="resize:vertical;border-radius:8px;border-color:#e2e8f0;font-size:13px"
+                          data-wysiwyg data-wysiwyg-height="120px"
+                          placeholder="Tuliskan prosedur audit yang akan dilaksanakan..."></textarea>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                <div class="form-group mb-0">
-                    <label>Fase</label>
-                    <select id="edit-fase" name="fase" class="form-control">
-                        <option value="persiapan">Persiapan</option>
-                        <option value="pelaksanaan">Pelaksanaan</option>
-                        <option value="pelaporan">Pelaporan</option>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+                <div class="form-group" style="margin-bottom:0">
+                    <label style="font-size:12px;font-weight:700;color:#475569;text-transform:uppercase;
+                                  letter-spacing:.5px;margin-bottom:6px;display:block">Fase</label>
+                    <select id="edit-fase" name="fase" class="form-control"
+                            style="border-radius:8px;border-color:#e2e8f0;font-size:13px">
+                        <option value="persiapan">📋 Persiapan</option>
+                        <option value="pelaksanaan">🔍 Pelaksanaan</option>
+                        <option value="pelaporan">📄 Pelaporan</option>
                     </select>
                 </div>
-                <div class="form-group mb-0">
-                    <label>Rencana (HP)</label>
-                    <input type="number" step="0.5" min="0" id="edit-rencana" name="rencana_waktu" class="form-control">
+                <div class="form-group" style="margin-bottom:0">
+                    <label style="font-size:12px;font-weight:700;color:#475569;text-transform:uppercase;
+                                  letter-spacing:.5px;margin-bottom:6px;display:block">Rencana Waktu (HP)</label>
+                    <div style="position:relative">
+                        <input type="number" step="0.5" min="0" id="edit-rencana" name="rencana_waktu"
+                               class="form-control"
+                               style="border-radius:8px;border-color:#e2e8f0;font-size:13px;padding-right:40px"
+                               placeholder="0">
+                        <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);
+                                     font-size:11px;color:#94a3b8;pointer-events:none">HP</span>
+                    </div>
                 </div>
             </div>
-            <div style="font-size:11px;color:#94a3b8;margin-top:8px">
-                <i class="fas fa-info-circle"></i> Penugasan AT diatur di tab <strong>Penugasan</strong>.
+
+            <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;
+                        padding:10px 14px;font-size:12px;color:#0369a1;margin-bottom:20px">
+                <i class="fas fa-info-circle"></i>
+                Penugasan Anggota Tim diatur di tab <strong>Penugasan AT</strong>.
             </div>
-            <div class="form-actions">
-                <button type="button" class="btn btn-secondary" onclick="$('#modal-edit-pka').hide()">Batal</button>
-                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Simpan</button>
+
+            <!-- Footer -->
+            <div style="display:flex;gap:10px;justify-content:flex-end;padding-top:4px;
+                        border-top:1px solid #f1f5f9;margin-top:4px">
+                <button type="button" onclick="closePkaModal()"
+                        style="padding:9px 20px;border:1px solid #e2e8f0;border-radius:8px;
+                               background:#fff;color:#475569;font-size:13px;font-weight:600;cursor:pointer;
+                               transition:all .15s"
+                        onmouseover="this.style.background='#f8fafc'"
+                        onmouseout="this.style.background='#fff'">
+                    Batal
+                </button>
+                <button type="submit"
+                        style="padding:9px 24px;border:none;border-radius:8px;
+                               background:linear-gradient(135deg,#6366f1,#4f46e5);
+                               color:#fff;font-size:13px;font-weight:600;cursor:pointer;
+                               display:flex;align-items:center;gap:8px;transition:opacity .15s"
+                        onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
+                    <i class="fas fa-save"></i> Simpan Perubahan
+                </button>
             </div>
         </form>
     </div>
@@ -452,13 +535,46 @@ $(document).on('click', '.btn-selesai', function() {
 });
 
 // ── Buka modal edit ───────────────────────────────────────────────────
+// ── Helper buka/tutup modal ───────────────────────────────────────────
+function openPkaModal()  {
+    const m = document.getElementById('modal-edit-pka');
+    m.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    // Init Quill lazy (no-op setelah pertama)
+    if (typeof initWysiwyg === 'function') initWysiwyg(m);
+}
+function closePkaModal() {
+    const m = document.getElementById('modal-edit-pka');
+    m.style.display = 'none';
+    document.body.style.overflow = '';
+}
+// Tutup modal saat klik backdrop
+document.getElementById('modal-edit-pka').addEventListener('click', function(e) {
+    if (e.target === this) closePkaModal();
+});
+// Tutup modal dengan Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closePkaModal();
+});
+
 $(document).on('click', '.btn-edit-pka', function() {
-    const rowId = $(this).data('id');
+    const rowId  = $(this).data('id');
+    const uraian = $(this).data('uraian') || '';
     $('#edit-pka-id').val(rowId);
-    $('#edit-uraian').val($(this).data('uraian'));
     $('#edit-fase').val($(this).data('fase') || 'pelaksanaan');
     $('#edit-rencana').val($(this).data('rencana'));
-    $('#modal-edit-pka').show();
+    openPkaModal();
+    // Set Quill content setelah modal terbuka
+    setTimeout(function() {
+        const q = window._quillInstances && window._quillInstances['edit-uraian'];
+        if (q) {
+            q.root.innerHTML = uraian.startsWith('<') ? uraian
+                : (uraian ? '<p>' + uraian.replace(/\n/g, '<br>') + '</p>' : '');
+            $('#edit-uraian').val(uraian);
+        } else {
+            $('#edit-uraian').val(uraian);
+        }
+    }, 50);
 });
 
 // ── Submit edit via AJAX ──────────────────────────────────────────────

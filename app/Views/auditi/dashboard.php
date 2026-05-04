@@ -78,7 +78,7 @@
                 $sc = ['terkirim'=>'terkirim','ditanggapi'=>'ditanggapi','selesai'=>'selesai'];
                 $cls = $sc[$nhp['status']] ?? 'draft';
                 ?>
-                <span class="badge badge-<?= $cls ?>"><?= NhpModel::$statusLabel[$nhp['status']] ?? $nhp['status'] ?></span>
+                <span class="badge badge-<?= $cls ?>"><?= $nhpStatusLabel[$nhp['status']] ?? $nhp['status'] ?></span>
                 <?php if ((int)$nhp['jumlah_pending'] > 0): ?>
                 <span class="badge badge-pending" style="margin-left:4px"><?= $nhp['jumlah_pending'] ?> belum</span>
                 <?php endif; ?>

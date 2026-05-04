@@ -3,7 +3,7 @@
 
 <div class="page-header">
     <h1><i class="fas fa-file-alt" style="color:#2563eb"></i> Notisi Hasil Pemeriksaan</h1>
-    <p>Daftar seluruh NHP yang dikirimkan BPKP kepada <?= esc($entitas['nama']) ?></p>
+    <p>Daftar seluruh NHP yang dikirimkan APIP kepada <?= esc($entitas['nama']) ?></p>
 </div>
 
 <?php if (empty($nhpList)): ?>
@@ -11,7 +11,7 @@
     <div class="card-body" style="text-align:center;padding:60px;color:#94a3b8">
         <i class="fas fa-inbox" style="font-size:48px;display:block;margin-bottom:16px"></i>
         <div style="font-size:15px;font-weight:600;margin-bottom:8px">Belum ada NHP</div>
-        <p style="font-size:13px">NHP dari BPKP akan muncul di sini saat dikirimkan kepada instansi Anda.</p>
+        <p style="font-size:13px">NHP dari APIP akan muncul di sini saat dikirimkan kepada instansi Anda.</p>
     </div>
 </div>
 <?php else: ?>

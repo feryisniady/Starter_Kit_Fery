@@ -6,6 +6,15 @@
 <title><?= esc($title ?? 'Portal Auditi') ?> — SKIPA</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/11.10.1/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdn.quilljs.com/1.3.7/quill.snow.css">
+<style>
+.ql-container{font-family:inherit;font-size:13px;border-radius:0 0 6px 6px}
+.ql-toolbar{border-radius:6px 6px 0 0;background:#f8fafc;border-color:#e2e8f0!important}
+.ql-container.ql-snow{border-color:#e2e8f0!important}
+.ql-editor{min-height:90px;max-height:280px;overflow-y:auto;line-height:1.6}
+.ql-editor.ql-blank::before{color:#94a3b8;font-style:italic}
+.wysiwyg-badge{display:inline-block;font-size:9px;font-weight:600;background:#ede9fe;color:#6d28d9;padding:1px 6px;border-radius:4px;margin-left:6px;vertical-align:middle}
+</style>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',Arial,sans-serif;font-size:14px;background:#f1f5f9;color:#1e293b;min-height:100vh}
@@ -178,6 +187,53 @@ textarea.form-control{resize:vertical;min-height:90px}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/11.10.1/sweetalert2.min.js"></script>
+<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+<script>
+window._quillInstances = window._quillInstances || {};
+const WYSIWYG_TOOLBAR = [
+    [{ header: [2, 3, false] }],
+    ['bold', 'italic', 'underline'],
+    [{ list: 'ordered' }, { list: 'bullet' }],
+    ['clean']
+];
+function initWysiwyg(container) {
+    container = container || document;
+    container.querySelectorAll('textarea[data-wysiwyg]').forEach(function(ta) {
+        if (ta._quillInit || ta.disabled) return;
+        ta._quillInit = true;
+        const id     = ta.id || ('qeditor-' + Math.random().toString(36).slice(2));
+        const height = ta.getAttribute('data-wysiwyg-height') || '120px';
+        const wrapper  = document.createElement('div');
+        const editorDiv = document.createElement('div');
+        editorDiv.id    = id + '-editor';
+        editorDiv.style.minHeight = height;
+        wrapper.appendChild(editorDiv);
+        ta.parentNode.insertBefore(wrapper, ta);
+        ta.style.display = 'none';
+        const quill = new Quill(editorDiv, {
+            theme: 'snow', modules: { toolbar: WYSIWYG_TOOLBAR },
+            placeholder: ta.placeholder || 'Ketik di sini...',
+        });
+        const existing = ta.value.trim();
+        if (existing) {
+            quill.root.innerHTML = existing.startsWith('<')
+                ? existing
+                : '<p>' + existing.replace(/\n\n+/g, '</p><p>').replace(/\n/g, '<br>') + '</p>';
+        }
+        quill.on('text-change', function() {
+            ta.value = quill.root.innerHTML === '<p><br></p>' ? '' : quill.root.innerHTML;
+        });
+        window._quillInstances[id] = quill;
+    });
+}
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('textarea[data-wysiwyg]:not(.wysiwyg-lazy)').forEach(function(ta) {
+        var p = ta.parentElement;
+        while (p) { if (getComputedStyle(p).display === 'none') return; p = p.parentElement; }
+        initWysiwyg(ta.closest('form') || ta.parentElement);
+    });
+});
+</script>
 <script>
 const CSRF_NAME = '<?= csrf_token() ?>';
 const CSRF_HASH = '<?= csrf_hash() ?>';

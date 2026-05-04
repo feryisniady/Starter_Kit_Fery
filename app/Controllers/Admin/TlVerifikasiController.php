@@ -35,10 +35,12 @@ class TlVerifikasiController extends BaseController
             : array_values(array_filter($all, fn($r) => $r['status_verifikasi'] === $tab));
 
         return view('admin/tl/index', [
-            'title'  => 'Verifikasi Tindak Lanjut',
-            'list'   => $list,
-            'tab'    => $tab,
-            'counts' => $counts,
+            'title'           => 'Verifikasi Tindak Lanjut',
+            'list'            => $list,
+            'tab'             => $tab,
+            'counts'          => $counts,
+            'verifikasiLabel' => TindakLanjutModel::$verifikasiLabel,
+            'verifikasiColor' => TindakLanjutModel::$verifikasiColor,
         ]);
     }
 

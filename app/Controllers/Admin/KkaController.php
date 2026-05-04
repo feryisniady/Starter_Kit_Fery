@@ -4,6 +4,7 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\KkaModel;
+use App\Models\KkaIkhtisarDokumenModel;
 use App\Models\NhpModel;
 use App\Models\SptModel;
 
@@ -20,15 +21,17 @@ use App\Models\SptModel;
  */
 class KkaController extends BaseController
 {
-    protected KkaModel $kkaModel;
-    protected NhpModel $nhpModel;
-    protected SptModel $sptModel;
+    protected KkaModel                $kkaModel;
+    protected KkaIkhtisarDokumenModel $dokModel;
+    protected NhpModel                $nhpModel;
+    protected SptModel                $sptModel;
 
     public function __construct()
     {
-        $this->kkaModel = new KkaModel();
-        $this->nhpModel = new NhpModel();
-        $this->sptModel = new SptModel();
+        $this->kkaModel  = new KkaModel();
+        $this->dokModel  = new KkaIkhtisarDokumenModel();
+        $this->nhpModel  = new NhpModel();
+        $this->sptModel  = new SptModel();
     }
 
     // ──────────────────────────────────────────────────────────────────────
@@ -154,21 +157,28 @@ class KkaController extends BaseController
                       && in_array($kka['status'], ['draft','ikhtisar_selesai','simpulan_selesai'])
                       && !$kkaApproved;
 
+        // Dokumen per kka_ikhtisar (indexed by kka_ikhtisar.id)
+        $dokumenByIkhtisar = [];
+        foreach ($this->dokModel->getByKka($kkaId) as $dok) {
+            $dokumenByIkhtisar[(int)$dok['kka_ikhtisar_id']][] = $dok;
+        }
+
         return view('admin/kka/show', [
-            'title'            => 'KKA — ' . $kka['nama'],
-            'kka'              => $kka,
-            'spt'              => $spt,
-            'prosedurData'     => $this->kkaModel->getProsedurData($kkaId, $pkaList),
-            'pkaList'          => $pkaList,
-            'kodeTemuanList'   => $kodeTemuanList,
-            'statusLabel'      => KkaModel::$statusLabel,
-            'statusColor'      => KkaModel::$statusColor,
-            'statusKkaLabel'   => KkaModel::$statusKkaLabel,
-            'statusKkaColor'   => KkaModel::$statusKkaColor,
-            'canEdit'          => $canEdit,
-            'isDalnis'         => isAuditAdmin() || isDalnisInSpt($kka['spt_id']),
-            'isKt'             => $isKt,
-            'isAt'             => $isAt,
+            'title'              => 'KKA — ' . $kka['nama'],
+            'kka'                => $kka,
+            'spt'                => $spt,
+            'prosedurData'       => $this->kkaModel->getProsedurData($kkaId, $pkaList),
+            'pkaList'            => $pkaList,
+            'kodeTemuanList'     => $kodeTemuanList,
+            'dokumenByIkhtisar'  => $dokumenByIkhtisar,
+            'statusLabel'        => KkaModel::$statusLabel,
+            'statusColor'        => KkaModel::$statusColor,
+            'statusKkaLabel'     => KkaModel::$statusKkaLabel,
+            'statusKkaColor'     => KkaModel::$statusKkaColor,
+            'canEdit'            => $canEdit,
+            'isDalnis'           => isAuditAdmin() || isDalnisInSpt($kka['spt_id']),
+            'isKt'               => $isKt,
+            'isAt'               => $isAt,
         ]);
     }
 
@@ -192,30 +202,36 @@ class KkaController extends BaseController
         $this->kkaModel->saveProsedurUnified($kkaId, $this->request->getPost());
         $this->kkaModel->syncAwFromKka($kkaId);
 
-        // Handle file upload per prosedur
-        $file = $this->request->getFile('bukti_dokumen');
-        if ($file && $file->isValid() && !$file->hasMoved()) {
-            $pkaId  = (int)$this->request->getPost('pka_id');
+        // Handle file upload per prosedur (multiple files)
+        $pkaId     = (int)$this->request->getPost('pka_id');
+        $files     = $this->request->getFiles()['bukti_dokumen'] ?? [];
+        $keterangan = $this->request->getPost('keterangan_dokumen') ?: null;
+
+        if (!empty($files)) {
             $db     = \Config\Database::connect();
             $ikhRow = $db->table('kka_ikhtisar')
-                ->where('kka_id', $kkaId)->where('pka_id', $pkaId)
+                ->where('kka_id', $kkaId)
+                ->where('pka_id', $pkaId)
                 ->get()->getRowArray();
 
             if ($ikhRow) {
                 $uploadPath = WRITEPATH . 'uploads/kka-dokumen/';
                 if (!is_dir($uploadPath)) mkdir($uploadPath, 0755, true);
 
-                $newName = $file->getRandomName();
-                $file->move($uploadPath, $newName);
-
-                $this->dokModel->insert([
-                    'kka_ikhtisar_id' => (int)$ikhRow['id'],
-                    'nama_file'       => $file->getClientName(),
-                    'path_file'       => $newName,
-                    'ukuran'          => $file->getSize(),
-                    'keterangan'      => $this->request->getPost('keterangan_dokumen'),
-                    'uploaded_by'     => user_id(),
-                ]);
+                foreach ((array) $files as $file) {
+                    if (!$file || !$file->isValid() || $file->hasMoved()) continue;
+                    $newName = $file->getRandomName();
+                    $file->move($uploadPath, $newName);
+                    $this->dokModel->insert([
+                        'kka_ikhtisar_id' => (int)$ikhRow['id'],
+                        'nama_file'        => $file->getClientName(),
+                        'path_file'        => $newName,
+                        'ukuran'           => $file->getSize(),
+                        'keterangan'       => $keterangan,
+                        'uploaded_by'      => session()->get('user_id'),
+                        'uploaded_at'      => date('Y-m-d H:i:s'),
+                    ]);
+                }
             }
         }
 
@@ -614,7 +630,59 @@ class KkaController extends BaseController
     }
 
     // ──────────────────────────────────────────────────────────────────────
-    // Cetak KKA per AT (format BPKP)
+    // Dokumen Bukti per Prosedur
+    // ──────────────────────────────────────────────────────────────────────
+
+    /** Download file bukti */
+    public function downloadDokumen(int $dokId)
+    {
+        $dok = $this->dokModel->find($dokId);
+        if (!$dok) return redirect()->back()->with('error', 'File tidak ditemukan.');
+
+        // Pastikan user punya akses ke KKA terkait
+        $ikhRow = \Config\Database::connect()
+            ->table('kka_ikhtisar')->where('id', $dok['kka_ikhtisar_id'])->get()->getRowArray();
+        if ($ikhRow) {
+            $kka = $this->kkaModel->find($ikhRow['kka_id']);
+            if (!$kka || !$this->canAccessKka($kka)) {
+                return redirect()->back()->with('error', 'Akses ditolak.');
+            }
+        }
+
+        $path = WRITEPATH . 'uploads/kka-dokumen/' . $dok['path_file'];
+        if (!is_file($path)) return redirect()->back()->with('error', 'File tidak ada di server.');
+
+        return $this->response
+            ->setHeader('Content-Type', mime_content_type($path))
+            ->setHeader('Content-Disposition', 'attachment; filename="' . $dok['nama_file'] . '"')
+            ->setBody(file_get_contents($path));
+    }
+
+    /** Hapus dokumen bukti (hanya AT pemilik atau admin) */
+    public function deleteDokumen(int $dokId)
+    {
+        $dok = $this->dokModel->find($dokId);
+        if (!$dok) return redirect()->back()->with('error', 'File tidak ditemukan.');
+
+        $db     = \Config\Database::connect();
+        $ikhRow = $db->table('kka_ikhtisar')->where('id', $dok['kka_ikhtisar_id'])->get()->getRowArray();
+        if (!$ikhRow) return redirect()->back()->with('error', 'Data tidak valid.');
+
+        $kka = $this->kkaModel->find($ikhRow['kka_id']);
+        if (!$kka || !$this->canEditKka($kka)) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+        if (($kka['status_kka'] ?? 'draft') === 'approved') {
+            return redirect()->back()->with('error', 'KKA sudah disetujui, tidak bisa menghapus dokumen.');
+        }
+
+        $this->dokModel->hapus($dokId);
+        logActivity('kka.dokumen.hapus', 'kka', "Hapus dokumen id={$dokId}");
+        return redirect()->back()->with('success', 'Dokumen berhasil dihapus.');
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // Cetak KKA per AT (format APIP)
     // ──────────────────────────────────────────────────────────────────────
 
     public function printKka(int $kkaId)

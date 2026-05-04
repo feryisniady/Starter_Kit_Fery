@@ -394,7 +394,7 @@ foreach ($checklist as $key => $item) {
                 <i class="fas fa-arrow-right"></i> Buka
             </a>
             <?php elseif ($done): ?>
-            <?php $isPhase1Locked = $sptDiproses && ($item['phase'] ?? 1) === 1; ?>
+            <?php $isPhase1Locked = ($sptDiproses || $sptTerbit) && ($item['phase'] ?? 1) === 1; ?>
             <a href="<?= $url ?>" class="btn btn-sm btn-secondary">
                 <i class="fas fa-<?= $isPhase1Locked ? 'eye' : 'edit' ?>"></i>
                 <?= $isPhase1Locked ? 'Lihat' : 'Edit' ?>

@@ -30,7 +30,10 @@ class Reviu extends Controller
 
 
         // 1. Inisialisasi Global
-        $apiKey = trim("AIzaSyBAIx9t-IisLhXX-Hml222I7DZkPRmPtrc"); 
+        $apiKey = trim((string) env('gemini.apiKey', ''));
+        if (empty($apiKey)) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Gemini API key belum dikonfigurasi. Tambahkan gemini.apiKey di file .env']);
+        }
         $model = new ReviuModel();
         $file = $this->request->getFile('dokumen');
         $idKriteria = $this->request->getPost('id_kriteria');

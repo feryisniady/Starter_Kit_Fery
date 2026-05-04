@@ -21,6 +21,23 @@
   <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css">
   <!-- Admin Extra (override DataTables default) — HARUS paling akhir -->
   <link rel="stylesheet" href="/assets/_main/css/admin-extra.css?v=6">
+  <!-- Quill WYSIWYG Editor -->
+  <link rel="stylesheet" href="https://cdn.quilljs.com/1.3.7/quill.snow.css">
+  <style>
+    /* Quill Editor — tampilan selaras dengan form admin */
+    .ql-container { font-family: inherit; font-size: 13px; border-radius: 0 0 6px 6px; }
+    .ql-toolbar { border-radius: 6px 6px 0 0; background: #f8fafc; border-color: #e2e8f0 !important; }
+    .ql-container.ql-snow { border-color: #e2e8f0 !important; }
+    .ql-editor { min-height: 80px; max-height: 320px; overflow-y: auto; line-height: 1.6; }
+    .ql-editor.ql-blank::before { color: #94a3b8; font-style: italic; }
+    /* Label WYSIWYG badge */
+    .wysiwyg-wrap { position: relative; }
+    .wysiwyg-badge {
+      display: inline-block; font-size: 9px; font-weight: 600; letter-spacing: .3px;
+      background: #ede9fe; color: #6d28d9; padding: 1px 6px; border-radius: 4px;
+      margin-left: 6px; vertical-align: middle;
+    }
+  </style>
 
   <!-- CSS Tambahan Per Halaman -->
   <?= $this->renderSection('styles') ?>
@@ -545,6 +562,98 @@ document.addEventListener('submit', function(e) {
     fetchNotif();
     setInterval(fetchNotif, 30000);
   });
+</script>
+
+<!-- Quill WYSIWYG JS -->
+<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+<script>
+/**
+ * initWysiwyg(container)
+ * Inisialisasi semua [data-wysiwyg] di dalam container menjadi Quill editor.
+ * Dipanggil lazy saat card di-expand agar tidak boros memory.
+ */
+window._quillInstances = window._quillInstances || {};
+
+const WYSIWYG_TOOLBAR = [
+    [{ header: [2, 3, false] }],
+    ['bold', 'italic', 'underline'],
+    [{ list: 'ordered' }, { list: 'bullet' }],
+    [{ indent: '-1' }, { indent: '+1' }],
+    ['clean']
+];
+
+function initWysiwyg(container) {
+    container = container || document;
+    container.querySelectorAll('textarea[data-wysiwyg]').forEach(function(ta) {
+        if (ta._quillInit || ta.disabled) return; // sudah di-init atau read-only
+        ta._quillInit = true;
+
+        const id = ta.id || ('qeditor-' + Math.random().toString(36).slice(2));
+        if (!ta.id) ta.id = id; // simpan id agar bisa di-cleanup nanti
+        const height = ta.getAttribute('data-wysiwyg-height') || '120px';
+
+        // Buat wrapper div untuk Quill di atas textarea
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText = 'margin-bottom:0';
+
+        const editorDiv = document.createElement('div');
+        editorDiv.id    = id + '-editor';
+        editorDiv.style.minHeight = height;
+
+        wrapper.appendChild(editorDiv);
+        ta.parentNode.insertBefore(wrapper, ta);
+        ta.style.display = 'none'; // sembunyikan textarea asli
+
+        // Init Quill
+        const quill = new Quill(editorDiv, {
+            theme:   'snow',
+            modules: { toolbar: WYSIWYG_TOOLBAR },
+            placeholder: ta.placeholder || 'Ketik di sini...',
+        });
+
+        // Pre-fill dari nilai textarea yang sudah ada
+        const existingVal = ta.value.trim();
+        if (existingVal) {
+            if (existingVal.startsWith('<')) {
+                quill.root.innerHTML = existingVal; // HTML dari WYSIWYG sebelumnya
+            } else {
+                // Plain text lama — convert newline ke paragraf
+                quill.root.innerHTML = '<p>' + existingVal.replace(/\n\n+/g, '</p><p>').replace(/\n/g, '<br>') + '</p>';
+            }
+        }
+
+        // Sync ke textarea saat konten berubah
+        quill.on('text-change', function() {
+            ta.value = quill.root.innerHTML === '<p><br></p>' ? '' : quill.root.innerHTML;
+        });
+
+        window._quillInstances[id] = quill;
+    });
+}
+
+// Sync semua quill ke textarea sebelum form submit
+document.addEventListener('submit', function(e) {
+    var form = e.target;
+    form.querySelectorAll('textarea[data-wysiwyg]').forEach(function(ta) {
+        var id     = ta.id || '';
+        var editor = ta.previousElementSibling && ta.previousElementSibling.querySelector('[id$="-editor"]');
+        // Konten sudah disync via text-change event — tidak perlu action tambahan
+    });
+}, true);
+
+// Auto-init untuk textarea wysiwyg yang TIDAK di dalam card collapsible
+document.addEventListener('DOMContentLoaded', function() {
+    // Init wysiwyg yang tidak ada di dalam div.card-collapsible (langsung visible)
+    document.querySelectorAll('textarea[data-wysiwyg]:not(.wysiwyg-lazy)').forEach(function(ta) {
+        // Cek apakah parent visible
+        var parent = ta.parentElement;
+        while (parent) {
+            if (getComputedStyle(parent).display === 'none') return; // skip hidden
+            parent = parent.parentElement;
+        }
+        initWysiwyg(ta.closest('form') || ta.parentElement);
+    });
+});
 </script>
 
 <!-- Scripts Per Halaman -->

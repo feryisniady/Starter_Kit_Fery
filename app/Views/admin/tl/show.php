@@ -53,19 +53,19 @@ $canVerif = $sv === 'menunggu';
             <?php if ($tl['kondisi']): ?>
             <div>
                 <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:4px">Kondisi</div>
-                <div style="font-size:13px;line-height:1.6"><?= nl2br(esc($tl['kondisi'])) ?></div>
+                <div style="font-size:13px;line-height:1.6"><?= renderContent($tl['kondisi']) ?></div>
             </div>
             <?php endif; ?>
             <?php if ($tl['sebab']): ?>
             <div>
                 <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:4px">Sebab</div>
-                <div style="font-size:13px;line-height:1.6"><?= nl2br(esc($tl['sebab'])) ?></div>
+                <div style="font-size:13px;line-height:1.6"><?= renderContent($tl['sebab']) ?></div>
             </div>
             <?php endif; ?>
         </div>
         <div style="margin-top:14px;padding:14px;background:#f3f0ff;border-radius:10px;border-left:4px solid #7c3aed">
-            <div style="font-size:11px;font-weight:700;color:#7c3aed;text-transform:uppercase;margin-bottom:4px">Rekomendasi BPKP</div>
-            <div style="font-size:13px;line-height:1.7;font-weight:500"><?= nl2br(esc($tl['isi_rekomendasi'])) ?></div>
+            <div style="font-size:11px;font-weight:700;color:#7c3aed;text-transform:uppercase;margin-bottom:4px">Rekomendasi APIP</div>
+            <div style="font-size:13px;line-height:1.7;font-weight:500"><?= renderContent($tl['isi_rekomendasi']) ?></div>
             <?php if ($tl['batas_waktu']): ?>
             <?php $overdue = strtotime($tl['batas_waktu']) < time() && $sv !== 'diterima'; ?>
             <div style="margin-top:8px;font-size:12px;<?= $overdue?'color:#ef4444;font-weight:700':'color:#64748b' ?>">
@@ -93,7 +93,7 @@ $canVerif = $sv === 'menunggu';
     </div>
     <div class="card-body">
         <div style="font-size:14px;line-height:1.8;color:#1e293b;margin-bottom:16px">
-            <?= nl2br(esc($tl['uraian'])) ?>
+            <?= renderContent($tl['uraian']) ?>
         </div>
 
         <!-- Dokumen Bukti Dukung -->
@@ -131,7 +131,7 @@ $canVerif = $sv === 'menunggu';
         <?php if ($tl['catatan_verifikasi'] && $sv !== 'menunggu'): ?>
         <div style="margin-top:16px;padding:12px 14px;background:#fef9c3;border-left:4px solid #eab308;border-radius:6px">
             <div style="font-size:11px;font-weight:700;color:#92400e;text-transform:uppercase;margin-bottom:4px">
-                Catatan Verifikasi BPKP — <?= esc($tl['verified_by_nama'] ?? '') ?>
+                Catatan Verifikasi APIP — <?= esc($tl['verified_by_nama'] ?? '') ?>
                 <?= $tl['verified_at'] ? '(' . date('d M Y H:i', strtotime($tl['verified_at'])) . ')' : '' ?>
             </div>
             <div style="font-size:13px;color:#1e293b"><?= nl2br(esc($tl['catatan_verifikasi'])) ?></div>

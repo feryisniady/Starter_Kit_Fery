@@ -1,20 +1,4 @@
 <?= $this->extend('layouts/main') ?>
-<?= $this->section('styles') ?>
-<style>
-#tim-rows tr.tim-row td {
-    padding: 10px 8px;
-    vertical-align: middle;
-    border-bottom: 1px solid #e2e8f0;
-}
-#tim-rows tr.tim-row:last-child td { border-bottom: none; }
-#tim-rows tr.tim-row:hover td { background: #f8fafc; }
-#tim-rows tr.tim-row td:first-child {
-    border-left: 3px solid #e2e8f0;
-    transition: border-color .2s;
-}
-#tim-rows tr.tim-row:hover td:first-child { border-left-color: #6366f1; }
-</style>
-<?= $this->endSection() ?>
 <?= $this->section('content') ?>
 
 <div class="page-header">
@@ -119,11 +103,15 @@ $hpBarColor = $hpPct >= 90 ? '#ef4444' : ($hpPct >= 70 ? '#f59e0b' : '#22c55e');
                     </div>
                     <div class="form-group">
                         <label>Tujuan / Sasaran <span style="color:red">*</span></label>
-                        <textarea name="tujuan_sasaran" class="form-control" rows="3" required><?= old('tujuan_sasaran', $row['tujuan_sasaran'] ?? '') ?></textarea>
+                        <textarea name="tujuan_sasaran" class="form-control" rows="3" required
+                                  data-wysiwyg data-wysiwyg-height="90px"
+                                  placeholder="Tujuan dan sasaran pengawasan..."><?= old('tujuan_sasaran', $row['tujuan_sasaran'] ?? '') ?></textarea>
                     </div>
                     <div class="form-group">
                         <label>Ruang Lingkup</label>
-                        <textarea name="ruang_lingkup" class="form-control" rows="2"><?= old('ruang_lingkup', $row['ruang_lingkup'] ?? '') ?></textarea>
+                        <textarea name="ruang_lingkup" class="form-control" rows="2"
+                                  data-wysiwyg data-wysiwyg-height="80px"
+                                  placeholder="Ruang lingkup pengawasan..."><?= old('ruang_lingkup', $row['ruang_lingkup'] ?? '') ?></textarea>
                     </div>
                     <div class="form-row-2">
                         <div class="form-group">
@@ -143,67 +131,74 @@ $hpBarColor = $hpPct >= 90 ? '#ef4444' : ($hpPct >= 70 ? '#f59e0b' : '#22c55e');
                         </div>
                     </div>
                     <?php
-                    // Generate opsi minggu per bulan (tahun PKPT ± 1 tahun)
-                    $bulanSingkat = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
-                    $weekDefs = [
-                        'Mg-I'  => [1,  7],
-                        'Mg-II' => [8,  14],
-                        'Mg-III'=> [15, 21],
-                        'Mg-IV' => [22, 28],
-                    ];
-                    $weekOptions = [];
-                    for ($y = $pkpt['tahun'] - 1; $y <= $pkpt['tahun'] + 1; $y++) {
-                        for ($m = 1; $m <= 12; $m++) {
-                            $lastDay = (int) date('t', mktime(0,0,0,$m,1,$y));
-                            foreach ($weekDefs as $wk => [$wStart, $wEnd]) {
-                                $actualEnd = min($wEnd, $lastDay);
-                                $weekOptions[] = [
-                                    'label' => $wk . ' ' . $bulanSingkat[$m-1] . ' ' . $y,
-                                    'start' => sprintf('%04d-%02d-%02d', $y, $m, $wStart),
-                                    'end'   => sprintf('%04d-%02d-%02d', $y, $m, $actualEnd),
-                                ];
-                            }
-                            if ($lastDay >= 29) {
-                                $weekOptions[] = [
-                                    'label' => 'Mg-V ' . $bulanSingkat[$m-1] . ' ' . $y,
-                                    'start' => sprintf('%04d-%02d-29', $y, $m),
-                                    'end'   => sprintf('%04d-%02d-%02d', $y, $m, $lastDay),
-                                ];
-                            }
-                        }
-                    }
+                    $bulanOpts = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+                    $mingguOpts = ['Mg-I','Mg-II','Mg-III','Mg-IV'];
+                    // Rentang tanggal per minggu
+                    $mingguStart = ['Mg-I'=>1,'Mg-II'=>8,'Mg-III'=>15,'Mg-IV'=>22];
+                    $mingguEnd   = ['Mg-I'=>7,'Mg-II'=>14,'Mg-III'=>21,'Mg-IV'=>28];
+
+                    // Parse nilai tersimpan → bulan & minggu
                     $curRmp = old('jadwal_rmp', $row['jadwal_rmp'] ?? '');
                     $curRpl = old('jadwal_rpl', $row['jadwal_rpl'] ?? '');
+                    // Format tersimpan: "Mg-II Jan 2026" — parse kembali
+                    $parseMinggu = function(string $val) use ($bulanOpts) {
+                        if (!$val) return ['mg' => '', 'bln' => '', 'thn' => ''];
+                        $parts = explode(' ', trim($val));
+                        return [
+                            'mg'  => $parts[0] ?? '',
+                            'bln' => $parts[1] ?? '',
+                            'thn' => $parts[2] ?? '',
+                        ];
+                    };
+                    $rmpParts = $parseMinggu($curRmp);
+                    $rplParts = $parseMinggu($curRpl);
+                    $tahunOpts = [$pkpt['tahun'] - 1, $pkpt['tahun'], $pkpt['tahun'] + 1];
                     ?>
+                    <!-- RMP & RPL — Compact Selector: Tahun + Bulan + Minggu -->
                     <div class="form-row-2">
+                        <?php foreach ([
+                            ['id'=>'rmp','label'=>'Jadwal RMP','sub'=>'Rencana Mulai Penugasan','parts'=>$rmpParts,'field'=>'jadwal_rmp','mulai_id'=>'inp-mulai'],
+                            ['id'=>'rpl','label'=>'Jadwal RPL','sub'=>'Rencana Pelaksanaan Lapangan','parts'=>$rplParts,'field'=>'jadwal_rpl','mulai_id'=>'inp-selesai'],
+                        ] as $sel): ?>
                         <div class="form-group">
-                            <label>Jadwal RMP <small style="color:#94a3b8;font-weight:400">(Rencana Mulai Penugasan)</small></label>
-                            <select name="jadwal_rmp" id="sel-rmp" class="form-control" onchange="onRmpChange(this)">
-                                <option value="">— Pilih Minggu —</option>
-                                <?php foreach ($weekOptions as $wo): ?>
-                                <option value="<?= $wo['label'] ?>"
-                                        data-start="<?= $wo['start'] ?>"
-                                        data-end="<?= $wo['end'] ?>"
-                                        <?= $curRmp === $wo['label'] ? 'selected' : '' ?>>
-                                    <?= $wo['label'] ?>
-                                </option>
-                                <?php endforeach; ?>
-                            </select>
+                            <label><?= $sel['label'] ?>
+                                <small style="color:#94a3b8;font-weight:400">(<?= $sel['sub'] ?>)</small>
+                            </label>
+                            <!-- Hidden field yang dikirim ke server -->
+                            <input type="hidden" name="<?= $sel['field'] ?>" id="hid-<?= $sel['id'] ?>" value="<?= esc($sel['parts']['mg'] ? $sel['parts']['mg'].' '.$sel['parts']['bln'].' '.$sel['parts']['thn'] : '') ?>">
+                            <!-- 3 komponen visual -->
+                            <div style="display:flex;gap:6px">
+                                <select id="sel-<?= $sel['id'] ?>-mg" class="form-control form-control-sm"
+                                        style="width:90px" onchange="updateJadwal('<?= $sel['id'] ?>')">
+                                    <option value="">Minggu</option>
+                                    <?php foreach ($mingguOpts as $mg): ?>
+                                    <option value="<?= $mg ?>" <?= $sel['parts']['mg'] === $mg ? 'selected':'' ?>><?= $mg ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <select id="sel-<?= $sel['id'] ?>-bln" class="form-control form-control-sm"
+                                        style="flex:1" onchange="updateJadwal('<?= $sel['id'] ?>')">
+                                    <option value="">Bulan</option>
+                                    <?php foreach ($bulanOpts as $bln): ?>
+                                    <option value="<?= $bln ?>" <?= $sel['parts']['bln'] === $bln ? 'selected':'' ?>><?= $bln ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <select id="sel-<?= $sel['id'] ?>-thn" class="form-control form-control-sm"
+                                        style="width:82px" onchange="updateJadwal('<?= $sel['id'] ?>')">
+                                    <option value="">Tahun</option>
+                                    <?php foreach ($tahunOpts as $thn): ?>
+                                    <option value="<?= $thn ?>" <?= $sel['parts']['thn'] == $thn ? 'selected':'' ?>><?= $thn ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <!-- Preview nilai terpilih -->
+                            <div id="preview-<?= $sel['id'] ?>" style="font-size:11px;color:#6366f1;margin-top:4px;min-height:16px">
+                                <?php if ($sel['parts']['mg']): ?>
+                                <i class="fas fa-calendar-check"></i>
+                                <?= $sel['parts']['mg'].' '.$sel['parts']['bln'].' '.$sel['parts']['thn'] ?>
+                                <?php endif; ?>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label>Jadwal RPL <small style="color:#94a3b8;font-weight:400">(Rencana Pelaksanaan Lapangan)</small></label>
-                            <select name="jadwal_rpl" id="sel-rpl" class="form-control" onchange="onRplChange(this)">
-                                <option value="">— Pilih Minggu —</option>
-                                <?php foreach ($weekOptions as $wo): ?>
-                                <option value="<?= $wo['label'] ?>"
-                                        data-start="<?= $wo['start'] ?>"
-                                        data-end="<?= $wo['end'] ?>"
-                                        <?= $curRpl === $wo['label'] ? 'selected' : '' ?>>
-                                    <?= $wo['label'] ?>
-                                </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
+                        <?php endforeach; ?>
                     </div>
                     <div class="form-row-2">
                         <div class="form-group">
@@ -312,16 +307,45 @@ $hpBarColor = $hpPct >= 90 ? '#ef4444' : ($hpPct >= 70 ? '#f59e0b' : '#22c55e');
         <!-- Kolom kanan -->
         <div>
             <div class="card">
-                <div class="card-header"><h3 class="card-title"><i class="fas fa-building"></i> Entitas / OPD</h3></div>
-                <div class="card-body">
-                    <div style="max-height:300px;overflow-y:auto">
+                <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+                    <h3 class="card-title"><i class="fas fa-building"></i> Entitas / OPD</h3>
+                    <span id="entitas-counter" style="font-size:11px;color:#6366f1;font-weight:600"></span>
+                </div>
+                <div class="card-body" style="padding:10px 14px">
+                    <!-- Search filter -->
+                    <div style="position:relative;margin-bottom:8px">
+                        <i class="fas fa-search" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:12px"></i>
+                        <input type="text" id="cari-entitas" placeholder="Cari OPD..."
+                               class="form-control form-control-sm"
+                               style="padding-left:28px"
+                               oninput="filterEntitas(this.value)">
+                    </div>
+                    <!-- Tombol pilih semua / hapus semua -->
+                    <div style="display:flex;gap:8px;margin-bottom:8px">
+                        <button type="button" class="btn btn-xs btn-outline-primary" onclick="toggleSemuaEntitas(true)">
+                            <i class="fas fa-check-square"></i> Semua
+                        </button>
+                        <button type="button" class="btn btn-xs btn-outline-secondary" onclick="toggleSemuaEntitas(false)">
+                            <i class="fas fa-square"></i> Hapus Semua
+                        </button>
+                    </div>
+                    <!-- Daftar entitas dengan scroll -->
+                    <div id="entitas-list" style="max-height:280px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:6px;padding:4px 0">
                     <?php
                     $selectedEntitas = array_column($row['entitas'] ?? [], 'entitas_id');
                     foreach($entitas as $e): ?>
-                    <label style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px;cursor:pointer">
+                    <label class="entitas-item" style="display:flex;align-items:center;gap:10px;padding:7px 10px;font-size:13px;cursor:pointer;border-bottom:1px solid #f1f5f9;margin:0"
+                           onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
                         <input type="checkbox" name="entitas_ids[]" value="<?= $e['id'] ?>"
+                               class="entitas-chk"
+                               onchange="updateEntitasCounter()"
                                <?= in_array($e['id'], $selectedEntitas) ? 'checked' : '' ?>>
-                        <?= esc($e['nama']) ?>
+                        <div style="flex:1;min-width:0">
+                            <div class="entitas-nama" style="font-weight:500;line-height:1.3"><?= esc($e['nama']) ?></div>
+                            <?php if(!empty($e['kode'])): ?>
+                            <div style="font-size:10px;color:#94a3b8"><?= esc($e['kode']) ?></div>
+                            <?php endif; ?>
+                        </div>
                     </label>
                     <?php endforeach; ?>
                     </div>
@@ -461,17 +485,78 @@ $(document).ready(function() {
     });
 });
 
-function onRmpChange(sel) {
-    const opt = sel.options[sel.selectedIndex];
-    if (opt && opt.dataset.start) {
-        document.getElementById('inp-mulai').value = opt.dataset.start;
+// ── RMP / RPL: Compact 3-kolom selector ────────────────────────────────
+const mingguStart = {'Mg-I':1,'Mg-II':8,'Mg-III':15,'Mg-IV':22};
+const mingguEnd   = {'Mg-I':7,'Mg-II':14,'Mg-III':21,'Mg-IV':28};
+const bulanNum    = {'Jan':1,'Feb':2,'Mar':3,'Apr':4,'Mei':5,'Jun':6,'Jul':7,'Agu':8,'Sep':9,'Okt':10,'Nov':11,'Des':12};
+
+function updateJadwal(id) {
+    const mg  = document.getElementById('sel-'+id+'-mg').value;
+    const bln = document.getElementById('sel-'+id+'-bln').value;
+    const thn = document.getElementById('sel-'+id+'-thn').value;
+
+    const label = (mg && bln && thn) ? mg+' '+bln+' '+thn : '';
+    document.getElementById('hid-'+id).value = label;
+
+    // Update preview
+    const prev = document.getElementById('preview-'+id);
+    if (label) {
+        prev.innerHTML = '<i class="fas fa-calendar-check" style="color:#6366f1"></i> <strong style="color:#6366f1">'+label+'</strong>';
+
+        // Auto-fill tanggal mulai/selesai
+        if (mg && bln && thn) {
+            const m    = bulanNum[bln];
+            const y    = parseInt(thn);
+            const sDay = mingguStart[mg] || 1;
+            const eDay = Math.min(mingguEnd[mg] || 7, new Date(y, m, 0).getDate());
+            const pad  = n => String(n).padStart(2,'0');
+            const dateStart = y+'-'+pad(m)+'-'+pad(sDay);
+            const dateEnd   = y+'-'+pad(m)+'-'+pad(eDay);
+
+            if (id === 'rmp') document.getElementById('inp-mulai').value   = dateStart;
+            if (id === 'rpl') document.getElementById('inp-selesai').value = dateEnd;
+        }
+    } else {
+        prev.innerHTML = '';
     }
 }
 
-function onRplChange(sel) {
-    const opt = sel.options[sel.selectedIndex];
-    if (opt && opt.dataset.end) {
-        document.getElementById('inp-selesai').value = opt.dataset.end;
+// Inisialisasi preview saat load (untuk nilai yang sudah tersimpan)
+document.addEventListener('DOMContentLoaded', function() {
+    ['rmp','rpl'].forEach(id => {
+        const hid = document.getElementById('hid-'+id);
+        if (hid && hid.value) {
+            const prev = document.getElementById('preview-'+id);
+            prev.innerHTML = '<i class="fas fa-calendar-check" style="color:#6366f1"></i> <strong style="color:#6366f1">'+hid.value+'</strong>';
+        }
+    });
+    updateEntitasCounter();
+});
+
+// ── Entitas search & filter ─────────────────────────────────────────────
+function filterEntitas(q) {
+    const keyword = q.toLowerCase().trim();
+    document.querySelectorAll('#entitas-list .entitas-item').forEach(function(item) {
+        const nama = item.querySelector('.entitas-nama').textContent.toLowerCase();
+        item.style.display = (!keyword || nama.includes(keyword)) ? '' : 'none';
+    });
+}
+
+function toggleSemuaEntitas(check) {
+    document.querySelectorAll('#entitas-list .entitas-chk:not([style*="display:none"])').forEach(function(chk) {
+        const item = chk.closest('.entitas-item');
+        if (item.style.display !== 'none') chk.checked = check;
+    });
+    updateEntitasCounter();
+}
+
+function updateEntitasCounter() {
+    const total   = document.querySelectorAll('.entitas-chk').length;
+    const checked = document.querySelectorAll('.entitas-chk:checked').length;
+    const el = document.getElementById('entitas-counter');
+    if (el) {
+        el.textContent = checked > 0 ? checked+' / '+total+' dipilih' : total+' OPD tersedia';
+        el.style.color = checked > 0 ? '#6366f1' : '#94a3b8';
     }
 }
 </script>

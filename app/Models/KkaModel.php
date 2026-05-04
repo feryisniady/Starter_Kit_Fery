@@ -52,6 +52,26 @@ class KkaModel
     }
 
     // ──────────────────────────────────────────────────────────────────────
+    // Dashboard stats
+    // ──────────────────────────────────────────────────────────────────────
+
+    /** Jumlah KKA yang sudah disubmit AT dan menunggu review KT */
+    public function getPendingKtReviewCount(): int
+    {
+        return (int) $this->db->table('kka')
+            ->where('status_kka', 'submitted')
+            ->countAllResults();
+    }
+
+    /** Jumlah KKA yang sudah disetujui KT */
+    public function getApprovedCount(): int
+    {
+        return (int) $this->db->table('kka')
+            ->where('status_kka', 'approved')
+            ->countAllResults();
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
     // Auto-create KKA per AT saat KM-5 disetujui
     // ──────────────────────────────────────────────────────────────────────
 
@@ -232,6 +252,28 @@ class KkaModel
             // Hapus simpulan jika checkbox temuan di-uncheck
             $this->db->table('kka_simpulan')->where('id', $existSp['id'])->delete();
         }
+
+        // ── Auto-update pka.status & pka.realisasi_waktu ──────────────────
+        // Saat AT simpan observasi → PKA otomatis selesai (tidak perlu klik manual KT)
+        if ($pkaId) {
+            $hasilObs = trim((string)($data['hasil_observasi'] ?? ''));
+            $pkaRec   = $this->db->table('pka')->where('id', $pkaId)->get()->getRowArray();
+            if ($pkaRec) {
+                if ($hasilObs !== '') {
+                    $this->db->table('pka')->where('id', $pkaId)->update([
+                        'status'          => 'selesai',
+                        'realisasi_waktu' => $pkaRec['rencana_waktu'],
+                        'updated_at'      => $now,
+                    ]);
+                } else {
+                    $this->db->table('pka')->where('id', $pkaId)->update([
+                        'status'          => 'belum',
+                        'realisasi_waktu' => null,
+                        'updated_at'      => $now,
+                    ]);
+                }
+            }
+        }
     }
 
     /**
@@ -290,12 +332,13 @@ class KkaModel
             'pelaporan'   => 'penyelesaian_realisasi_hari',
         ];
 
+        // Hitung realisasi waktu berdasarkan rencana_waktu prosedur PKA yang sudah diisi AT
         $rows = $this->db->table('kka_ikhtisar ki')
-            ->select('p.fase, SUM(ki.realisasi_waktu) as total')
+            ->select('p.fase, SUM(p.rencana_waktu) as total')
             ->join('pka p', 'p.id = ki.pka_id')
             ->where('ki.kka_id', $kkaId)
-            ->whereNotNull('ki.pka_id')
-            ->whereNotNull('ki.realisasi_waktu')
+            ->where('ki.pka_id IS NOT NULL')
+            ->where('ki.hasil_observasi IS NOT NULL')
             ->groupBy('p.fase')
             ->get()->getResultArray();
 

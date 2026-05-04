@@ -56,7 +56,9 @@ if ($row) {
                 <div class="card-body">
                     <div class="form-group">
                         <label>Dasar Penugasan</label>
-                        <textarea name="dasar_penugasan" class="form-control" rows="2"><?= old('dasar_penugasan', $row['dasar_penugasan'] ?? $spt['dasar_1'] ?? '') ?></textarea>
+                        <textarea name="dasar_penugasan" class="form-control" rows="2"
+                              data-wysiwyg data-wysiwyg-height="80px"
+                              placeholder="Dasar penugasan pengawasan..."><?= old('dasar_penugasan', $row['dasar_penugasan'] ?? $spt['dasar_1'] ?? '') ?></textarea>
                     </div>
                     <div class="form-group">
                         <label>Jenis Penugasan</label>
@@ -74,15 +76,21 @@ if ($row) {
                     </div>
                     <div class="form-group">
                         <label>Tujuan Pengawasan</label>
-                        <textarea name="tujuan_pengawasan" class="form-control" rows="3"><?= old('tujuan_pengawasan', $row['tujuan_pengawasan'] ?? $spt['tujuan_sasaran'] ?? '') ?></textarea>
+                        <textarea name="tujuan_pengawasan" class="form-control" rows="3"
+                              data-wysiwyg data-wysiwyg-height="90px"
+                              placeholder="Tujuan pengawasan..."><?= old('tujuan_pengawasan', $row['tujuan_pengawasan'] ?? $spt['tujuan_sasaran'] ?? '') ?></textarea>
                     </div>
                     <div class="form-group">
                         <label>Sasaran</label>
-                        <textarea name="sasaran" class="form-control" rows="2"><?= old('sasaran', $row['sasaran'] ?? '') ?></textarea>
+                        <textarea name="sasaran" class="form-control" rows="2"
+                              data-wysiwyg data-wysiwyg-height="80px"
+                              placeholder="Sasaran pengawasan..."><?= old('sasaran', $row['sasaran'] ?? '') ?></textarea>
                     </div>
                     <div class="form-group">
                         <label>Catatan Pengendali Teknis</label>
-                        <textarea name="catatan_dalnis" class="form-control" rows="2"><?= old('catatan_dalnis', $row['catatan_dalnis'] ?? '') ?></textarea>
+                        <textarea name="catatan_dalnis" class="form-control" rows="2"
+                              data-wysiwyg data-wysiwyg-height="80px"
+                              placeholder="Catatan pengendali teknis..."><?= old('catatan_dalnis', $row['catatan_dalnis'] ?? '') ?></textarea>
                     </div>
                 </div>
             </div>

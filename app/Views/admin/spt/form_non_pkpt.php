@@ -73,6 +73,21 @@ $timDefault  = $spt['tim'] ?? [];
                             <?php endforeach; ?>
                         </select>
                     </div>
+                    <div class="form-group">
+                        <label>OPD / Entitas yang Diperiksa</label>
+                        <select name="entitas_id" class="form-control">
+                            <option value="">— Pilih OPD (opsional) —</option>
+                            <?php foreach($entitasList ?? [] as $ent): ?>
+                            <option value="<?= $ent['id'] ?>"
+                                <?= old('entitas_id', $spt['entitas_id'] ?? '') == $ent['id'] ? 'selected' : '' ?>>
+                                <?= esc($ent['nama']) ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div style="font-size:11px;color:#94a3b8;margin-top:3px">
+                            Pilih OPD agar entitas dapat melihat tindak lanjut & NHP di portal auditi
+                        </div>
+                    </div>
                 </div>
             </div>
 

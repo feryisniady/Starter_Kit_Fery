@@ -301,17 +301,20 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	$routes->post('kka/(:num)/selesaikan',                'Admin\KkaController::selesaikanKka/$1',               ['filter' => 'permission:spt.create']);
 
 	// Submit / Review KKA (AT → KT)
+	// Catatan: filter pakai spt.create bukan spt.approve — KT adalah auditor biasa
+	// yg tidak punya spt.approve. Otorisasi peran (isKtInSpt) sudah dicek di controller.
 	$routes->post('kka/(:num)/submit',                    'Admin\KkaController::submitKka/$1',                   ['filter' => 'permission:spt.create']);
-	$routes->post('kka/(:num)/approve',                   'Admin\KkaController::approveKka/$1',                  ['filter' => 'permission:spt.approve']);
-	$routes->post('kka/(:num)/reject',                    'Admin\KkaController::rejectKka/$1',                   ['filter' => 'permission:spt.approve']);
-	$routes->post('kka/(:num)/reopen',                    'Admin\KkaController::reopenKka/$1',                   ['filter' => 'permission:spt.approve']);
+	$routes->post('kka/(:num)/approve',                   'Admin\KkaController::approveKka/$1',                  ['filter' => 'permission:spt.create']);
+	$routes->post('kka/(:num)/reject',                    'Admin\KkaController::rejectKka/$1',                   ['filter' => 'permission:spt.create']);
+	$routes->post('kka/(:num)/reopen',                    'Admin\KkaController::reopenKka/$1',                   ['filter' => 'permission:spt.create']);
 
 	// Catatan Dalnis
 	$routes->post('kka/(:num)/catatan-dalnis',            'Admin\KkaController::saveCatatanDalnis/$1',           ['filter' => 'permission:spt.manage_all']);
 	$routes->post('kka/(:num)/catatan-dalnis',            'Admin\KkaController::saveCatatanDalnis/$1');
 
 	// KKA Dokumen Bukti per Prosedur
-	$routes->get( 'kka/dokumen/(:num)/download',          'Admin\KkaController::downloadDokumen/$1');
+	$routes->get( 'kka/dokumen/(:num)/download',          'Admin\KkaController::downloadDokumen/$1',  ['filter' => 'permission:spt.view']);
+	$routes->post('kka/dokumen/(:num)/hapus',             'Admin\KkaController::deleteDokumen/$1',    ['filter' => 'permission:spt.create']);
 	$routes->post('kka/dokumen/(:num)/hapus',             'Admin\KkaController::hapusDokumen/$1');
 	$routes->get( 'kka/(:num)/print',                     'Admin\KkaController::printKka/$1');
 
@@ -323,6 +326,8 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	$routes->post('spt/(:num)/nhp/store',                            'Admin\NhpController::store/$1',                  ['filter' => 'permission:spt.create']);
 	$routes->get( 'spt/(:num)/nhp/(:num)',                           'Admin\NhpController::show/$1/$2',                ['filter' => 'permission:spt.view']);
 	$routes->post('spt/(:num)/nhp/(:num)/kirim',                     'Admin\NhpController::kirim/$1/$2',               ['filter' => 'permission:spt.create']);
+	$routes->post('spt/(:num)/nhp/(:num)/ajukan',                    'Admin\NhpController::ajukan/$1/$2',              ['filter' => 'permission:spt.create']);
+	$routes->post('spt/(:num)/nhp/(:num)/kembalikan',                'Admin\NhpController::kembalikan/$1/$2',          ['filter' => 'permission:spt.create']);
 	$routes->post('spt/(:num)/nhp/(:num)/selesai',                   'Admin\NhpController::selesai/$1/$2',             ['filter' => 'permission:spt.create']);
 	$routes->post('spt/(:num)/nhp/(:num)/item/add',                  'Admin\NhpController::addItem/$1/$2',             ['filter' => 'permission:spt.create']);
 	$routes->post('spt/(:num)/nhp/(:num)/item/(:num)/tanggapi',      'Admin\NhpController::tanggapi/$1/$2/$3',         ['filter' => 'permission:spt.approve']);
@@ -330,7 +335,7 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	$routes->get( 'nhp/item-dokumen/(:num)/download',                'Admin\NhpController::downloadItemDokumen/$1',    ['filter' => 'permission:spt.view']);
 
 	// =====================================================================
-	// Tindak Lanjut — Verifikasi oleh BPKP
+	// Tindak Lanjut — Verifikasi oleh APIP
 	// =====================================================================
 	$routes->get( 'tl',                                              'Admin\TlVerifikasiController::index',            ['filter' => 'permission:spt.view']);
 	$routes->get( 'tl/(:num)',                                       'Admin\TlVerifikasiController::show/$1',          ['filter' => 'permission:spt.view']);
@@ -339,6 +344,22 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 
 	// Demo / Simulasi
 	$routes->get('demo/km', 'Admin\DemoController::kmWorkflow', ['filter' => 'permission:spt.view']);
+
+	// =====================================================================
+	// Laporan & Rekap
+	// =====================================================================
+	$routes->get('laporan',                     'Admin\LaporanController::index',            ['filter' => 'permission:spt.view']);
+	$routes->get('laporan/rekap-spt',           'Admin\LaporanController::rekapSpt',         ['filter' => 'permission:spt.view']);
+	$routes->get('laporan/rekap-tl',            'Admin\LaporanController::rekapTl',          ['filter' => 'permission:spt.view']);
+	$routes->get('laporan/ikhtisar-lhp',        'Admin\LaporanController::ikhtisarLhp',      ['filter' => 'permission:spt.view']);
+	$routes->get('laporan/export-spt',          'Admin\LaporanController::exportSptCsv',        ['filter' => 'permission:spt.view']);
+	$routes->get('laporan/export-tl',           'Admin\LaporanController::exportTlCsv',         ['filter' => 'permission:spt.view']);
+	$routes->get('laporan/export-ikhtisar-lhp', 'Admin\LaporanController::exportIkhtisarCsv',   ['filter' => 'permission:spt.view']);
+	$routes->get('laporan/matriks-tl',          'Admin\LaporanController::matriksTl',            ['filter' => 'permission:spt.view']);
+	$routes->get('laporan/export-matriks-tl',   'Admin\LaporanController::exportMatriksTlCsv',   ['filter' => 'permission:spt.view']);
+	$routes->get('laporan/detail-belum-tl',     'Admin\LaporanController::detailBelumTl',        ['filter' => 'permission:spt.view']);
+	$routes->get('laporan/rekap-temuan',        'Admin\LaporanController::rekapTemuan',          ['filter' => 'permission:spt.view']);
+	$routes->get('laporan/export-temuan',       'Admin\LaporanController::exportTemuanCsv',      ['filter' => 'permission:spt.view']);
 
 });
 

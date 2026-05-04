@@ -3,7 +3,7 @@
 
 <div class="page-header">
     <h1><i class="fas fa-tasks" style="color:#7c3aed"></i> Tindak Lanjut Rekomendasi</h1>
-    <p>Daftar rekomendasi BPKP yang perlu ditindaklanjuti oleh <?= esc($entitas['nama']) ?></p>
+    <p>Daftar rekomendasi APIP yang perlu ditindaklanjuti oleh <?= esc($entitas['nama']) ?></p>
 </div>
 
 <?php if (empty($list)): ?>
@@ -11,7 +11,7 @@
     <div class="card-body" style="text-align:center;padding:60px;color:#94a3b8">
         <i class="fas fa-clipboard-check" style="font-size:48px;display:block;margin-bottom:16px"></i>
         <div style="font-size:15px;font-weight:600;margin-bottom:8px">Belum ada rekomendasi</div>
-        <p style="font-size:13px">Rekomendasi dari BPKP akan muncul di sini setelah proses NHP selesai.</p>
+        <p style="font-size:13px">Rekomendasi dari APIP akan muncul di sini setelah proses NHP selesai.</p>
     </div>
 </div>
 <?php else: ?>
@@ -21,7 +21,7 @@
 $groups = [
     'revisi'   => ['label'=>'Perlu Perbaikan', 'color'=>'#ef4444', 'icon'=>'rotate-left',    'items'=>[]],
     'belum'    => ['label'=>'Belum Ditindaklanjuti', 'color'=>'#f59e0b', 'icon'=>'hourglass', 'items'=>[]],
-    'menunggu' => ['label'=>'Menunggu Verifikasi BPKP', 'color'=>'#3b82f6', 'icon'=>'spinner','items'=>[]],
+    'menunggu' => ['label'=>'Menunggu Verifikasi APIP', 'color'=>'#3b82f6', 'icon'=>'spinner','items'=>[]],
     'diterima' => ['label'=>'Selesai / Diterima', 'color'=>'#22c55e', 'icon'=>'circle-check', 'items'=>[]],
 ];
 foreach ($list as $rek) {
@@ -85,7 +85,7 @@ foreach ($list as $rek) {
                 <span class="badge badge-pending"><i class="fas fa-hourglass"></i> Belum</span>
                 <?php else: ?>
                 <span class="badge badge-<?= $rek['status_verifikasi'] ?>">
-                    <?= TindakLanjutModel::$verifikasiLabel[$rek['status_verifikasi']] ?? $rek['status_verifikasi'] ?>
+                    <?= ($verifikasiLabel ?? [])[$rek['status_verifikasi']] ?? $rek['status_verifikasi'] ?>
                 </span>
                 <?php if ($rek['tl_tgl']): ?>
                 <div style="font-size:10px;color:#94a3b8;margin-top:2px"><?= date('d M Y', strtotime($rek['tl_tgl'])) ?></div>

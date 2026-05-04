@@ -20,8 +20,10 @@ class TlController extends BaseAuditi
     {
         $list = $this->tlModel->getRekomendasiByEntitas($this->entitasId);
         return $this->view('auditi/tl/index', [
-            'title' => 'Tindak Lanjut Rekomendasi',
-            'list'  => $list,
+            'title'           => 'Tindak Lanjut Rekomendasi',
+            'list'            => $list,
+            'verifikasiLabel' => TindakLanjutModel::$verifikasiLabel,
+            'verifikasiColor' => TindakLanjutModel::$verifikasiColor,
         ]);
     }
 
@@ -55,7 +57,7 @@ class TlController extends BaseAuditi
                                   ->where('status_verifikasi', 'menunggu')
                                   ->first();
         if ($existing) {
-            return redirect()->back()->with('error', 'Masih ada tindak lanjut yang menunggu verifikasi BPKP. Tunggu hasilnya terlebih dahulu.');
+            return redirect()->back()->with('error', 'Masih ada tindak lanjut yang menunggu verifikasi APIP. Tunggu hasilnya terlebih dahulu.');
         }
 
         $tlId = $this->tlModel->insert([
@@ -79,7 +81,7 @@ class TlController extends BaseAuditi
             ->where('id', $rekId)->update(['status' => 'proses', 'updated_at' => date('Y-m-d H:i:s')]);
 
         return redirect()->to('/auditi/tl/' . $rekId)
-            ->with('success', 'Tindak lanjut berhasil dikirim. Menunggu verifikasi BPKP.');
+            ->with('success', 'Tindak lanjut berhasil dikirim. Menunggu verifikasi APIP.');
     }
 
     /** AJAX: upload tambahan dokumen ke TL yang sudah ada */
@@ -124,15 +126,16 @@ class TlController extends BaseAuditi
 
     private function getRekOrFail(int $rekId): array
     {
+        $eid = $this->entitasId;
         $rek = \Config\Database::connect()->table('rekomendasi r')
             ->select('r.*, t.judul, t.kondisi, t.sebab, t.akibat, t.nilai_temuan, t.spt_id,
                       sp.nomor_naskah as spt_nomor')
             ->join('temuan t', 't.id = r.temuan_id')
             ->join('spt sp', 'sp.id = t.spt_id')
-            ->join('pkpt_kegiatan pk', 'pk.id = sp.pkpt_kegiatan_id')
-            ->join('pkpt_entitas pe', 'pe.pkpt_kegiatan_id = pk.id')
+            ->join('pkpt_kegiatan pk', 'pk.id = sp.pkpt_kegiatan_id', 'left')
+            ->join('pkpt_entitas pe', 'pe.pkpt_kegiatan_id = pk.id', 'left')
             ->where('r.id', $rekId)
-            ->where('pe.entitas_id', $this->entitasId)
+            ->where("(pe.entitas_id = $eid OR sp.entitas_id = $eid)")
             ->get()->getRowArray();
 
         if (!$rek) {

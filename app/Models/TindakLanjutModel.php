@@ -42,23 +42,24 @@ class TindakLanjutModel extends Model
     /** Semua rekomendasi + status TL terbaru untuk satu entitas */
     public function getRekomendasiByEntitas(int $entitasId): array
     {
-        $rows = $this->db->table('rekomendasi r')
+        // Support dua jalur:
+        // 1. PKPT: spt → pkpt_kegiatan → pkpt_entitas.entitas_id
+        // 2. Non-PKPT: spt.entitas_id langsung
+        return $this->db->table('rekomendasi r')
             ->select('r.*, t.judul, t.kondisi, t.akibat, t.nilai_temuan,
                       sp.nomor_naskah as spt_nomor, sp.id as spt_id,
                       tl.id as tl_id, tl.status_verifikasi, tl.created_at as tl_tgl')
             ->join('temuan t', 't.id = r.temuan_id')
             ->join('spt sp', 'sp.id = t.spt_id')
-            ->join('pkpt_kegiatan pk', 'pk.id = sp.pkpt_kegiatan_id')
-            ->join('pkpt_entitas pe', 'pe.pkpt_kegiatan_id = pk.id')
+            ->join('pkpt_kegiatan pk', 'pk.id = sp.pkpt_kegiatan_id', 'left')
+            ->join('pkpt_entitas pe', 'pe.pkpt_kegiatan_id = pk.id', 'left')
             ->join('tindak_lanjut tl',
                    "tl.rekomendasi_id = r.id AND tl.id = (SELECT MAX(id) FROM tindak_lanjut WHERE rekomendasi_id = r.id)",
                    'left')
-            ->where('pe.entitas_id', $entitasId)
+            ->where('(pe.entitas_id = ' . $entitasId . ' OR sp.entitas_id = ' . $entitasId . ')')
             ->where('t.status_temuan', 'buka')
             ->orderBy('r.batas_waktu')
             ->get()->getResultArray();
-
-        return $rows;
     }
 
     /** Summary untuk dashboard */
@@ -74,14 +75,17 @@ class TindakLanjutModel extends Model
         ];
     }
 
-    /** Semua TL untuk panel verifikasi admin BPKP */
+    /** Semua TL untuk panel verifikasi admin APIP */
     public function getAllForAdmin(?string $status = null): array
     {
         $q = $this->db->table('tindak_lanjut tl')
             ->select('tl.*, r.isi_rekomendasi, r.batas_waktu, r.nilai_rekomendasi, r.id as rekomendasi_id,
-                      t.judul as temuan_judul, t.nilai_temuan,
+                      r.status as rekomendasi_status, r.nomor_urut as rek_nomor,
+                      t.judul as temuan_judul, t.nilai_temuan, t.nomor_temuan,
                       sp.nomor_naskah as spt_nomor, sp.id as spt_id,
-                      e.nama as entitas_nama, uv.name as verified_by_nama')
+                      e.nama as entitas_nama,
+                      uv.name as verified_by_nama,
+                      (SELECT COUNT(*) FROM tindak_lanjut_dokumen WHERE tindak_lanjut_id = tl.id) AS jumlah_dokumen')
             ->join('rekomendasi r', 'r.id = tl.rekomendasi_id')
             ->join('temuan t', 't.id = r.temuan_id')
             ->join('spt sp', 'sp.id = t.spt_id')

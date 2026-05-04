@@ -86,31 +86,31 @@ $bgClr     = $isPending ? '#fff' : ($isSesuai ? '#f0fdf4' : '#fef2f2');
             <?php if ($item['kondisi']): ?>
             <div>
                 <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:3px">Kondisi</div>
-                <div style="font-size:13px;line-height:1.6"><?= nl2br(esc($item['kondisi'])) ?></div>
+                <div style="font-size:13px;line-height:1.6"><?= renderContent($item['kondisi']) ?></div>
             </div>
             <?php endif; ?>
             <?php if ($item['kriteria']): ?>
             <div>
                 <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:3px">Kriteria</div>
-                <div style="font-size:13px;line-height:1.6"><?= nl2br(esc($item['kriteria'])) ?></div>
+                <div style="font-size:13px;line-height:1.6"><?= renderContent($item['kriteria']) ?></div>
             </div>
             <?php endif; ?>
             <?php if ($item['sebab']): ?>
             <div>
                 <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:3px">Sebab</div>
-                <div style="font-size:13px;line-height:1.6"><?= nl2br(esc($item['sebab'])) ?></div>
+                <div style="font-size:13px;line-height:1.6"><?= renderContent($item['sebab']) ?></div>
             </div>
             <?php endif; ?>
             <?php if ($item['akibat']): ?>
             <div>
                 <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:3px">Akibat</div>
-                <div style="font-size:13px;line-height:1.6"><?= nl2br(esc($item['akibat'])) ?></div>
+                <div style="font-size:13px;line-height:1.6"><?= renderContent($item['akibat']) ?></div>
             </div>
             <?php endif; ?>
             <?php if ($item['rekomendasi']): ?>
             <div style="grid-column:1/-1">
-                <div style="font-size:10px;font-weight:700;color:#2563eb;text-transform:uppercase;margin-bottom:3px">Rekomendasi BPKP</div>
-                <div style="font-size:13px;line-height:1.6;color:#1e40af"><?= nl2br(esc($item['rekomendasi'])) ?></div>
+                <div style="font-size:10px;font-weight:700;color:#2563eb;text-transform:uppercase;margin-bottom:3px">Rekomendasi APIP</div>
+                <div style="font-size:13px;line-height:1.6;color:#1e40af"><?= renderContent($item['rekomendasi']) ?></div>
             </div>
             <?php endif; ?>
         </div>
@@ -119,7 +119,7 @@ $bgClr     = $isPending ? '#fff' : ($isSesuai ? '#f0fdf4' : '#fef2f2');
         <?php if (!$isPending && !empty($item['tanggapan_entitas'])): ?>
         <div style="margin-bottom:16px;padding:12px;background:rgba(255,255,255,.7);border-radius:8px;border:1px solid #e2e8f0">
             <div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:4px">Tanggapan Anda</div>
-            <div style="font-size:13px;line-height:1.6"><?= nl2br(esc($item['tanggapan_entitas'])) ?></div>
+            <div style="font-size:13px;line-height:1.6"><?= renderContent($item['tanggapan_entitas']) ?></div>
             <?php if ($item['tgl_tanggapan']): ?>
             <div style="font-size:11px;color:#94a3b8;margin-top:4px"><i class="fas fa-clock"></i> <?= date('d M Y', strtotime($item['tgl_tanggapan'])) ?></div>
             <?php endif; ?>
@@ -147,7 +147,8 @@ $bgClr     = $isPending ? '#fff' : ($isSesuai ? '#f0fdf4' : '#fef2f2');
             <div class="form-group">
                 <label>Uraian Tanggapan <span style="color:#ef4444">*</span></label>
                 <textarea class="form-control tanggapan-text" id="uraian-<?= $item['id'] ?>" rows="4"
-                          placeholder="Jelaskan tanggapan Anda secara detail. Contoh: 'SPJ BBM sudah ditemukan dan dilampirkan di bawah.'"><?= esc($item['tanggapan_entitas']) ?></textarea>
+                          data-wysiwyg data-wysiwyg-height="110px"
+                          placeholder="Jelaskan tanggapan Anda secara detail..."><?= esc($item['tanggapan_entitas']) ?></textarea>
             </div>
 
             <!-- Upload dokumen -->
@@ -258,8 +259,10 @@ document.querySelectorAll('.btn-simpan').forEach(btn => {
 // Tombol Ubah tanggapan
 document.querySelectorAll('.btn-ubah').forEach(btn => {
     btn.addEventListener('click', function() {
-        document.getElementById('form-'+this.dataset.id).style.display = 'block';
+        const form = document.getElementById('form-'+this.dataset.id);
+        form.style.display = 'block';
         this.style.display = 'none';
+        if (typeof initWysiwyg === 'function') initWysiwyg(form);
     });
 });
 

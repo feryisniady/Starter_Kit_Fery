@@ -46,7 +46,7 @@ class KmController extends BaseController
     }
 
     // ──────────────────────────────────────────────────────────────────────
-    // KM-1 — Kartu Penugasan format BPKP KM5  (KT + Dalnis)
+    // KM-1 — Kartu Penugasan format APIP KM5  (KT + Dalnis)
     // ──────────────────────────────────────────────────────────────────────
 
     public function km1(int $sptId)
@@ -293,7 +293,7 @@ class KmController extends BaseController
         return redirect()->to('/admin/spt/' . $sptId . '/km')->with('success', 'Anggaran Waktu berhasil disimpan.');
     }
 
-    /** Print Formulir KM-4 Alokasi Waktu Pengawasan (BPKP standard) */
+    /** Print Formulir KM-4 Alokasi Waktu Pengawasan (APIP standard) */
     public function printKm4Aw(int $sptId)
     {
         $spt = $this->sptModel->getDetail($sptId);
@@ -311,7 +311,7 @@ class KmController extends BaseController
             ->orderBy('st.urutan')
             ->get()->getResultArray();
 
-        // Mapping peran_spt ke kolom BPKP
+        // Mapping peran_spt ke kolom APIP
         $roleMap = [
             'PJ'                => 'pm',
             'WPJ'               => 'pm',

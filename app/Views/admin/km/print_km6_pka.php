@@ -168,7 +168,18 @@ td.left { text-align:left; }
                 ?>
                 <tr class="data-row">
                     <td><?= $row['nomor_urut'] ?></td>
-                    <td class="left"><?= esc($row['uraian_prosedur']) ?></td>
+                    <td class="left" style="text-align:left">
+                        <?php
+                        $uraian = trim($row['uraian_prosedur'] ?? '');
+                        // Jika konten HTML dari WYSIWYG — render langsung (strip tag berbahaya)
+                        // Jika plain text — escape + nl2br
+                        if ($uraian !== '' && str_starts_with($uraian, '<')) {
+                            echo strip_tags($uraian, '<p><br><strong><em><u><ol><ul><li><h2><h3>');
+                        } else {
+                            echo nl2br(esc($uraian));
+                        }
+                        ?>
+                    </td>
                     <td style="font-size:7.5pt"><?= esc($assignedNames) ?></td>
                     <td><?= $row['rencana_waktu'] ? $row['rencana_waktu'].' HP' : '' ?></td>
                     <td></td><!-- realisasi dilaksanakan oleh — diisi AT -->

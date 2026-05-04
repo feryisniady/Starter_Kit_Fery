@@ -9,7 +9,7 @@ class SptModel extends Model
     protected $table         = 'spt';
     protected $primaryKey    = 'id';
     protected $allowedFields = [
-        'pkpt_kegiatan_id', 'jenis_spt', 'irban_id', 'tahun', 'jenis_non_pkpt',
+        'pkpt_kegiatan_id', 'jenis_spt', 'irban_id', 'tahun', 'jenis_non_pkpt', 'entitas_id',
         'nama_tim', 'nomor_naskah', 'tanggal_naskah',
         'dasar_1', 'dasar_2', 'tujuan', 'tanggal_mulai', 'tanggal_selesai',
         'tembusan', 'penandatangan_id', 'status', 'file_word', 'catatan', 'created_by',
@@ -47,6 +47,35 @@ class SptModel extends Model
         'Reviu Laporan Keuangan'       => 'Reviu Laporan Keuangan',
         'Penugasan Mandatori Lainnya'  => 'Penugasan Mandatori Lainnya',
     ];
+
+    /** Statistik ringkasan untuk dashboard */
+    public function getDashboardStats(int $tahun = 0): array
+    {
+        $tahun = $tahun ?: (int) date('Y');
+        $row   = $this->db->query("
+            SELECT
+                COUNT(*)                                                   AS total,
+                SUM(status = 'terbit'   AND tanggal_selesai >= CURDATE())  AS berjalan,
+                SUM(status = 'terbit'   AND tanggal_selesai < CURDATE())   AS selesai,
+                SUM(status IN ('diajukan','acc_irban','acc_evlap','acc_sekretaris')) AS pending_approval,
+                SUM(status = 'ditolak')                                    AS ditolak,
+                SUM(status = 'draft')                                      AS draft
+            FROM spt
+            WHERE YEAR(COALESCE(created_at, NOW())) = ?
+        ", [$tahun])->getRowArray();
+
+        return $row ?: [
+            'total' => 0, 'berjalan' => 0, 'selesai' => 0,
+            'pending_approval' => 0, 'ditolak' => 0, 'draft' => 0,
+        ];
+    }
+
+    /** Ambil user_id dari pembuat SPT (created_by) */
+    public function getCreatedBy(int $sptId): ?int
+    {
+        $row = $this->select('created_by')->find($sptId);
+        return $row ? (int) $row['created_by'] : null;
+    }
 
     public function getDetail(int $id): ?array
     {

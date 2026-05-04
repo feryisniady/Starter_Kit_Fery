@@ -579,12 +579,7 @@ class PkptController extends BaseController
                 'periode' => '<span style="font-size:12px">'.$periode.'</span>',
                 'hp'      => '<span style="font-weight:700;color:#6366f1">'.$row['total_hp'].'</span> <span style="font-size:11px;color:#94a3b8">hari</span>',
                 'spt'     => $sptBadge,
-                'aksi'    => $this->dtActions([
-                    ['type'=>'info',    'icon'=>'fa-eye',           'title'=>'Detail',      'href'=>'#', 'extra'=>'onclick="viewKegiatan('.$row['id'].')" '],
-                    ['type'=>'warning', 'icon'=>'fa-edit',          'title'=>'Edit',        'href'=>'/admin/pkpt/kegiatan/edit/'.$row['id']],
-                    ['type'=>'success', 'icon'=>'fa-file-signature','title'=>'Buat SPT',    'href'=>'/admin/spt/create/'.$row['id']],
-                    ['type'=>'danger',  'icon'=>'fa-trash',         'title'=>'Hapus',       'href'=>'#', 'extra'=>'onclick="delKegiatan('.$row['id'].')" '],
-                ]),
+                'aksi'    => $this->dtActionsKegiatan($row),
             ];
         }
 
@@ -603,6 +598,30 @@ class PkptController extends BaseController
 
         logActivity('pkpt.kegiatan.delete', 'pkpt_kegiatan', "Hapus kegiatan id={$id}");
         return $this->response->setJSON(['success' => true]);
+    }
+
+    private function dtActionsKegiatan(array $row): string
+    {
+        $id        = $row['id'];
+        $terbit    = (int)($row['spt_terbit'] ?? 0);
+        $jumlahSpt = (int)($row['jumlah_spt'] ?? 0);
+
+        $actions = [
+            ['type'=>'info', 'icon'=>'fa-eye', 'title'=>'Detail', 'href'=>'#', 'extra'=>'onclick="viewKegiatan('.$id.')" '],
+        ];
+
+        if ($terbit > 0) {
+            // SPT sudah terbit → kegiatan terkunci, tidak bisa edit/hapus
+            // Tombol "Tim Tambahan" masih tersedia jika perlu menambah tim baru
+            $actions[] = ['type'=>'secondary', 'icon'=>'fa-lock', 'title'=>'SPT Terbit — Terkunci', 'href'=>'#', 'extra'=>'disabled title="Kegiatan tidak dapat diedit karena SPT sudah terbit" '];
+        } else {
+            // SPT belum terbit → semua aksi tersedia
+            $actions[] = ['type'=>'warning', 'icon'=>'fa-edit',           'title'=>'Edit Kegiatan', 'href'=>'/admin/pkpt/kegiatan/edit/'.$id];
+            $actions[] = ['type'=>'success', 'icon'=>'fa-file-signature', 'title'=>$jumlahSpt > 0 ? 'Buat Tim Baru' : 'Buat SPT', 'href'=>'/admin/spt/create/'.$id];
+            $actions[] = ['type'=>'danger',  'icon'=>'fa-trash',          'title'=>'Hapus',         'href'=>'#', 'extra'=>'onclick="delKegiatan('.$id.')" '];
+        }
+
+        return $this->dtActions($actions);
     }
 
     /**

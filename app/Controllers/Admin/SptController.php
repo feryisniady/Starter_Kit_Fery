@@ -160,15 +160,17 @@ class SptController extends BaseController
             $irbanId = $this->getUserIrbanId(session()->get('user_id'));
             if ($irbanId === null) return redirect()->to('/admin/spt')->with('error', 'Akses ditolak.');
         }
+        $db = \Config\Database::connect();
         return view('admin/spt/form_non_pkpt', [
-            'title'     => 'Buat SPT Non-PKPT / Mandatori',
-            'irbanList' => $this->irbanModel->orderBy('kode')->findAll(),
-            'sdmAll'    => $this->sdmModel->getAktif(),
-            'sdmPenanda'=> $this->sdmModel->getAktif(),
-            'jenisOpts' => SptModel::$jenisNonPkpt,
-            'tahunAktif'=> $this->settingModel->getTahunAktif(),
-            'spt'       => null,
-            'setting'   => $this->settingModel->getByTahun($this->settingModel->getTahunAktif()),
+            'title'       => 'Buat SPT Non-PKPT / Mandatori',
+            'irbanList'   => $this->irbanModel->orderBy('kode')->findAll(),
+            'sdmAll'      => $this->sdmModel->getAktif(),
+            'sdmPenanda'  => $this->sdmModel->getAktif(),
+            'jenisOpts'   => SptModel::$jenisNonPkpt,
+            'tahunAktif'  => $this->settingModel->getTahunAktif(),
+            'spt'         => null,
+            'setting'     => $this->settingModel->getByTahun($this->settingModel->getTahunAktif()),
+            'entitasList' => $db->table('entitas')->where('aktif', 1)->orderBy('nama')->get()->getResultArray(),
         ]);
     }
 
@@ -189,12 +191,15 @@ class SptController extends BaseController
             }
         }
 
+        $entitasId = (int)($this->request->getPost('entitas_id') ?: 0) ?: null;
+
         $sptId = $this->sptModel->insert([
             'pkpt_kegiatan_id' => null,
             'jenis_spt'        => 'non_pkpt',
             'irban_id'         => (int)$this->request->getPost('irban_id'),
             'tahun'            => (int)$this->request->getPost('tahun'),
             'jenis_non_pkpt'   => $this->request->getPost('jenis_non_pkpt'),
+            'entitas_id'       => $entitasId,
             'nama_tim'         => trim($this->request->getPost('nama_tim') ?? '') ?: null,
             'nomor_naskah'     => $this->request->getPost('nomor_naskah'),
             'tanggal_naskah'   => $this->request->getPost('tanggal_naskah'),
@@ -443,6 +448,7 @@ class SptController extends BaseController
             $updateData['irban_id']       = (int)$this->request->getPost('irban_id');
             $updateData['tahun']          = (int)$this->request->getPost('tahun');
             $updateData['jenis_non_pkpt'] = $this->request->getPost('jenis_non_pkpt');
+            $updateData['entitas_id']     = (int)($this->request->getPost('entitas_id') ?: 0) ?: null;
         }
         $this->sptModel->update($id, $updateData);
 
@@ -477,6 +483,14 @@ class SptController extends BaseController
 
         $this->sptModel->update($id, ['status' => 'diajukan']);
         logActivity('spt.ajukan', 'spt', "Ajukan SPT id={$id}");
+
+        $nomorSpt = $spt['nomor_naskah'] ?: 'SPT #' . $id;
+        notifyAllAdmins(
+            'SPT Diajukan: ' . $nomorSpt,
+            'SPT "' . $nomorSpt . '" diajukan oleh ' . session()->get('user_name') . ' — menunggu persetujuan Kepala Irban.',
+            '/admin/spt/' . $id,
+            'info'
+        );
 
         $msg = '<div style="line-height:1.7">'
              . 'SPT <strong>' . esc($spt['nomor_naskah'] ?: '#' . $id) . '</strong>'
@@ -523,8 +537,19 @@ class SptController extends BaseController
         $this->approvalModel->approve($id, $tahap, $userId, $catatan);
         $this->sptModel->update($id, ['status' => $nextStatus]);
 
-        $label = SptModel::$statusLabel[$nextStatus] ?? $nextStatus;
+        $label    = SptModel::$statusLabel[$nextStatus] ?? $nextStatus;
+        $nomorSpt = $spt['nomor_naskah'] ?: 'SPT #' . $id;
         logActivity('spt.approve', 'spt', "Approve SPT id={$id} → {$nextStatus}");
+
+        // Notifikasi ke pembuat SPT
+        $createdBy = $this->sptModel->getCreatedBy($id);
+        if ($createdBy) {
+            $notifMsg = $nextStatus === 'terbit'
+                ? 'SPT "' . $nomorSpt . '" telah TERBIT. Silakan lanjutkan ke tahap pelaksanaan audit.'
+                : 'SPT "' . $nomorSpt . '" disetujui oleh ' . session()->get('user_name') . '. Status sekarang: ' . $label;
+            notify($createdBy, 'SPT Disetujui: ' . $nomorSpt, $notifMsg, '/admin/spt/' . $id, 'success');
+        }
+
         return redirect()->to('/admin/spt/' . $id)->with('success', "SPT berhasil di-approve. Status: {$label}");
     }
 
@@ -564,7 +589,21 @@ class SptController extends BaseController
         $this->approvalModel->reject($id, $tahap, $userId, $catatan);
         $this->sptModel->update($id, ['status' => 'ditolak', 'catatan' => $catatan]);
 
+        $nomorSpt = $spt['nomor_naskah'] ?: 'SPT #' . $id;
         logActivity('spt.reject', 'spt', "Tolak SPT id={$id}, catatan: {$catatan}");
+
+        // Notifikasi ke pembuat SPT
+        $createdBy = $this->sptModel->getCreatedBy($id);
+        if ($createdBy) {
+            notify(
+                $createdBy,
+                'SPT Ditolak: ' . $nomorSpt,
+                'SPT "' . $nomorSpt . '" ditolak oleh ' . session()->get('user_name') . '. Catatan: ' . $catatan,
+                '/admin/spt/' . $id,
+                'danger'
+            );
+        }
+
         return redirect()->to('/admin/spt/' . $id)->with('error', 'SPT ditolak. Silakan revisi sesuai catatan dan ajukan kembali.');
     }
 

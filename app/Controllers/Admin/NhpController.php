@@ -191,7 +191,80 @@ class NhpController extends BaseController
     }
 
     // ──────────────────────────────────────────────────────────────────────
-    // Kirim NHP (ubah status ke terkirim)
+    // Approval Workflow: Ajukan → (Dalnis/Admin) Setujui / Kembalikan
+    // ──────────────────────────────────────────────────────────────────────
+
+    /** KT atau Dalnis mengajukan NHP untuk direview Dalnis/Admin sebelum dikirim ke entitas */
+    public function ajukan(int $sptId, int $nhpId)
+    {
+        $nhp = $this->nhpModel->find($nhpId);
+        if (!$nhp || (int)$nhp['spt_id'] !== $sptId) {
+            return redirect()->back()->with('error', 'NHP tidak ditemukan.');
+        }
+        if (!$this->canManage($sptId)) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+        if ($nhp['status'] !== 'draft') {
+            return redirect()->back()->with('error', 'Hanya NHP berstatus Draft yang dapat diajukan.');
+        }
+
+        $items = $this->nhpModel->getItems($nhpId);
+        if (empty($items)) {
+            return redirect()->back()->with('error', 'Tambahkan minimal 1 item sebelum mengajukan NHP.');
+        }
+
+        $this->nhpModel->ajukan($nhpId);
+        logActivity('nhp.ajukan', 'nhp', "NHP diajukan untuk review id={$nhpId}");
+
+        // Notifikasi ke Dalnis di SPT ini
+        $dalnisIds = \Config\Database::connect()
+            ->table('spt_tim')->select('sdm_id')
+            ->where('spt_id', $sptId)->where('peran_spt', 'Pengendali Teknis')
+            ->get()->getResultArray();
+        if (!empty($dalnisIds)) {
+            $userIds = array_column($dalnisIds, 'sdm_id');
+            // userIds dari SDM, cari user_id yang sesuai
+            $users = \Config\Database::connect()
+                ->table('users u')->join('sdm s', 's.user_id = u.id')
+                ->whereIn('s.id', $userIds)->get()->getResultArray();
+            if (!empty($users)) {
+                $nomorNhp = $nhp['nomor_nhp'] ?? ('NHP #' . $nhpId);
+                notify(
+                    array_column($users, 'id'),
+                    'NHP Menunggu Persetujuan: ' . $nomorNhp,
+                    'NHP "' . ($nhp['perihal'] ?? $nomorNhp) . '" telah diajukan dan menunggu persetujuan Anda sebelum dikirim ke entitas.',
+                    '/admin/spt/' . $sptId . '/nhp/' . $nhpId,
+                    'info'
+                );
+            }
+        }
+
+        return redirect()->back()->with('success', 'NHP berhasil diajukan. Menunggu persetujuan Dalnis/PJ.');
+    }
+
+    /** Dalnis/Admin mengembalikan NHP ke KT dengan catatan */
+    public function kembalikan(int $sptId, int $nhpId)
+    {
+        $nhp = $this->nhpModel->find($nhpId);
+        if (!$nhp || (int)$nhp['spt_id'] !== $sptId) {
+            return redirect()->back()->with('error', 'NHP tidak ditemukan.');
+        }
+        if (!$this->canApprove($sptId)) {
+            return redirect()->back()->with('error', 'Hanya Pengendali Teknis atau Admin yang dapat mengembalikan NHP.');
+        }
+
+        $catatan = trim($this->request->getPost('catatan_kembalikan') ?? '');
+        if ($catatan) {
+            $this->nhpModel->update($nhpId, ['catatan' => $catatan, 'updated_at' => date('Y-m-d H:i:s')]);
+        }
+
+        $this->nhpModel->kembalikan($nhpId);
+        logActivity('nhp.kembalikan', 'nhp', "NHP dikembalikan id={$nhpId}");
+        return redirect()->back()->with('error', 'NHP dikembalikan ke Draft.' . ($catatan ? ' Catatan: ' . $catatan : ''));
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // Kirim NHP ke Entitas (Dalnis/Admin: langsung; atau setelah disetujui)
     // ──────────────────────────────────────────────────────────────────────
 
     public function kirim(int $sptId, int $nhpId)
@@ -200,8 +273,15 @@ class NhpController extends BaseController
         if (!$nhp || (int)$nhp['spt_id'] !== $sptId) {
             return redirect()->back()->with('error', 'NHP tidak ditemukan.');
         }
-        if (!$this->canManage($sptId)) {
-            return redirect()->back()->with('error', 'Akses ditolak.');
+
+        // Kirim langsung (draft→terkirim): hanya Dalnis/Admin
+        // Setujui & kirim (diajukan→terkirim): hanya Dalnis/Admin
+        if (!$this->canApprove($sptId)) {
+            return redirect()->back()->with('error', 'Hanya Pengendali Teknis atau Admin yang dapat mengirim NHP ke entitas. Gunakan "Ajukan" jika Anda adalah Ketua Tim.');
+        }
+
+        if (!in_array($nhp['status'], ['draft', 'diajukan'])) {
+            return redirect()->back()->with('error', 'NHP tidak dalam status yang dapat dikirim.');
         }
 
         $items = $this->nhpModel->getItems($nhpId);
@@ -211,10 +291,24 @@ class NhpController extends BaseController
 
         if ($this->nhpModel->kirim($nhpId)) {
             logActivity('nhp.kirim', 'nhp', "NHP terkirim id={$nhpId}");
-            return redirect()->back()->with('success', 'NHP berhasil ditandai sebagai terkirim.');
+
+            $entitasUserIds = $this->nhpModel->getEntitasUserIdsByNhp($nhpId);
+            if (!empty($entitasUserIds)) {
+                $nhpData  = $this->nhpModel->find($nhpId);
+                $nomorNhp = $nhpData['nomor_nhp'] ?? ('NHP #' . $nhpId);
+                notify(
+                    $entitasUserIds,
+                    'NHP Diterima: ' . $nomorNhp,
+                    'Anda menerima Notisi Hasil Pemeriksaan "' . ($nhpData['perihal'] ?? $nomorNhp) . '". Silakan periksa dan berikan tanggapan.',
+                    '/auditi/nhp/' . $nhpId,
+                    'warning'
+                );
+            }
+
+            return redirect()->back()->with('success', 'NHP berhasil dikirim ke entitas.');
         }
 
-        return redirect()->back()->with('error', 'Gagal mengubah status NHP.');
+        return redirect()->back()->with('error', 'Gagal mengirim NHP.');
     }
 
     // ──────────────────────────────────────────────────────────────────────
@@ -313,7 +407,6 @@ class NhpController extends BaseController
             return redirect()->back()->with('error', 'Akses ditolak.');
         }
 
-        // Cek apakah masih ada item pending
         $items   = $this->nhpModel->getItems($nhpId);
         $pending = array_filter($items, fn($i) => $i['status_tanggapan'] === 'pending');
         if (!empty($pending)) {
@@ -321,11 +414,112 @@ class NhpController extends BaseController
         }
 
         if ($this->nhpModel->selesaikan($nhpId)) {
-            logActivity('nhp.selesai', 'nhp', "NHP selesai id={$nhpId}");
-            return redirect()->back()->with('success', 'NHP telah diselesaikan. Temuan yang tidak sesuai masuk ke Matriks Temuan.');
+            // Ambil batas_waktu per item yang dikirim dari form modal
+            $batasWaktuMap = $this->request->getPost('batas_waktu') ?? [];
+
+            $jumlahTemuan = $this->autoCreateTemuan($sptId, $nhpId, $items, $batasWaktuMap);
+            logActivity('nhp.selesai', 'nhp', "NHP selesai id={$nhpId}, auto-create {$jumlahTemuan} temuan");
+
+            $msg = 'NHP telah diselesaikan.';
+            if ($jumlahTemuan > 0) {
+                $msg .= " {$jumlahTemuan} temuan tidak sesuai otomatis dibuat dan masuk Matriks Temuan.";
+            }
+            return redirect()->back()->with('success', $msg);
         }
 
         return redirect()->back()->with('error', 'Gagal menyelesaikan NHP.');
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // Auto-create temuan + rekomendasi dari nhp_item tidak_sesuai
+    // ──────────────────────────────────────────────────────────────────────
+
+    private function autoCreateTemuan(int $sptId, int $nhpId, array $items, array $batasWaktuMap = []): int
+    {
+        $db  = \Config\Database::connect();
+        $now = date('Y-m-d H:i:s');
+
+        $tidakSesuai = array_values(array_filter($items, fn($i) => $i['status_tanggapan'] === 'tidak_sesuai'));
+        if (empty($tidakSesuai)) return 0;
+
+        // Nomor urut temuan dimulai dari jumlah temuan yang sudah ada di SPT ini
+        $existing = $db->table('temuan')->where('spt_id', $sptId)->countAllResults();
+        $created  = 0;
+
+        foreach ($tidakSesuai as $item) {
+            // Idempotent: skip jika temuan dari nhp_item ini sudah ada
+            $sudahAda = $db->table('temuan')
+                ->where('nhp_item_id', $item['id'])
+                ->countAllResults();
+            if ($sudahAda) continue;
+
+            $existing++;
+            $nomorTemuan = 'TM-' . date('Y') . '-' . str_pad($existing, 3, '0', STR_PAD_LEFT);
+
+            // Ambil kode_temuan_id dari kka_simpulan sumber (jika ada)
+            $kodeTemuanId = null;
+            if (!empty($item['kka_simpulan_id'])) {
+                $simp = $db->table('kka_simpulan')
+                    ->select('kode_temuan_id')
+                    ->where('id', $item['kka_simpulan_id'])
+                    ->get()->getRowArray();
+                $kodeTemuanId = $simp['kode_temuan_id'] ?? null;
+            }
+
+            $db->table('temuan')->insert([
+                'nhp_item_id'    => $item['id'],
+                'spt_id'         => $sptId,
+                'kode_temuan_id' => $kodeTemuanId,
+                'nomor_temuan'   => $nomorTemuan,
+                'judul'          => $item['judul_temuan'] ?: 'Temuan ' . $existing,
+                'kondisi'        => $item['kondisi'],
+                'kriteria'       => $item['kriteria'],
+                'sebab'          => $item['sebab'],
+                'akibat'         => $item['akibat'],
+                'nilai_temuan'   => (int)($item['nilai_temuan'] ?? 0),
+                'status_temuan'  => 'buka',
+                'created_by'     => session()->get('user_id'),
+                'created_at'     => $now,
+                'updated_at'     => $now,
+            ]);
+
+            $temuanId = $db->insertID();
+
+            // Batas waktu dari form modal (keyed by nhp_item.id)
+            $batasWaktu = null;
+            if (!empty($batasWaktuMap[$item['id']])) {
+                $bw = $batasWaktuMap[$item['id']];
+                // Validasi format tanggal
+                if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $bw) && strtotime($bw) > time()) {
+                    $batasWaktu = $bw;
+                }
+            }
+
+            // Buat rekomendasi dari teks rekomendasi NHP item
+            if (!empty($item['rekomendasi'])) {
+                $db->table('rekomendasi')->insert([
+                    'temuan_id'        => $temuanId,
+                    'nomor_urut'       => 1,
+                    'isi_rekomendasi'  => $item['rekomendasi'],
+                    'batas_waktu'      => $batasWaktu,
+                    'nilai_rekomendasi'=> (int)($item['nilai_temuan'] ?? 0),
+                    'status'           => 'belum',
+                    'created_by'       => session()->get('user_id'),
+                    'created_at'       => $now,
+                    'updated_at'       => $now,
+                ]);
+
+                // Pre-kalkulasi jadwal pengingat jika ada batas waktu
+                if ($batasWaktu) {
+                    $rekId = (int) $db->insertID();
+                    buatJadwalReminder($rekId, $batasWaktu);
+                }
+            }
+
+            $created++;
+        }
+
+        return $created;
     }
 
     // ──────────────────────────────────────────────────────────────────────
@@ -376,5 +570,11 @@ class NhpController extends BaseController
     private function canManage(int $sptId): bool
     {
         return isAuditAdmin() || isDalnisInSpt($sptId) || isKtInSpt($sptId);
+    }
+
+    /** Hanya Dalnis atau Admin yang boleh approve/kirim/kembalikan NHP */
+    private function canApprove(int $sptId): bool
+    {
+        return isAuditAdmin() || isDalnisInSpt($sptId);
     }
 }

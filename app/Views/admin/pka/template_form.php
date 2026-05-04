@@ -80,6 +80,7 @@
                     <input type="hidden" name="item_fase[]" value="<?= $fase ?>">
                     <div style="flex:1">
                         <textarea name="uraian[]" class="form-control form-control-sm" rows="2"
+                                  data-wysiwyg data-wysiwyg-height="80px"
                                   placeholder="Uraian prosedur untuk fase <?= $faseLabel[$fase] ?>..."><?= esc($item['uraian_prosedur']) ?></textarea>
                     </div>
                     <button type="button" class="btn btn-xs btn-outline-danger" onclick="removeRow(this)" style="margin-top:2px">
@@ -151,17 +152,21 @@ function addRow(fase) {
         <input type="hidden" name="item_fase[]" value="${fase}">
         <div style="flex:1">
             <textarea name="uraian[]" class="form-control form-control-sm" rows="2"
+                      data-wysiwyg data-wysiwyg-height="80px"
                       placeholder="${fasePlaceholder[fase]}"></textarea>
         </div>
-        <button type="button" class="btn btn-xs btn-outline-danger" onclick="removeRow(this)" style="margin-top:2px">
+        <button type="button" class="btn btn-xs btn-outline-danger" onclick="removeRow(this)" style="margin-top:2px;flex-shrink:0">
             <i class="fas fa-times"></i>
         </button>`;
     container.appendChild(div);
-    div.querySelector('textarea').focus();
+    if (typeof initWysiwyg === 'function') initWysiwyg(div);
 }
 
 function removeRow(btn) {
-    btn.closest('.prosedur-row').remove();
+    const row = btn.closest('.prosedur-row');
+    const ta  = row.querySelector('textarea[data-wysiwyg]');
+    if (ta && ta.id && window._quillInstances) delete window._quillInstances[ta.id];
+    row.remove();
 }
 
 // Tambah 1 baris kosong per fase jika belum ada (untuk form baru)

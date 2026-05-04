@@ -54,6 +54,13 @@
                 <i class="fas fa-file-word"></i> Download Word
             </a>
         <?php endif; ?>
+
+        <?php if($temuanSummary['total'] > 0): ?>
+        <a href="/admin/spt/<?= $spt['id'] ?>/temuan" class="btn btn-outline-secondary">
+            <i class="fas fa-exclamation-triangle"></i> Temuan
+            <span class="badge badge-secondary" style="margin-left:4px"><?= $temuanSummary['total'] ?></span>
+        </a>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -266,35 +273,6 @@ $kmAllDone  = $kmDoneAll === $kmTotalAll;
     </div>
 </div>
 
-<!-- Temuan -->
-<div class="card" style="margin-top:24px">
-    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
-        <h3 class="card-title" style="margin:0"><i class="fas fa-exclamation-triangle"></i> Temuan Audit</h3>
-        <a href="/admin/spt/<?= $spt['id'] ?>/temuan" class="btn btn-xs btn-secondary">Lihat Temuan</a>
-    </div>
-    <div class="card-body">
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center">
-            <div>
-                <div style="font-size:24px;font-weight:700;color:#6366f1"><?= $temuanSummary['total'] ?></div>
-                <div style="font-size:11px;color:#64748b">Total Temuan</div>
-            </div>
-            <div>
-                <div style="font-size:24px;font-weight:700;color:#ef4444"><?= $temuanSummary['buka'] ?></div>
-                <div style="font-size:11px;color:#64748b">Terbuka</div>
-            </div>
-            <div>
-                <div style="font-size:24px;font-weight:700;color:#22c55e"><?= $temuanSummary['tutup'] ?></div>
-                <div style="font-size:11px;color:#64748b">Tertutup</div>
-            </div>
-        </div>
-        <?php if($temuanSummary['total_nilai'] > 0): ?>
-        <div style="margin-top:12px;text-align:center;font-size:13px;color:#475569">
-            Total nilai: <strong>Rp <?= number_format($temuanSummary['total_nilai'], 0, ',', '.') ?></strong>
-        </div>
-        <?php endif; ?>
-    </div>
-</div>
-
 <!-- Modal Ajukan -->
 <div id="modal-ajukan" class="modal-overlay" style="display:none">
     <div class="modal-box" style="max-width:460px">
@@ -484,19 +462,6 @@ $kmAllDone  = $kmDoneAll === $kmTotalAll;
         </form>
     </div>
 </div>
-
-<style>
-.table-detail { width:100%;border-collapse:collapse; }
-.table-detail th,.table-detail td { padding:8px 12px;border-bottom:1px solid #f1f5f9;font-size:13px; }
-.table-detail th { color:#64748b;font-weight:500;white-space:nowrap;vertical-align:top; }
-.approval-steps { display:flex;flex-direction:column;gap:12px; }
-.approval-step { display:flex;align-items:flex-start;gap:12px;padding:10px;border-radius:8px;background:#f8fafc; }
-.approval-step.done { background:#f0fdf4; }
-.approval-step.rejected { background:#fef2f2; }
-.step-icon { width:28px;height:28px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0; }
-.done .step-icon { background:#16a34a;color:#fff; }
-.rejected .step-icon { background:#dc2626;color:#fff; }
-</style>
 
 <?= $this->endSection() ?>
 <?= $this->section('scripts') ?>

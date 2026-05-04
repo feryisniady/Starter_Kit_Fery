@@ -85,18 +85,22 @@
             <div class="form-group">
                 <label>Hasil Exit Meeting</label>
                 <textarea name="hasil_meeting" class="form-control" rows="4"
+                          data-wysiwyg data-wysiwyg-height="120px"
                           placeholder="Uraikan hasil rapat, temuan pokok yang disampaikan, dan tanggapan auditi..."><?= old('hasil_meeting', $row['hasil_meeting'] ?? '') ?></textarea>
             </div>
 
             <div class="form-group">
                 <label>Kesepakatan Tindak Lanjut</label>
                 <textarea name="kesepakatan" class="form-control" rows="3"
+                          data-wysiwyg data-wysiwyg-height="100px"
                           placeholder="Kesepakatan dan komitmen tindak lanjut dari pihak auditi..."><?= old('kesepakatan', $row['kesepakatan'] ?? '') ?></textarea>
             </div>
 
             <div class="form-group">
                 <label>Catatan Tambahan</label>
-                <textarea name="catatan" class="form-control" rows="2"><?= old('catatan', $row['catatan'] ?? '') ?></textarea>
+                <textarea name="catatan" class="form-control" rows="2"
+                          data-wysiwyg data-wysiwyg-height="80px"
+                          placeholder="Catatan tambahan..."><?= old('catatan', $row['catatan'] ?? '') ?></textarea>
             </div>
 
             <div class="form-actions">

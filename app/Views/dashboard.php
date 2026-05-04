@@ -80,6 +80,80 @@
     </div>
 </div>
 
+<!-- ===== AUDIT KPI (hanya tampil jika user punya akses audit) ===== -->
+<?php if (!empty($auditKpi)): ?>
+<div style="margin-bottom: 8px">
+    <h3 style="font-size:14px;font-weight:600;color:#475569;margin:0 0 12px;display:flex;align-items:center;gap:8px">
+        <i class="fas fa-magnifying-glass-chart" style="color:#3b82f6"></i>
+        Monitoring Pengawasan <?= $auditKpi['tahun'] ?>
+        <a href="/admin/laporan" style="font-size:12px;font-weight:400;color:#3b82f6;margin-left:4px">
+            Lihat Laporan <i class="fas fa-arrow-right"></i>
+        </a>
+    </h3>
+</div>
+<div class="grid-4 mb-4">
+    <div class="stat-card" style="border-left:4px solid #3b82f6">
+        <div class="stat-icon blue"><i class="fas fa-file-signature"></i></div>
+        <div class="stat-info">
+            <div class="label">SPT Berjalan</div>
+            <div class="value"><?= number_format((int)($auditKpi['spt']['berjalan'] ?? 0)) ?></div>
+            <div class="sub">
+                <span style="color:#94a3b8"><?= number_format((int)($auditKpi['spt']['total'] ?? 0)) ?> total SPT</span>
+                <?php if (($auditKpi['spt']['pending_approval'] ?? 0) > 0): ?>
+                &nbsp;·&nbsp; <span style="color:#f59e0b"><?= $auditKpi['spt']['pending_approval'] ?> menunggu acc</span>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+    <div class="stat-card" style="border-left:4px solid #f59e0b">
+        <div class="stat-icon orange"><i class="fas fa-file-pen"></i></div>
+        <div class="stat-info">
+            <div class="label">KKA Pending Review KT</div>
+            <div class="value"><?= number_format($auditKpi['kka_pending_kt']) ?></div>
+            <div class="sub">
+                <?php if ($auditKpi['kka_pending_kt'] > 0): ?>
+                    <a href="/admin/spt" style="color:#f59e0b;font-size:12px">Perlu direview segera</a>
+                <?php else: ?>
+                    <span style="color:#22c55e">Semua KKA sudah direview</span>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+    <div class="stat-card" style="border-left:4px solid #8b5cf6">
+        <div class="stat-icon" style="background:#ede9fe;color:#8b5cf6"><i class="fas fa-envelope-open-text"></i></div>
+        <div class="stat-info">
+            <div class="label">NHP Menunggu Tanggapan</div>
+            <div class="value"><?= number_format($auditKpi['nhp_pending']) ?></div>
+            <div class="sub">
+                <?php if ($auditKpi['nhp_pending'] > 0): ?>
+                    <span style="color:#f59e0b">Auditi belum merespons</span>
+                <?php else: ?>
+                    <span style="color:#22c55e">Semua NHP sudah ditanggapi</span>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+    <div class="stat-card" style="border-left:4px solid <?= $auditKpi['tl_overdue'] > 0 ? '#ef4444' : '#22c55e' ?>">
+        <div class="stat-icon <?= $auditKpi['tl_overdue'] > 0 ? 'red' : 'green' ?>">
+            <i class="fas fa-<?= $auditKpi['tl_overdue'] > 0 ? 'triangle-exclamation' : 'check-circle' ?>"></i>
+        </div>
+        <div class="stat-info">
+            <div class="label">Tindak Lanjut Overdue</div>
+            <div class="value" style="color:<?= $auditKpi['tl_overdue'] > 0 ? '#ef4444' : 'inherit' ?>">
+                <?= number_format($auditKpi['tl_overdue']) ?>
+            </div>
+            <div class="sub">
+                <?php if ($auditKpi['tl_overdue'] > 0): ?>
+                    <a href="/admin/laporan/rekap-tl" style="color:#ef4444;font-size:12px">Rekomendasi melewati batas waktu</a>
+                <?php else: ?>
+                    <span style="color:#22c55e">Tidak ada TL overdue</span>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
 <!-- ===== CHART + RECENT ACTIVITY ===== -->
 <div class="grid-2 mb-4">
 

@@ -95,7 +95,9 @@
 
             <div class="form-group">
                 <label>Catatan Tambahan</label>
-                <textarea name="catatan" class="form-control" rows="2"><?= old('catatan', $row['catatan'] ?? '') ?></textarea>
+                <textarea name="catatan" class="form-control" rows="2"
+                      data-wysiwyg data-wysiwyg-height="80px"
+                      placeholder="Catatan tambahan..."><?= old('catatan', $row['catatan'] ?? '') ?></textarea>
             </div>
 
             <div class="form-actions">

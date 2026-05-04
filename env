@@ -17,6 +17,11 @@ app.baseURL = 'https://rbac-starter.test/'
 app.appTimezone = 'Asia/Jakarta'
 
 #--------------------------------------------------------------------
+# GEMINI AI API
+#--------------------------------------------------------------------
+# gemini.apiKey = 'ISI_API_KEY_GEMINI_KAMU_DI_SINI'
+
+#--------------------------------------------------------------------
 # DATABASE
 #--------------------------------------------------------------------
 # database.default.hostname = localhost

@@ -18,7 +18,7 @@
                 <?php endforeach; ?>
             </select>
         </div>
-        <table id="dt-kode-temuan" class="w-100" data-url="/admin/master/kode-temuan/data">
+        <table id="dt-kode-temuan" class="w-100">
             <thead>
                 <tr>
                     <th width="120">Kode</th>

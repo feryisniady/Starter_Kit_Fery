@@ -41,7 +41,7 @@ $totalRealisasi = fn($t) => (float)($t['persiapan_realisasi_hari'] ?? 0)
 
 <div class="card" style="max-width:860px">
     <div class="card-header">
-        <h3 class="card-title"><i class="fas fa-id-card"></i> Kartu Penugasan (Format KM5 BPKP)</h3>
+        <h3 class="card-title"><i class="fas fa-id-card"></i> Kartu Penugasan (Format KM5 APIP)</h3>
     </div>
     <div class="card-body" style="padding:0">
 
@@ -337,6 +337,8 @@ $totalRealisasi = fn($t) => (float)($t['persiapan_realisasi_hari'] ?? 0)
         <div class="form-group" style="margin-bottom:0">
             <label>Catatan</label>
             <textarea name="catatan" class="form-control" rows="2"
+                      data-wysiwyg data-wysiwyg-height="80px"
+                      placeholder="Catatan tambahan..."
                       <?= !$canEdit ? 'disabled' : '' ?>><?= old('catatan', $row['catatan'] ?? '') ?></textarea>
         </div>
     </div>

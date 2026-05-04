@@ -25,6 +25,7 @@ class DashboardController extends BaseAuditi
             'nhpSelesai'    => $nhpSelesai,
             'nhpList'       => array_slice($nhpList, 0, 5),
             'tlSummary'     => $tlSummary,
+            'nhpStatusLabel'=> NhpModel::$statusLabel,
         ]);
     }
 }

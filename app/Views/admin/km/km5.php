@@ -91,12 +91,14 @@
                 <div class="form-group">
                     <label>Catatan Reviu</label>
                     <textarea name="catatan_reviu" class="form-control" rows="3"
+                              data-wysiwyg data-wysiwyg-height="100px"
                               placeholder="Catatan umum hasil reviu PKA..."><?= old('catatan_reviu', $row['catatan_reviu'] ?? '') ?></textarea>
                 </div>
 
                 <div class="form-group" id="saranBlock" style="<?= ($row['status'] ?? '') !== 'dikembalikan' ? 'display:none' : '' ?>">
                     <label>Saran Perbaikan <span style="color:#ef4444">*</span></label>
                     <textarea name="saran_perbaikan" class="form-control" rows="3"
+                              data-wysiwyg data-wysiwyg-height="100px"
                               placeholder="Tuliskan saran perbaikan yang harus dilakukan tim auditor..."><?= old('saran_perbaikan', $row['saran_perbaikan'] ?? '') ?></textarea>
                 </div>
 
@@ -177,8 +179,9 @@
 
 <script>
 document.getElementById('statusReviu').addEventListener('change', function(){
-    document.getElementById('saranBlock').style.display =
-        this.value === 'dikembalikan' ? '' : 'none';
+    const block = document.getElementById('saranBlock');
+    block.style.display = this.value === 'dikembalikan' ? '' : 'none';
+    if (this.value === 'dikembalikan' && typeof initWysiwyg === 'function') initWysiwyg(block);
 });
 </script>
 

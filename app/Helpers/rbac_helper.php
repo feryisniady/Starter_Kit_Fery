@@ -471,8 +471,8 @@ if (!function_exists('canEditKmInSpt')) {
             $db  = \Config\Database::connect();
             $spt = $db->table('spt')->select('status')->where('id', $sptId)->get()->getRowArray();
             $statusSpt = $spt['status'] ?? 'draft';
-            // Kunci saat SPT sedang dalam proses approval
-            if (in_array($statusSpt, ['diajukan','acc_irban','acc_evlap','acc_sekretaris'])) {
+            // Kunci saat SPT sedang dalam proses approval ATAU sudah terbit (audit aktif)
+            if (in_array($statusSpt, ['diajukan','acc_irban','acc_evlap','acc_sekretaris','terbit'])) {
                 return false;
             }
         }

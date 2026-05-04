@@ -101,3 +101,86 @@ if (!function_exists('tgl_indo')) {
         return date('j', $ts) . ' ' . ($bulan[(int)date('n', $ts)] ?? '') . ' ' . date('Y', $ts);
     }
 }
+
+/**
+ * renderContent($text)
+ * Render teks biasa atau HTML dari WYSIWYG secara aman.
+ * - Jika dimulai dengan '<' → output sebagai HTML (dari Quill, tidak ada script)
+ * - Jika plain text → nl2br + esc
+ */
+/**
+ * ======================================================
+ * REMINDER TL — Pre-kalkulasi jadwal pengingat
+ * ======================================================
+ * Dipanggil setiap kali batas_waktu rekomendasi di-set/diubah.
+ * Membuat/update jadwal pengingat di tabel rekomendasi_reminder.
+ */
+if (!function_exists('buatJadwalReminder')) {
+    function buatJadwalReminder(int $rekomendasiId, string $batasWaktu): void
+    {
+        if (!$batasWaktu) return;
+
+        $db       = \Config\Database::connect();
+        $deadline = strtotime($batasWaktu);
+        $now      = date('Y-m-d H:i:s');
+
+        // Trigger: hari sebelum deadline (positif = H-N, 0 = hari H, negatif = terlambat)
+        $triggers = [7, 3, 1, 0, -1];
+
+        foreach ($triggers as $hari) {
+            // target_date = deadline - hari hari
+            $targetDate = date('Y-m-d', strtotime("-{$hari} days", $deadline));
+
+            // Upsert: update jika sudah ada (batas_waktu diubah), insert jika belum
+            $existing = $db->table('rekomendasi_reminder')
+                ->where('rekomendasi_id', $rekomendasiId)
+                ->where('hari_trigger', $hari)
+                ->get()->getRowArray();
+
+            if ($existing) {
+                // Reset sent flags jika jadwal berubah
+                if ($existing['trigger_date'] !== $targetDate) {
+                    $db->table('rekomendasi_reminder')
+                        ->where('id', $existing['id'])
+                        ->update([
+                            'trigger_date' => $targetDate,
+                            'sent_inapp'   => 0,
+                            'sent_email'   => 0,
+                            'sent_wa'      => 0,
+                            'sent_at'      => null,
+                        ]);
+                }
+            } else {
+                $db->table('rekomendasi_reminder')->insert([
+                    'rekomendasi_id' => $rekomendasiId,
+                    'trigger_date'   => $targetDate,
+                    'hari_trigger'   => $hari,
+                    'sent_inapp'     => 0,
+                    'sent_email'     => 0,
+                    'sent_wa'        => 0,
+                    'sent_at'        => null,
+                    'created_at'     => $now,
+                ]);
+            }
+        }
+    }
+}
+
+if (!function_exists('renderContent')) {
+    function renderContent(?string $text, string $emptyPlaceholder = ''): string
+    {
+        if ($text === null || trim($text) === '') {
+            return $emptyPlaceholder
+                ? '<span style="color:#94a3b8;font-style:italic">' . esc($emptyPlaceholder) . '</span>'
+                : '';
+        }
+        $trimmed = trim($text);
+        // Quill output selalu dimulai dengan tag HTML seperti <p>
+        if (str_starts_with($trimmed, '<')) {
+            // Strip hanya tag berbahaya, sisanya aman (Quill tidak bisa inject script)
+            return strip_tags($trimmed, '<p><br><strong><em><u><s><ol><ul><li><h2><h3><span><div>');
+        }
+        // Plain text lama — escape + nl2br
+        return nl2br(esc($trimmed));
+    }
+}

@@ -258,13 +258,13 @@ $formId   = 'form-pka-' . $pka['id'];
         </div>
     </div>
 
-    <!-- Card body (collapsible) -->
-    <div id="body-pka-<?= $pka['id'] ?>" style="<?= (!$filled && !$isEditable) ? 'display:none' : '' ?>">
+    <!-- Card body (collapsible) — collapsed by default if already filled -->
+    <div id="body-pka-<?= $pka['id'] ?>" style="<?= ($filled || !$isEditable) ? 'display:none' : '' ?>">
         <div class="card-body" style="padding:16px 20px">
 
             <?php if ($isEditable): ?>
             <!-- ── Form Edit ─────────────────────────────────────────── -->
-            <form id="<?= $formId ?>" action="/admin/kka/<?= $kka['id'] ?>/prosedur/save" method="POST">
+            <form id="<?= $formId ?>" action="/admin/kka/<?= $kka['id'] ?>/prosedur/save" method="POST" enctype="multipart/form-data">
                 <?= csrf_field() ?>
                 <input type="hidden" name="pka_id" value="<?= $pka['id'] ?>">
 
@@ -272,8 +272,11 @@ $formId   = 'form-pka-' . $pka['id'];
                 <div class="form-group" style="margin-bottom:14px">
                     <label style="font-size:12px;font-weight:700;color:#475569;letter-spacing:.3px">
                         HASIL OBSERVASI <span style="color:#ef4444">*</span>
+                        <span class="wysiwyg-badge">Rich Text</span>
                     </label>
-                    <textarea name="hasil_observasi" class="form-control" rows="3" required
+                    <textarea name="hasil_observasi"
+                              id="ta-obs-<?= $pka['id'] ?>"
+                              data-wysiwyg data-wysiwyg-height="110px" class="wysiwyg-lazy"
                               placeholder="Fakta yang ditemukan di lapangan untuk prosedur ini..."><?= esc($ikh['hasil_observasi'] ?? '') ?></textarea>
                 </div>
 
@@ -302,15 +305,25 @@ $formId   = 'form-pka-' . $pka['id'];
                                            'sebab'   =>['Sebab','Penyebab terjadinya kondisi...'],
                                            'akibat'  =>['Akibat','Dampak yang ditimbulkan...']] as $f => [$lbl, $ph]): ?>
                             <div class="form-group">
-                                <label style="font-size:11px;font-weight:700;color:#64748b"><?= strtoupper($lbl) ?></label>
-                                <textarea name="<?= $f ?>" class="form-control" rows="3"
+                                <label style="font-size:11px;font-weight:700;color:#64748b">
+                                    <?= strtoupper($lbl) ?>
+                                    <span class="wysiwyg-badge">Rich Text</span>
+                                </label>
+                                <textarea name="<?= $f ?>"
+                                          id="ta-<?= $f ?>-<?= $pka['id'] ?>"
+                                          data-wysiwyg data-wysiwyg-height="90px" class="wysiwyg-lazy"
                                           placeholder="<?= $ph ?>"><?= esc($sp[$f] ?? '') ?></textarea>
                             </div>
                             <?php endforeach; ?>
                         </div>
                         <div class="form-group" style="margin-top:12px">
-                            <label style="font-size:11px;font-weight:700;color:#64748b">REKOMENDASI AWAL</label>
-                            <textarea name="rekomendasi_awal" class="form-control" rows="2"
+                            <label style="font-size:11px;font-weight:700;color:#64748b">
+                                REKOMENDASI AWAL
+                                <span class="wysiwyg-badge">Rich Text</span>
+                            </label>
+                            <textarea name="rekomendasi_awal"
+                                      id="ta-rek-<?= $pka['id'] ?>"
+                                      data-wysiwyg data-wysiwyg-height="80px" class="wysiwyg-lazy"
                                       placeholder="Saran tindak lanjut yang direkomendasikan..."><?= esc($sp['rekomendasi_awal'] ?? '') ?></textarea>
                         </div>
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
@@ -332,6 +345,54 @@ $formId   = 'form-pka-' . $pka['id'];
                                        placeholder="Kosongkan jika tidak ada">
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Upload Dokumen Bukti -->
+                <div style="margin-bottom:14px;padding:12px 14px;background:rgba(255,255,255,.7);border:1px solid #e2e8f0;border-radius:8px">
+                    <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:8px;letter-spacing:.3px">
+                        <i class="fas fa-paperclip"></i> DOKUMEN BUKTI / LAMPIRAN
+                    </div>
+
+                    <?php
+                    // Tampilkan dokumen yang sudah diupload untuk prosedur ini
+                    $ikhtisarId = $ikh['id'] ?? null;
+                    $dokList    = $ikhtisarId ? ($dokumenByIkhtisar[$ikhtisarId] ?? []) : [];
+                    ?>
+                    <?php if (!empty($dokList)): ?>
+                    <div style="margin-bottom:10px">
+                        <?php foreach ($dokList as $dok): ?>
+                        <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:4px;font-size:12px">
+                            <i class="fas fa-file" style="color:#64748b;flex-shrink:0"></i>
+                            <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="<?= esc($dok['nama_file']) ?>">
+                                <?= esc($dok['nama_file']) ?>
+                            </span>
+                            <span style="color:#94a3b8;flex-shrink:0"><?= $dok['ukuran'] ? number_format($dok['ukuran']/1024, 1) . ' KB' : '' ?></span>
+                            <a href="/admin/kka/dokumen/<?= $dok['id'] ?>/download" target="_blank"
+                               class="btn btn-sm" style="padding:2px 8px;font-size:11px;background:#eff6ff;color:#3b82f6;border:1px solid #bfdbfe">
+                                <i class="fas fa-download"></i>
+                            </a>
+                            <form action="/admin/kka/dokumen/<?= $dok['id'] ?>/hapus" method="POST" style="margin:0"
+                                  onsubmit="return confirm('Hapus file ini?')">
+                                <?= csrf_field() ?>
+                                <button type="submit" class="btn btn-sm" style="padding:2px 8px;font-size:11px;background:#fef2f2;color:#ef4444;border:1px solid #fecaca">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php endif; ?>
+
+                    <div>
+                        <label style="font-size:11px;color:#64748b;display:block;margin-bottom:4px">
+                            Tambah file (PDF, Word, Excel, Gambar — maks. 10MB per file)
+                        </label>
+                        <input type="file" name="bukti_dokumen[]" multiple
+                               accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                               class="form-control" style="font-size:12px">
+                        <input type="text" name="keterangan_dokumen" class="form-control" style="margin-top:6px;font-size:12px"
+                               placeholder="Keterangan dokumen (opsional)">
                     </div>
                 </div>
 
@@ -376,6 +437,31 @@ $formId   = 'form-pka-' . $pka['id'];
                 </div>
             </div>
             <?php endif; ?>
+
+            <?php
+            // Tampilkan dokumen pada mode view-only
+            $ikhtisarIdView = $ikh['id'] ?? null;
+            $dokListView    = $ikhtisarIdView ? ($dokumenByIkhtisar[$ikhtisarIdView] ?? []) : [];
+            if (!empty($dokListView)): ?>
+            <div style="margin-top:12px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px">
+                <div style="font-size:10px;font-weight:700;color:#64748b;margin-bottom:6px;letter-spacing:.3px">
+                    <i class="fas fa-paperclip"></i> DOKUMEN BUKTI
+                </div>
+                <?php foreach ($dokListView as $dok): ?>
+                <div style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:5px;background:#fff;border:1px solid #f1f5f9;margin-bottom:3px;font-size:12px">
+                    <i class="fas fa-file" style="color:#64748b;flex-shrink:0"></i>
+                    <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                        <?= esc($dok['nama_file']) ?>
+                    </span>
+                    <a href="/admin/kka/dokumen/<?= $dok['id'] ?>/download" target="_blank"
+                       class="btn btn-sm" style="padding:2px 8px;font-size:11px;background:#eff6ff;color:#3b82f6;border:1px solid #bfdbfe;flex-shrink:0">
+                        <i class="fas fa-download"></i> Unduh
+                    </a>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+
             <?php else: ?>
             <div style="text-align:center;padding:24px;color:#94a3b8;font-size:13px">
                 <i class="fas fa-clock" style="display:block;font-size:24px;margin-bottom:6px"></i>
@@ -450,6 +536,10 @@ function toggleCard(bodyId) {
     const hidden = body.style.display === 'none';
     body.style.display = hidden ? '' : 'none';
     if (chevron) chevron.style.transform = hidden ? 'rotate(180deg)' : '';
+    // Init Quill editor secara lazy saat card di-expand
+    if (hidden && typeof initWysiwyg === 'function') {
+        initWysiwyg(body);
+    }
 }
 
 function toggleTemuan(pkaId) {
