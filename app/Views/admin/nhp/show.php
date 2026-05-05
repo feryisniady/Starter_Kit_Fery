@@ -74,6 +74,9 @@
         </button>
         <?php endif; ?>
 
+        <a href="/admin/spt/<?= $spt['id'] ?>/nhp/<?= $nhp['id'] ?>/print" target="_blank" class="btn btn-secondary">
+            <i class="fas fa-print"></i> Cetak NHP
+        </a>
         <a href="/admin/spt/<?= $spt['id'] ?>/nhp" class="btn btn-secondary">
             <i class="fas fa-arrow-left"></i> Kembali ke NHP
         </a>
@@ -445,7 +448,7 @@
                             <?php if ($item['kondisi']): ?>
                             <div style="font-size:11px;color:#64748b;line-height:1.4;margin-bottom:8px;
                                         display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">
-                                <?= esc(strip_tags($item['kondisi'])) ?>
+                                <?= render_wysiwyg($item['kondisi']) ?>
                             </div>
                             <?php endif; ?>
                             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">

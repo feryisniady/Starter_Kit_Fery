@@ -94,18 +94,84 @@ class TlVerifikasiController extends BaseController
                 ->update(['status' => 'selesai', 'updated_at' => $now]);
         }
 
-        $labelLog = $status === 'diterima' ? 'Diterima' : 'Dikembalikan untuk Perbaikan';
         logActivity(
             'tl.verifikasi',
             'tindak_lanjut',
             "Verifikasi TL id={$tlId} → {$status}" . ($catatan ? " | Catatan: {$catatan}" : '')
         );
 
+        // ── Notifikasi ke entitas (in-app + WA jika ditolak) ────────────────
+        $this->notifyEntitas($tlId, $tl['rekomendasi_id'], $status, $catatan);
+
         $msg = $status === 'diterima'
             ? 'Tindak lanjut berhasil diterima. Rekomendasi ditandai selesai.'
             : 'Tindak lanjut dikembalikan untuk diperbaiki. Entitas akan melihat catatan Anda.';
 
         return redirect()->to('/admin/tl/' . $tlId)->with('success', $msg);
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // Kirim notifikasi ke entitas setelah verifikasi (in-app + WA)
+    // ──────────────────────────────────────────────────────────────────────
+
+    private function notifyEntitas(int $tlId, int $rekId, string $status, string $catatan): void
+    {
+        $db = \Config\Database::connect();
+
+        $detail = $db->table('tindak_lanjut tl')
+            ->select('e.nama AS entitas_nama, e.user_id, u.phone, u.id AS user_portal_id,
+                      r.isi_rekomendasi, t.nomor_temuan')
+            ->join('rekomendasi r',  'r.id  = tl.rekomendasi_id')
+            ->join('temuan t',       't.id  = r.temuan_id')
+            ->join('entitas e',      'e.id  = tl.entitas_id')
+            ->join('users u',        'u.id  = e.user_id', 'left')
+            ->where('tl.id', $tlId)
+            ->get()->getRowArray();
+
+        if (!$detail) return;
+
+        $rekCuplikan = mb_strimwidth($detail['isi_rekomendasi'] ?? '', 0, 100, '…');
+
+        // In-app notification
+        if (!empty($detail['user_portal_id'])) {
+            if ($status === 'revisi') {
+                notify(
+                    [(int)$detail['user_portal_id']],
+                    'Dokumen TL Perlu Diperbaiki',
+                    'Dokumen tindak lanjut Anda untuk rekomendasi "' . $rekCuplikan . '" dikembalikan.'
+                    . ($catatan ? ' Catatan auditor: ' . $catatan : ''),
+                    '/auditi/tl/' . $tlId,
+                    'danger'
+                );
+            } else {
+                notify(
+                    [(int)$detail['user_portal_id']],
+                    'Tindak Lanjut Diterima',
+                    'Dokumen tindak lanjut Anda untuk rekomendasi "' . $rekCuplikan . '" telah diterima.',
+                    '/auditi/tl/' . $tlId,
+                    'success'
+                );
+            }
+        }
+
+        // WA notification — hanya saat ditolak (revisi) dan nomor WA tersedia
+        if ($status === 'revisi' && !empty($detail['phone'])) {
+            $appName  = app_setting('app_name') ?: 'SIMPAWAN';
+            $waMsg    = "*[{$appName}] Dokumen Tindak Lanjut Perlu Diperbaiki*\n\n"
+                      . "Yth. {$detail['entitas_nama']},\n\n"
+                      . "Dokumen tindak lanjut Anda untuk rekomendasi:\n"
+                      . "_{$rekCuplikan}_\n\n"
+                      . "telah *dikembalikan* dan perlu diperbaiki.";
+
+            if ($catatan) {
+                $waMsg .= "\n\n*Catatan Auditor:*\n" . $catatan;
+            }
+
+            $waMsg .= "\n\nSilakan login ke portal dan unggah kembali dokumen yang diperlukan.\n"
+                    . "Terima kasih.";
+
+            send_wa($detail['phone'], $waMsg);
+        }
     }
 
     public function downloadDokumen(int $dokId)

@@ -492,6 +492,23 @@ class SptController extends BaseController
             'info'
         );
 
+        // WA ke semua user berperan irban/ka_irban yang punya nomor HP
+        $irbanUsers = \Config\Database::connect()
+            ->table('users u')
+            ->select('u.id, u.phone')
+            ->join('user_roles ur', 'ur.user_id = u.id')
+            ->join('roles r', 'r.id = ur.role_id')
+            ->whereIn('r.slug', ['irban', 'ka_irban', 'admin', 'superadmin'])
+            ->where('u.phone IS NOT NULL')
+            ->where("u.phone != ''")
+            ->get()->getResultArray();
+        $waMsg = "*[SIMPAWAN] SPT Diajukan*\n\n"
+               . "SPT *{$nomorSpt}* diajukan oleh " . session()->get('user_name') . " dan menunggu persetujuan Kepala Irban.\n\n"
+               . "Silakan login ke SIMPAWAN untuk meninjau.";
+        foreach ($irbanUsers as $u) {
+            send_wa($u['phone'], $waMsg);
+        }
+
         $msg = '<div style="line-height:1.7">'
              . 'SPT <strong>' . esc($spt['nomor_naskah'] ?: '#' . $id) . '</strong>'
              . ' berhasil diajukan.<br>'
@@ -541,13 +558,20 @@ class SptController extends BaseController
         $nomorSpt = $spt['nomor_naskah'] ?: 'SPT #' . $id;
         logActivity('spt.approve', 'spt', "Approve SPT id={$id} → {$nextStatus}");
 
-        // Notifikasi ke pembuat SPT
+        // Notifikasi ke pembuat SPT (in-app + WA)
         $createdBy = $this->sptModel->getCreatedBy($id);
         if ($createdBy) {
             $notifMsg = $nextStatus === 'terbit'
                 ? 'SPT "' . $nomorSpt . '" telah TERBIT. Silakan lanjutkan ke tahap pelaksanaan audit.'
                 : 'SPT "' . $nomorSpt . '" disetujui oleh ' . session()->get('user_name') . '. Status sekarang: ' . $label;
             notify($createdBy, 'SPT Disetujui: ' . $nomorSpt, $notifMsg, '/admin/spt/' . $id, 'success');
+
+            $waEmoji = $nextStatus === 'terbit' ? '✅' : '👍';
+            send_wa_to_user($createdBy,
+                "*[SIMPAWAN] SPT Disetujui {$waEmoji}*\n\n"
+                . $notifMsg . "\n\n"
+                . "Silakan login ke SIMPAWAN untuk melanjutkan."
+            );
         }
 
         return redirect()->to('/admin/spt/' . $id)->with('success', "SPT berhasil di-approve. Status: {$label}");
@@ -592,15 +616,15 @@ class SptController extends BaseController
         $nomorSpt = $spt['nomor_naskah'] ?: 'SPT #' . $id;
         logActivity('spt.reject', 'spt', "Tolak SPT id={$id}, catatan: {$catatan}");
 
-        // Notifikasi ke pembuat SPT
+        // Notifikasi ke pembuat SPT (in-app + WA)
         $createdBy = $this->sptModel->getCreatedBy($id);
         if ($createdBy) {
-            notify(
-                $createdBy,
-                'SPT Ditolak: ' . $nomorSpt,
-                'SPT "' . $nomorSpt . '" ditolak oleh ' . session()->get('user_name') . '. Catatan: ' . $catatan,
-                '/admin/spt/' . $id,
-                'danger'
+            $notifMsg = 'SPT "' . $nomorSpt . '" ditolak oleh ' . session()->get('user_name') . '. Catatan: ' . $catatan;
+            notify($createdBy, 'SPT Ditolak: ' . $nomorSpt, $notifMsg, '/admin/spt/' . $id, 'danger');
+            send_wa_to_user($createdBy,
+                "*[SIMPAWAN] SPT Ditolak ❌*\n\n"
+                . $notifMsg . "\n\n"
+                . "Silakan login ke SIMPAWAN untuk melakukan revisi."
             );
         }
 

@@ -500,6 +500,34 @@ if (!function_exists('isSptLocked')) {
     }
 }
 
+if (!function_exists('isSptAktif')) {
+    /**
+     * Apakah SPT sudah Terbit (audit sedang berjalan)?
+     * Digunakan sebagai gate: NHP hanya bisa dibuat saat SPT terbit.
+     */
+    function isSptAktif(int $sptId): bool
+    {
+        $db  = \Config\Database::connect();
+        $spt = $db->table('spt')->select('status')->where('id', $sptId)->get()->getRowArray();
+        return ($spt['status'] ?? '') === 'terbit';
+    }
+}
+
+if (!function_exists('isNhpSelesai')) {
+    /**
+     * Apakah NHP untuk SPT ini sudah ada yang selesai?
+     * Jika ya → KKA, NHP lain tidak bisa diubah secara retroaktif.
+     */
+    function isNhpSelesai(int $sptId): bool
+    {
+        return (bool) \Config\Database::connect()
+            ->table('nhp')
+            ->where('spt_id', $sptId)
+            ->where('status', 'selesai')
+            ->countAllResults();
+    }
+}
+
 if (!function_exists('canViewSptAudit')) {
     /**
      * Apakah user boleh mengakses halaman audit SPT ini sama sekali?

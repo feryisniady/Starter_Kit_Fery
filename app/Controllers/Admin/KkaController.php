@@ -132,16 +132,16 @@ class KkaController extends BaseController
         $spt = $this->sptModel->getDetail($kka['spt_id']);
         $db  = \Config\Database::connect();
 
-        // PKA procedures: AT hanya lihat yang di-assign ke dia (via pka_assignment)
-        // KT / Dalnis / Admin lihat semua prosedur SPT
-        $pkaQuery = $db->table('pka p')
+        // PKA procedures: selalu filter ke prosedur yang di-assign ke AT pemilik KKA ini.
+        // KT/Dalnis/Admin melihat KKA AT lain tetap hanya melihat prosedur milik AT tersebut.
+        // Gunakan Compiled View untuk gambaran semua AT sekaligus.
+        $pkaList = $db->table('pka p')
             ->select('p.*')
-            ->where('p.spt_id', $kka['spt_id']);
-        if (!isAuditAdmin() && !isDalnisInSpt($kka['spt_id']) && !isKtInSpt($kka['spt_id'])) {
-            $pkaQuery->join('pka_assignment pa', 'pa.pka_id = p.id')
-                     ->where('pa.sdm_id', $kka['sdm_id']);
-        }
-        $pkaList = $pkaQuery->orderBy('p.fase')->orderBy('p.nomor_urut')->get()->getResultArray();
+            ->join('pka_assignment pa', 'pa.pka_id = p.id')
+            ->where('p.spt_id', $kka['spt_id'])
+            ->where('pa.sdm_id', $kka['sdm_id'])
+            ->orderBy('p.fase')->orderBy('p.nomor_urut')
+            ->get()->getResultArray();
 
         // Lookup kode temuan (untuk dropdown simpulan)
         $kodeTemuanList = $db->table('kode_temuan')
@@ -536,6 +536,25 @@ class KkaController extends BaseController
 
         if ($this->kkaModel->submitKka($kkaId)) {
             logActivity('kka.submit', 'kka', "KKA submitted ke KT kka_id={$kkaId}");
+
+            // WA ke Ketua Tim SPT ini
+            $ktSdm = \Config\Database::connect()
+                ->table('spt_tim st')
+                ->select('s.user_id')
+                ->join('sdm s', 's.id = st.sdm_id')
+                ->where('st.spt_id', $kka['spt_id'])
+                ->where('st.peran_spt', 'Ketua Tim')
+                ->get()->getRowArray();
+            if (!empty($ktSdm['user_id'])) {
+                $namaAt = session()->get('user_name') ?? 'Anggota Tim';
+                send_wa_to_user((int)$ktSdm['user_id'],
+                    "*[SIMPAWAN] KKA Menunggu Review 📋*\n\n"
+                    . "{$namaAt} telah mengirimkan KKA untuk direview.\n"
+                    . "SPT: " . ($kka['spt_id'] ? '#' . $kka['spt_id'] : '—') . "\n\n"
+                    . "Silakan login ke SIMPAWAN untuk mereview KKA."
+                );
+            }
+
             return redirect()->to('/admin/kka/' . $kkaId)->with('success', 'KKA berhasil dikirim ke Ketua Tim untuk direview.');
         }
 
@@ -555,6 +574,15 @@ class KkaController extends BaseController
         $catatan = $this->request->getPost('catatan_review') ?: null;
         if ($this->kkaModel->approveKka($kkaId, $catatan)) {
             logActivity('kka.approve', 'kka', "KKA disetujui KT kka_id={$kkaId}");
+
+            // WA ke AT pemilik KKA
+            send_wa_to_sdm((int)$kka['sdm_id'],
+                "*[SIMPAWAN] KKA Disetujui ✅*\n\n"
+                . "KKA Anda telah disetujui oleh Ketua Tim.\n"
+                . ($catatan ? "Catatan: {$catatan}\n" : '')
+                . "\nSilakan login ke SIMPAWAN untuk melanjutkan."
+            );
+
             return redirect()->to('/admin/kka/' . $kkaId)->with('success', 'KKA disetujui.');
         }
 
@@ -578,6 +606,15 @@ class KkaController extends BaseController
 
         if ($this->kkaModel->rejectKka($kkaId, $catatan)) {
             logActivity('kka.reject', 'kka', "KKA dikembalikan KT kka_id={$kkaId}");
+
+            // WA ke AT pemilik KKA
+            send_wa_to_sdm((int)$kka['sdm_id'],
+                "*[SIMPAWAN] KKA Perlu Diperbaiki 🔄*\n\n"
+                . "KKA Anda dikembalikan oleh Ketua Tim untuk diperbaiki.\n"
+                . "Catatan: {$catatan}\n\n"
+                . "Silakan login ke SIMPAWAN dan perbaiki KKA Anda."
+            );
+
             return redirect()->to('/admin/kka/' . $kkaId)->with('success', 'KKA dikembalikan ke Anggota Tim.');
         }
 
@@ -596,6 +633,16 @@ class KkaController extends BaseController
 
         if (($kka['status_kka'] ?? '') !== 'rejected') {
             return redirect()->back()->with('error', 'KKA tidak dalam status dikembalikan.');
+        }
+
+        // Lock: tidak bisa dibuka ulang jika NHP untuk SPT ini sudah selesai
+        $nhpSelesai = \Config\Database::connect()
+            ->table('nhp')
+            ->where('spt_id', $kka['spt_id'])
+            ->where('status', 'selesai')
+            ->countAllResults();
+        if ($nhpSelesai > 0) {
+            return redirect()->back()->with('error', 'KKA tidak dapat dibuka ulang karena NHP untuk SPT ini sudah diselesaikan.');
         }
 
         if ($this->kkaModel->reopenKka($kkaId)) {

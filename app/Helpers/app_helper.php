@@ -85,6 +85,50 @@ if (!function_exists('send_wa')) {
 }
 
 /**
+ * Render konten dari WYSIWYG (Quill) secara aman.
+ * Jika konten adalah HTML (dimulai '<') → strip tag berbahaya, sisakan formatting.
+ * Jika plain text → nl2br + esc.
+ */
+if (!function_exists('render_wysiwyg')) {
+    function render_wysiwyg(?string $html): string
+    {
+        $html = trim((string) $html);
+        if ($html === '') return '';
+        if ($html[0] === '<') {
+            return strip_tags($html, '<ol><ul><li><p><br><strong><em><u><h2><h3>');
+        }
+        return nl2br(esc($html));
+    }
+}
+
+/**
+ * Kirim WA ke user berdasarkan user_id (ambil phone dari tabel users).
+ * No-op jika phone kosong atau WA tidak dikonfigurasi.
+ */
+if (!function_exists('send_wa_to_user')) {
+    function send_wa_to_user(int $userId, string $message): bool
+    {
+        $user = \Config\Database::connect()
+            ->table('users')->select('phone')->where('id', $userId)->get()->getRowArray();
+        if (empty($user['phone'])) return false;
+        return send_wa($user['phone'], $message);
+    }
+}
+
+/**
+ * Kirim WA ke SDM berdasarkan sdm_id (via sdm.user_id → users.phone).
+ */
+if (!function_exists('send_wa_to_sdm')) {
+    function send_wa_to_sdm(int $sdmId, string $message): bool
+    {
+        $sdm = \Config\Database::connect()
+            ->table('sdm')->select('user_id')->where('id', $sdmId)->get()->getRowArray();
+        if (empty($sdm['user_id'])) return false;
+        return send_wa_to_user((int)$sdm['user_id'], $message);
+    }
+}
+
+/**
  * ======================================================
  * FORMAT TANGGAL INDONESIA
  * ======================================================

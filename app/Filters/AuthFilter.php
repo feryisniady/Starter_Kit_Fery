@@ -25,11 +25,21 @@ class AuthFilter implements FilterInterface
      */
     public function before(RequestInterface $request, $arguments = null)
     {
-        // Kalau belum login, redirect ke login
         if (!session()->get('logged_in')) {
             return redirect()->to('/login');
         }
-        
+
+        // Idle timeout: paksa logout setelah 8 jam tidak aktif
+        $idleLimit    = 28800; // 8 jam dalam detik
+        $lastActivity = session()->get('last_activity');
+
+        if ($lastActivity && (time() - (int)$lastActivity) > $idleLimit) {
+            session()->destroy();
+            return redirect()->to('/login')
+                ->with('error', 'Sesi Anda berakhir karena tidak aktif selama 8 jam. Silakan login kembali.');
+        }
+
+        session()->set('last_activity', time());
     }
 
     /**

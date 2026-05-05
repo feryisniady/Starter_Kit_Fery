@@ -101,10 +101,19 @@ td.left { text-align:left; }
             <span class="meta-sep">:</span>
             <span class="meta-value">&nbsp;<?= esc($spt['kode_kegiatan'] ?? '') ?></span>
         </div>
-        <div class="meta-row">
+        <div class="meta-row" style="align-items:flex-start">
             <span class="meta-label">Program / Kegiatan</span>
             <span class="meta-sep">:</span>
-            <span class="meta-value">&nbsp;<?= esc($km1['kegiatan'] ?? $spt['tujuan'] ?? '') ?></span>
+            <span class="meta-value" style="padding-left:4px">
+            <?php
+            $kegiatanVal = trim($km1['kegiatan'] ?? $spt['tujuan'] ?? '');
+            if ($kegiatanVal !== '' && $kegiatanVal[0] === '<') {
+                echo strip_tags($kegiatanVal, '<p><br><strong><em><u><ol><ul><li>');
+            } else {
+                echo nl2br(esc($kegiatanVal));
+            }
+            ?>
+            </span>
         </div>
         <div class="meta-row">
             <span class="meta-label">Lokasi</span>

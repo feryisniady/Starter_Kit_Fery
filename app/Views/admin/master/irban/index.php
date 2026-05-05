@@ -58,10 +58,10 @@
                     </td>
                     <td style="text-align:center">
                         <a href="/admin/master/irban/edit/<?= $row['id'] ?>"
-                           class="btn btn-xs btn-warning" style="margin-right:4px">
-                            <i class="fas fa-edit"></i> Edit
+                           class="btn btn-sm btn-warning" style="margin-right:4px">
+                            <i class="fas fa-edit"></i>
                         </a>
-                        <button class="btn btn-xs btn-danger btn-del"
+                        <button class="btn btn-sm btn-danger btn-del"
                                 data-id="<?= $row['id'] ?>"
                                 data-nama="<?= esc($row['nama']) ?>">
                             <i class="fas fa-trash"></i>

@@ -61,15 +61,15 @@
             <div class="card-body">
                 <div style="margin-bottom:16px">
                     <div style="font-weight:600;color:#475569;margin-bottom:4px;font-size:13px">KONDISI</div>
-                    <div style="background:#f8fafc;border-left:3px solid #6366f1;padding:12px;border-radius:0 4px 4px 0;white-space:pre-wrap;font-size:14px">
-                        <?= esc($temuan['kondisi']) ?: '<span style="color:#94a3b8">—</span>' ?>
+                    <div style="background:#f8fafc;border-left:3px solid #6366f1;padding:12px;border-radius:0 4px 4px 0;font-size:14px;line-height:1.6">
+                        <?= render_wysiwyg($temuan['kondisi']) ?: '<span style="color:#94a3b8">—</span>' ?>
                     </div>
                 </div>
                 <?php if($temuan['kriteria']): ?>
                 <div style="margin-bottom:16px">
                     <div style="font-weight:600;color:#475569;margin-bottom:4px;font-size:13px">KRITERIA</div>
-                    <div style="background:#f8fafc;border-left:3px solid #0ea5e9;padding:12px;border-radius:0 4px 4px 0;white-space:pre-wrap;font-size:14px">
-                        <?= esc($temuan['kriteria']) ?>
+                    <div style="background:#f8fafc;border-left:3px solid #0ea5e9;padding:12px;border-radius:0 4px 4px 0;font-size:14px;line-height:1.6">
+                        <?= render_wysiwyg($temuan['kriteria']) ?>
                     </div>
                 </div>
                 <?php endif; ?>
@@ -77,16 +77,16 @@
                     <?php if($temuan['sebab']): ?>
                     <div>
                         <div style="font-weight:600;color:#475569;margin-bottom:4px;font-size:13px">SEBAB</div>
-                        <div style="background:#f8fafc;border-left:3px solid #f59e0b;padding:12px;border-radius:0 4px 4px 0;white-space:pre-wrap;font-size:14px">
-                            <?= esc($temuan['sebab']) ?>
+                        <div style="background:#f8fafc;border-left:3px solid #f59e0b;padding:12px;border-radius:0 4px 4px 0;font-size:14px;line-height:1.6">
+                            <?= render_wysiwyg($temuan['sebab']) ?>
                         </div>
                     </div>
                     <?php endif; ?>
                     <?php if($temuan['akibat']): ?>
                     <div>
                         <div style="font-weight:600;color:#475569;margin-bottom:4px;font-size:13px">AKIBAT</div>
-                        <div style="background:#f8fafc;border-left:3px solid #ef4444;padding:12px;border-radius:0 4px 4px 0;white-space:pre-wrap;font-size:14px">
-                            <?= esc($temuan['akibat']) ?>
+                        <div style="background:#f8fafc;border-left:3px solid #ef4444;padding:12px;border-radius:0 4px 4px 0;font-size:14px;line-height:1.6">
+                            <?= render_wysiwyg($temuan['akibat']) ?>
                         </div>
                     </div>
                     <?php endif; ?>

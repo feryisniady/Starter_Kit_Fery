@@ -332,6 +332,7 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	$routes->post('spt/(:num)/nhp/(:num)/item/add',                  'Admin\NhpController::addItem/$1/$2',             ['filter' => 'permission:spt.create']);
 	$routes->post('spt/(:num)/nhp/(:num)/item/(:num)/tanggapi',      'Admin\NhpController::tanggapi/$1/$2/$3',         ['filter' => 'permission:spt.approve']);
 	$routes->get( 'spt/(:num)/nhp/matriks',                         'Admin\NhpController::matriks/$1',                  ['filter' => 'permission:spt.view']);
+	$routes->get( 'spt/(:num)/nhp/(:num)/print',                    'Admin\NhpController::printNhp/$1/$2',              ['filter' => 'permission:spt.view']);
 	$routes->get( 'nhp/item-dokumen/(:num)/download',                'Admin\NhpController::downloadItemDokumen/$1',    ['filter' => 'permission:spt.view']);
 
 	// =====================================================================

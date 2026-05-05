@@ -230,7 +230,7 @@ $formId   = 'form-pka-' . $pka['id'];
             </div>
             <!-- Nama prosedur -->
             <div style="flex:1;min-width:0">
-                <div style="font-weight:600;font-size:13px;color:#1e293b"><?= esc($pka['uraian_prosedur']) ?></div>
+                <div style="font-weight:600;font-size:13px;color:#1e293b;line-height:1.5"><?= render_wysiwyg($pka['uraian_prosedur']) ?></div>
                 <div style="font-size:11px;color:#64748b;margin-top:1px">
                     Rencana: <?= $pka['rencana_waktu'] ?? '—' ?> HP
                     <?php if (!empty($pka['pic_nama'])): ?>&nbsp;|&nbsp; PIC: <?= esc($pka['pic_nama']) ?><?php endif; ?>

@@ -13,6 +13,18 @@ class AuditiFilter implements FilterInterface
             return redirect()->to('/login');
         }
 
+        // Idle timeout: paksa logout setelah 8 jam tidak aktif
+        $idleLimit    = 28800;
+        $lastActivity = session()->get('last_activity');
+
+        if ($lastActivity && (time() - (int)$lastActivity) > $idleLimit) {
+            session()->destroy();
+            return redirect()->to('/login')
+                ->with('error', 'Sesi Anda berakhir karena tidak aktif selama 8 jam. Silakan login kembali.');
+        }
+
+        session()->set('last_activity', time());
+
         $userId  = (int) session()->get('user_id');
         $entitas = \Config\Database::connect()
             ->table('entitas')

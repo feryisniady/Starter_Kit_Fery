@@ -173,7 +173,7 @@ foreach ($pkaList as $p) {
                 <tr id="pka-row-<?= $row['id'] ?>" style="border-bottom:1px solid #f1f5f9"
                     onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
                     <td style="padding:9px 10px;font-weight:600;color:<?= $color ?>"><?= $row['nomor_urut'] ?></td>
-                    <td style="padding:9px 10px;font-size:13px"><?= esc(strip_tags($row['uraian_prosedur'])) ?></td>
+                    <td style="padding:9px 10px;font-size:13px;line-height:1.5"><?= render_wysiwyg($row['uraian_prosedur']) ?></td>
                     <td style="padding:9px 10px;text-align:center;font-size:13px">
                         <?= $row['rencana_waktu'] ? $row['rencana_waktu'].' HP' : '—' ?>
                     </td>
@@ -343,7 +343,7 @@ foreach ($pkaList as $p) {
                     <tr style="border-bottom:1px solid #f1f5f9" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
                         <td style="padding:8px 10px;border:1px solid #e2e8f0">
                             <span style="color:<?= $faseColor[$row['fase']] ?>;font-weight:700;margin-right:6px"><?= $row['nomor_urut'] ?></span>
-                            <?= esc(strip_tags($row['uraian_prosedur'])) ?>
+                            <?= render_wysiwyg($row['uraian_prosedur']) ?>
                         </td>
                         <td style="padding:8px 6px;text-align:center;border:1px solid #e2e8f0;color:#64748b;font-size:11px">
                             <?= $row['rencana_waktu'] ?? '—' ?>
