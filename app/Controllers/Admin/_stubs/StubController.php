@@ -81,7 +81,7 @@ class StubController extends BaseController
                 'status'      => '<span class="badge badge-' . ($sc[$r['status']] ?? 'secondary') . '">'
                                . esc($sl[$r['status']] ?? $r['status']) . '</span>',
                 'aksi'        => '<button class="btn btn-xs btn-primary  btn-detail" data-id="' . $r['id'] . '" title="Detail"><i class="fas fa-eye"></i></button> '
-                               . '<button class="btn btn-xs btn-warning  btn-edit"   data-id="' . $r['id'] . '" title="Edit"><i class="fas fa-edit"></i></button> '
+                               . '<button class="btn btn-xs btn-warning  btn-edit"   data-id="' . $r['id'] . '" title="Edit"><i class="fas fa-pen"></i></button> '
                                . '<button class="btn btn-xs btn-danger   btn-delete" data-id="' . $r['id'] . '" title="Hapus"><i class="fas fa-trash"></i></button>',
             ];
         }
@@ -180,7 +180,7 @@ class StubController extends BaseController
     // HELPERS (hapus jika modul tidak butuh scoping per irban)
     // =========================================================
 
-    private function isAdmin(): bool
+    protected function isAdmin(): bool
     {
         return hasRole('superadmin') || hasRole('admin') || hasPermission('stub.manage_all');
     }

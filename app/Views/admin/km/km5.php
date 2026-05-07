@@ -25,7 +25,7 @@
 </div>
 <?php endif; ?>
 
-<div style="display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:start">
+<div style="display:grid;grid-template-columns:1fr 440px;gap:20px;align-items:start">
 
     <!-- Form Reviu -->
     <div class="card">
@@ -33,7 +33,7 @@
             <h3 class="card-title"><i class="fas fa-magnifying-glass-chart"></i> Lembar Reviu Program Kerja Audit</h3>
         </div>
         <div class="card-body">
-            <div style="background:#eff6ff;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#1d4ed8">
+            <div class="box-info">
                 <i class="fas fa-info-circle"></i>
                 KM-5 merupakan lembar reviu PKA oleh Pengendali Teknis (Dalnis) sebelum pelaksanaan pengawasan dimulai.
                 Pastikan PKA sudah tersedia di modul PKA sebelum mengisi formulir ini.
@@ -129,19 +129,49 @@
                 </a>
             </div>
             <?php else: ?>
-            <div class="card-body" style="padding:0">
+            <div class="card-body" style="padding:0;max-height:420px;overflow-y:auto">
                 <table style="width:100%;border-collapse:collapse;font-size:12px">
-                    <thead>
+                    <thead style="position:sticky;top:0;z-index:1">
                         <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0">
-                            <th style="padding:8px 12px;text-align:left;color:#64748b">#</th>
+                            <th style="padding:8px 10px;text-align:center;color:#64748b;width:32px">#</th>
                             <th style="padding:8px 12px;text-align:left;color:#64748b">Prosedur Audit</th>
                         </tr>
                     </thead>
                     <tbody>
                     <?php foreach($pkaList as $i => $pka): ?>
-                    <tr style="border-bottom:1px solid #f1f5f9">
-                        <td style="padding:8px 12px;color:#94a3b8"><?= $i + 1 ?></td>
-                        <td style="padding:8px 12px;line-height:1.5"><?= render_wysiwyg($pka['uraian_prosedur'] ?? '') ?></td>
+                    <?php
+                        $raw = $pka['uraian_prosedur'] ?? '';
+                        // Konversi <ol> → numbered list, <ul> → bullet list
+                        $raw = preg_replace_callback(
+                            '/<ol[^>]*>(.*?)<\/ol>/is',
+                            function($m) {
+                                $items = []; $n = 1;
+                                preg_replace_callback('/<li[^>]*>(.*?)<\/li>/is', function($li) use (&$items, &$n) {
+                                    $items[] = $n++ . '. ' . trim(strip_tags($li[1]));
+                                }, $m[1]);
+                                return implode(' ', $items);
+                            },
+                            $raw
+                        );
+                        $raw = preg_replace_callback(
+                            '/<ul[^>]*>(.*?)<\/ul>/is',
+                            function($m) {
+                                $items = [];
+                                preg_replace_callback('/<li[^>]*>(.*?)<\/li>/is', function($li) use (&$items) {
+                                    $items[] = '• ' . trim(strip_tags($li[1]));
+                                }, $m[1]);
+                                return implode(' ', $items);
+                            },
+                            $raw
+                        );
+                        $raw = preg_replace('/<br\s*\/?>/i', ' ', $raw);
+                        $plainText = trim(preg_replace('/\s+/', ' ', strip_tags($raw)));
+                        $short = mb_strlen($plainText) > 100 ? mb_substr($plainText, 0, 100) . '…' : $plainText;
+                    ?>
+                    <tr style="border-bottom:1px solid #f1f5f9;transition:background .15s" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+                        <td style="padding:8px 10px;color:#94a3b8;text-align:center;font-weight:600"><?= $i + 1 ?></td>
+                        <td style="padding:8px 12px;line-height:1.5;color:#374151"
+                            title="<?= esc($plainText) ?>"><?= esc($short) ?></td>
                     </tr>
                     <?php endforeach; ?>
                     </tbody>

@@ -326,6 +326,22 @@ class LaporanController extends BaseController
         $jenis   = $this->request->getGet('jenis')    ?: '';
         $statusTl= $this->request->getGet('status_tl') ?: '';
 
+        $whereExtra = '';
+        $bindings   = [$tahun];
+
+        if ($irbanId) {
+            $whereExtra .= ' AND COALESCE(i_pkpt.id, i_spt.id) = ?';
+            $bindings[]  = (int) $irbanId;
+        }
+        if ($jenis && in_array($jenis, ['pkpt', 'non_pkpt'], true)) {
+            $whereExtra .= ' AND COALESCE(s.jenis_spt, "pkpt") = ?';
+            $bindings[]  = $jenis;
+        }
+        if ($statusTl && in_array($statusTl, ['belum', 'proses', 'selesai'], true)) {
+            $whereExtra .= ' AND COALESCE(r.status, "belum") = ?';
+            $bindings[]  = $statusTl;
+        }
+
         $rows = $db->query("
             SELECT
                 t.nomor_temuan, t.judul AS judul_temuan, t.kondisi, t.nilai_temuan,
@@ -347,14 +363,9 @@ class LaporanController extends BaseController
             LEFT JOIN entitas e        ON e.id = pe.entitas_id
             LEFT JOIN kode_temuan kt   ON kt.id = t.kode_temuan_id
             WHERE YEAR(COALESCE(s.tanggal_mulai, s.created_at)) = ?
-              AND t.status_temuan = 'buka'
+              AND t.status_temuan = 'buka'$whereExtra
             ORDER BY irban_nama, s.nomor_naskah, t.nomor_temuan, r.nomor_urut
-        ", [$tahun])->getResultArray();
-
-        if ($irbanId) $rows = array_filter($rows, fn($r) => (string)$r['irban_id'] === $irbanId);
-        if ($jenis)   $rows = array_filter($rows, fn($r) => ($r['jenis_spt'] ?? 'pkpt') === $jenis);
-        if ($statusTl) $rows = array_filter($rows, fn($r) => ($r['status_tl'] ?? 'belum') === $statusTl);
-        $rows = array_values($rows);
+        ", $bindings)->getResultArray();
 
         $tlLabel = ['belum' => 'Belum', 'proses' => 'Dalam Proses', 'selesai' => 'Selesai'];
 
@@ -396,6 +407,32 @@ class LaporanController extends BaseController
         $entitas = $this->request->getGet('entitas') ?: '';
         $jenis   = $this->request->getGet('jenis')   ?: ''; // pkpt | non_pkpt | ''
         $statusTl= $this->request->getGet('status_tl') ?: ''; // belum | proses | selesai | ''
+
+        // ── Bangun filter SQL — hindari memuat seluruh dataset ke PHP ─────
+        $whereExtra = '';
+        $bindings   = [$tahun];
+
+        if ($irbanId) {
+            $whereExtra .= ' AND COALESCE(i_pkpt.id, i_spt.id) = ?';
+            $bindings[]  = (int) $irbanId;
+        }
+        if ($entitas) {
+            if (ctype_digit($entitas)) {
+                $whereExtra .= ' AND COALESCE(e.id, 0) = ?';
+                $bindings[]  = (int) $entitas;
+            } else {
+                $whereExtra .= ' AND e.nama LIKE ?';
+                $bindings[]  = '%' . $entitas . '%';
+            }
+        }
+        if ($jenis && in_array($jenis, ['pkpt', 'non_pkpt'], true)) {
+            $whereExtra .= ' AND COALESCE(s.jenis_spt, "pkpt") = ?';
+            $bindings[]  = $jenis;
+        }
+        if ($statusTl && in_array($statusTl, ['belum', 'proses', 'selesai'], true)) {
+            $whereExtra .= ' AND COALESCE(r.status, "belum") = ?';
+            $bindings[]  = $statusTl;
+        }
 
         // ── Query utama: temuan + rekomendasi + TL terbaru + entitas ──────
         $rows = $db->query("
@@ -460,25 +497,9 @@ class LaporanController extends BaseController
             LEFT JOIN entitas e         ON e.id = pe.entitas_id
             LEFT JOIN kode_temuan kt    ON kt.id = t.kode_temuan_id
             WHERE YEAR(COALESCE(s.tanggal_mulai, s.created_at)) = ?
-              AND t.status_temuan = 'buka'
+              AND t.status_temuan = 'buka'$whereExtra
             ORDER BY irban_nama, s.nomor_naskah, t.nomor_temuan, r.nomor_urut
-        ", [$tahun])->getResultArray();
-
-        // ── Apply filter client-side (di PHP agar tidak komplekskan query) ─
-        if ($irbanId) {
-            $rows = array_filter($rows, fn($r) => (string)$r['irban_id'] === $irbanId);
-        }
-        if ($entitas) {
-            $rows = array_filter($rows, fn($r) => (string)$r['entitas_id'] === $entitas
-                || stripos($r['entitas_nama'] ?? '', $entitas) !== false);
-        }
-        if ($jenis) {
-            $rows = array_filter($rows, fn($r) => ($r['jenis_spt'] ?? 'pkpt') === $jenis);
-        }
-        if ($statusTl) {
-            $rows = array_filter($rows, fn($r) => ($r['status_tl'] ?? 'belum') === $statusTl);
-        }
-        $rows = array_values($rows);
+        ", $bindings)->getResultArray();
 
         // ── Summary header ─────────────────────────────────────────────────
         $temuanIds   = array_unique(array_column($rows, 'temuan_id'));
@@ -712,6 +733,23 @@ class LaporanController extends BaseController
         $status  = $this->request->getGet('status')  ?: '';   // buka | tutup | ''
         $jenis   = $this->request->getGet('jenis')   ?: '';   // kode_temuan.jenis: finansial | non_finansial | ''
 
+        // Bangun filter SQL agar tidak memuat seluruh dataset ke PHP
+        $whereExtra = '';
+        $bindings   = [$tahun];
+
+        if ($irbanId) {
+            $whereExtra .= ' AND COALESCE(i_pkpt.id, i_spt.id) = ?';
+            $bindings[]  = (int) $irbanId;
+        }
+        if ($status && in_array($status, ['buka', 'tutup'], true)) {
+            $whereExtra .= ' AND t.status_temuan = ?';
+            $bindings[]  = $status;
+        }
+        if ($jenis) {
+            $whereExtra .= ' AND kt.jenis = ?';
+            $bindings[]  = $jenis;
+        }
+
         $rows = $db->query("
             SELECT
                 t.id             AS temuan_id,
@@ -748,14 +786,9 @@ class LaporanController extends BaseController
                 SELECT MIN(id) FROM pkpt_entitas WHERE pkpt_kegiatan_id = pk.id
             )
             LEFT JOIN entitas e        ON e.id = pe.entitas_id
-            WHERE YEAR(COALESCE(s.tanggal_mulai, s.created_at)) = ?
+            WHERE YEAR(COALESCE(s.tanggal_mulai, s.created_at)) = ?$whereExtra
             ORDER BY irban_nama, s.nomor_naskah, t.nomor_temuan
-        ", [$tahun])->getResultArray();
-
-        // Filter PHP
-        if ($irbanId) $rows = array_values(array_filter($rows, fn($r) => (string)($r['irban_id'] ?? '') === $irbanId));
-        if ($status)  $rows = array_values(array_filter($rows, fn($r) => $r['status_temuan'] === $status));
-        if ($jenis)   $rows = array_values(array_filter($rows, fn($r) => ($r['kode_jenis'] ?? '') === $jenis));
+        ", $bindings)->getResultArray();
 
         // Summary
         $totalBuka   = count(array_filter($rows, fn($r) => $r['status_temuan'] === 'buka'));
@@ -794,6 +827,22 @@ class LaporanController extends BaseController
         $status  = $this->request->getGet('status') ?: '';
         $jenis   = $this->request->getGet('jenis')  ?: '';
 
+        $whereExtra = '';
+        $bindings   = [$tahun];
+
+        if ($irbanId) {
+            $whereExtra .= ' AND COALESCE(i_pkpt.id, i_spt.id) = ?';
+            $bindings[]  = (int) $irbanId;
+        }
+        if ($status && in_array($status, ['buka', 'tutup'], true)) {
+            $whereExtra .= ' AND t.status_temuan = ?';
+            $bindings[]  = $status;
+        }
+        if ($jenis) {
+            $whereExtra .= ' AND kt.jenis = ?';
+            $bindings[]  = $jenis;
+        }
+
         $rows = $db->query("
             SELECT
                 t.nomor_temuan, t.judul, t.nilai_temuan, t.status_temuan,
@@ -817,13 +866,9 @@ class LaporanController extends BaseController
                 SELECT MIN(id) FROM pkpt_entitas WHERE pkpt_kegiatan_id = pk.id
             )
             LEFT JOIN entitas e        ON e.id = pe.entitas_id
-            WHERE YEAR(COALESCE(s.tanggal_mulai, s.created_at)) = ?
+            WHERE YEAR(COALESCE(s.tanggal_mulai, s.created_at)) = ?$whereExtra
             ORDER BY irban_nama, s.nomor_naskah, t.nomor_temuan
-        ", [$tahun])->getResultArray();
-
-        if ($irbanId) $rows = array_values(array_filter($rows, fn($r) => (string)($r['irban_id'] ?? '') === $irbanId));
-        if ($status)  $rows = array_values(array_filter($rows, fn($r) => $r['status_temuan'] === $status));
-        if ($jenis)   $rows = array_values(array_filter($rows, fn($r) => ($r['kode_jenis'] ?? '') === $jenis));
+        ", $bindings)->getResultArray();
 
         $csv = $this->csvRow(['No','Bidang/Irban','No. SPT','OPD/Entitas','No. Temuan','Judul Temuan',
                               'Kode Temuan','Jenis','Nilai Temuan (Rp)','Jml Rek','Selesai','Belum','Nilai Rek (Rp)','Status']);

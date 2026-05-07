@@ -59,14 +59,25 @@ class KmController extends BaseController
         $row = $db->table('spt_km1')->where('spt_id', $sptId)->get()->getRowArray();
         $km6 = $db->table('spt_km6')->where('spt_id', $sptId)->get()->getRowArray();
 
-        // Ambil risiko_audit dari pkpt_kegiatan untuk pre-fill tingkat_risiko
-        $pkptRisiko = null;
+        // Ambil data PKPT untuk pre-fill KM-1
+        $pkptRisiko   = null;
+        $pkptRmpBulan = null;
+        $pkptRplBulan = null;
         if (!empty($spt['pkpt_kegiatan_id'])) {
             $pk = $db->table('pkpt_kegiatan')
-                ->select('risiko_audit')
+                ->select('risiko_audit, jadwal_rmp, jadwal_rpl')
                 ->where('id', $spt['pkpt_kegiatan_id'])
                 ->get()->getRowArray();
             $pkptRisiko = $pk['risiko_audit'] ?? null;
+            // Parse bulan dari "Mg-II Jan 2025" → angka 1–12
+            $bulanMap = ['Jan'=>1,'Feb'=>2,'Mar'=>3,'Apr'=>4,'Mei'=>5,'Jun'=>6,
+                         'Jul'=>7,'Agu'=>8,'Sep'=>9,'Okt'=>10,'Nov'=>11,'Des'=>12];
+            if (!empty($pk['jadwal_rmp']) && preg_match('/\b([A-Z][a-z]{2})\b/', $pk['jadwal_rmp'], $m)) {
+                $pkptRmpBulan = $bulanMap[$m[1]] ?? null;
+            }
+            if (!empty($pk['jadwal_rpl']) && preg_match('/\b([A-Z][a-z]{2})\b/', $pk['jadwal_rpl'], $m)) {
+                $pkptRplBulan = $bulanMap[$m[1]] ?? null;
+            }
         }
 
         // Auto-generate no_kartu jika belum pernah disimpan
@@ -109,8 +120,10 @@ class KmController extends BaseController
             'timAw'       => $timAw,
             'km5bAda'     => $km5bAda,
             'canEdit'     => canEditKmInSpt($sptId, 'km1'),
-            'autoNoKartu' => $autoNoKartu,
-            'pkptRisiko'  => $pkptRisiko,
+            'autoNoKartu'  => $autoNoKartu,
+            'pkptRisiko'   => $pkptRisiko,
+            'pkptRmpBulan' => $pkptRmpBulan,
+            'pkptRplBulan' => $pkptRplBulan,
         ]);
     }
 
@@ -198,6 +211,11 @@ class KmController extends BaseController
                 ->get()->getResultArray()
             : [];
 
+        // Pisahkan PJ/WPJ sebagai Silent Role — tidak memerlukan input manual
+        $silentPeran    = ['PJ', 'WPJ'];
+        $timSilent      = array_values(array_filter($timList, fn($t) => in_array($t['peran_spt'], $silentPeran)));
+        $timList        = array_values(array_filter($timList, fn($t) => !in_array($t['peran_spt'], $silentPeran)));
+
         $db2          = \Config\Database::connect();
         $km5bAda      = (bool)$db2->table('spt_km6')->where('spt_id', $sptId)->countAllResults();
         $km10Ada      = (bool)$db2->table('spt_km10')->where('spt_id', $sptId)->countAllResults();
@@ -221,11 +239,17 @@ class KmController extends BaseController
             ->get()->getResultArray();
         $hariLibur  = array_column($hariLibur, 'tanggal');
 
+        // Pola Rule of Thumb berdasarkan jenis_pengawasan
+        $jenis = strtolower($spt['jenis_pengawasan'] ?? '');
+        $rotPola = (str_contains($jenis, 'kinerja') || str_contains($jenis, 'reviu') || str_contains($jenis, 'evaluasi'))
+                 ? '20-60-20' : '15-70-15';
+
         return view('admin/km/anggaran_waktu', [
             'title'             => 'KM-2 — Formulir Anggaran Waktu',
             'spt'               => $spt,
             'awMap'             => $awMap,
             'timList'           => $timList,
+            'timSilent'         => $timSilent,
             'pkptTimMap'        => $pkptTimMap,
             'canEdit'           => $canEditBase,
             'canEditRealisasi'  => $canEditRealisasi,
@@ -234,6 +258,7 @@ class KmController extends BaseController
             'isKtDal'           => $isAdmin || $isKtDal,
             'mySdmId'           => $sdmId,
             'hariLibur'         => $hariLibur,
+            'rotPola'           => $rotPola,
         ]);
     }
 
@@ -286,6 +311,37 @@ class KmController extends BaseController
                     ->update(array_merge($data, ['updated_at' => $now]));
             } else {
                 $db->table('spt_anggaran_waktu')->insert(array_merge($data, ['created_at' => $now, 'updated_at' => $now]));
+            }
+        }
+
+        // ── Silent Role: PJ/WPJ otomatis 1 HP di pelaksanaan ──────────────
+        // Nilai simbolik ini di-set setiap kali form disimpan agar selalu tersinkron.
+        $silentPeran = ['PJ', 'WPJ'];
+        $silentTim   = $db->table('spt_tim')
+            ->select('sdm_id')
+            ->where('spt_id', $sptId)
+            ->whereIn('peran_spt', $silentPeran)
+            ->get()->getResultArray();
+
+        foreach ($silentTim as $st) {
+            $sid = (int)$st['sdm_id'];
+            if (!$sid) continue;
+            $silentData = [
+                'spt_id'                      => $sptId,
+                'sdm_id'                      => $sid,
+                'persiapan_rencana_hari'      => 0,
+                'pelaksanaan_rencana_hari'    => 1,
+                'penyelesaian_rencana_hari'   => 0,
+            ];
+            $existingSilent = $db->table('spt_anggaran_waktu')
+                ->where('spt_id', $sptId)->where('sdm_id', $sid)->get()->getRowArray();
+            if ($existingSilent) {
+                $db->table('spt_anggaran_waktu')
+                    ->where('spt_id', $sptId)->where('sdm_id', $sid)
+                    ->update(array_merge($silentData, ['updated_at' => $now]));
+            } else {
+                $db->table('spt_anggaran_waktu')
+                    ->insert(array_merge($silentData, ['created_at' => $now, 'updated_at' => $now]));
             }
         }
 
@@ -580,17 +636,35 @@ class KmController extends BaseController
 
         $db   = \Config\Database::connect();
         $post = $this->request->getPost();
+
+        // Olah tim_auditi dari array input menjadi JSON
+        $timAuditiRaw = $post['tim_auditi'] ?? [];
+        $timAuditi = [];
+        foreach ($timAuditiRaw as $entry) {
+            $nama = trim($entry['nama'] ?? '');
+            if ($nama !== '') {
+                $timAuditi[] = ['nama' => $nama, 'jabatan' => trim($entry['jabatan'] ?? '')];
+            }
+        }
+
         $data = [
-            'spt_id'          => $sptId,
-            'waktu_rapat'     => $post['waktu_rapat']     ?: null,
-            'waktu_sp'        => $post['waktu_sp']        ?: null,
-            'rencana_laporan' => $post['rencana_laporan'] ?: null,
-            'jabatan_auditi'  => $post['jabatan_auditi']  ?? null,
-            'nama_auditi'     => $post['nama_auditi']     ?? null,
-            'nip_auditi'      => $post['nip_auditi']      ?? null,
-            'cp'              => $post['cp']              ?? null,
-            'tlp_cp'          => $post['tlp_cp']          ?? null,
-            'catatan'         => $post['catatan']         ?? null,
+            'spt_id'             => $sptId,
+            'waktu_rapat'        => $post['waktu_rapat']        ?: null,
+            'tempat'             => $post['tempat']             ?? null,
+            'waktu_sp'           => $post['waktu_sp']           ?: null,
+            'waktu_pelaksanaan'  => $post['waktu_pelaksanaan']  ?? null,
+            'rencana_laporan'    => $post['rencana_laporan']    ?: null,
+            'poin_5'             => $post['poin_5']             ?? null,
+            'nama_kota'          => $post['nama_kota']          ?: 'Sampang',
+            'jabatan_auditi'     => $post['jabatan_auditi']     ?? null,
+            'nama_auditi'        => $post['nama_auditi']        ?? null,
+            'nip_auditi'         => $post['nip_auditi']         ?? null,
+            'tim_auditi_json'    => !empty($timAuditi) ? json_encode($timAuditi, JSON_UNESCAPED_UNICODE) : null,
+            'cp'                 => $post['cp']                 ?? null,
+            'tlp_cp'             => $post['tlp_cp']             ?? null,
+            'nama_auditor_ttd'   => $post['nama_auditor_ttd']   ?? null,
+            'nip_auditor_ttd'    => $post['nip_auditor_ttd']    ?? null,
+            'catatan'            => $post['catatan']            ?? null,
         ];
 
         $now = date('Y-m-d H:i:s');
@@ -602,7 +676,47 @@ class KmController extends BaseController
         }
 
         logActivity('spt.km5b.save', 'spt_km6', "Simpan KM-5b SPT id={$sptId}");
-        return redirect()->to('/admin/spt/' . $sptId . '/km')->with('success', 'KM-5b Entry Meeting berhasil disimpan.');
+        return redirect()->to('/admin/spt/' . $sptId . '/km/5b')->with('success', 'KM-5b Entry Meeting berhasil disimpan.');
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // Cetak Berita Acara Entry Meeting
+    // ──────────────────────────────────────────────────────────────────────
+
+    public function printBaEntry(int $sptId)
+    {
+        $spt = $this->sptModel->getDetail($sptId);
+        if (!$spt) return redirect()->to('/admin/spt')->with('error', 'SPT tidak ditemukan.');
+        if (!canViewSptAudit($sptId)) return redirect()->to('/admin/spt')->with('error', 'Akses ditolak.');
+
+        $db  = \Config\Database::connect();
+        $row = $db->table('spt_km6')->where('spt_id', $sptId)->get()->getRowArray();
+
+        // Parse tim auditi JSON
+        $timAuditi = [];
+        if (!empty($row['tim_auditi_json'])) {
+            $timAuditi = json_decode($row['tim_auditi_json'], true) ?: [];
+        }
+
+        // Pisahkan peran tim auditor dari spt->tim
+        $peranMap = ['pj' => 'Penanggung Jawab', 'wakil_pj' => 'Wakil Penanggung Jawab',
+                     'dalnis' => 'Pengendali Teknis', 'kt' => 'Ketua Tim', 'at' => 'Anggota Tim'];
+        $timAuditor = [];
+        foreach (($spt['tim'] ?? []) as $t) {
+            $peranLabel = $peranMap[$t['peran_spt']] ?? ucfirst($t['peran_spt']);
+            $timAuditor[] = array_merge($t, ['peran_label' => $peranLabel]);
+        }
+
+        // Kota default Sampang jika belum diisi
+        $namaKota = $row['nama_kota'] ?? 'Sampang';
+
+        return view('admin/km/print_ba_entry', [
+            'spt'         => $spt,
+            'row'         => $row ?: [],
+            'timAuditi'   => $timAuditi,
+            'timAuditor'  => $timAuditor,
+            'namaKota'    => $namaKota,
+        ]);
     }
 
     // ──────────────────────────────────────────────────────────────────────

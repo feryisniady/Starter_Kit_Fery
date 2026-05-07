@@ -190,6 +190,23 @@ class RoleController extends BaseController
         }
 
         $role = $this->roleModel->find($id);
+        if (!$role) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Role tidak ditemukan.']);
+        }
+
+        // Tolak hapus jika role masih dipakai oleh user
+        $usersCount = \Config\Database::connect()
+            ->table('user_roles')
+            ->where('role_id', $id)
+            ->countAllResults();
+
+        if ($usersCount > 0) {
+            return $this->response->setJSON([
+                'status'  => 'error',
+                'message' => "Role ini masih digunakan oleh {$usersCount} user. Lepas assignment user terlebih dahulu.",
+            ]);
+        }
+
         $this->roleModel->delete($id);
 
         logActivity('role.delete', 'role', "Hapus role ID:{$id}" . ($role ? " — {$role['name']}" : ''), null, null, [

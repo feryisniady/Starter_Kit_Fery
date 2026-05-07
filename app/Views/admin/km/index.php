@@ -40,7 +40,7 @@ $allDone       = $doneRequired === $totalRequired;
 // ═══════════════════════════════════════════════════════════
 ?>
 
-<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:14px 18px;margin-bottom:20px;font-size:13px;color:#1d4ed8">
+<div class="box-info" style="font-size:13px">
     <i class="fas fa-circle-info"></i>
     Anda login sebagai <strong>Anggota Tim</strong>. Selesaikan 2 tugas utama Anda di bawah ini secara berurutan.
 </div>
@@ -69,7 +69,7 @@ $indDone = $indItem['complete'] ?? false;
         <a href="/admin/spt/<?= $sptId ?>/km/independensi"
            class="btn <?= $indDone ? 'btn-secondary' : 'btn-warning' ?>"
            style="white-space:nowrap;flex-shrink:0">
-            <?= $indDone ? '<i class="fas fa-edit"></i> Edit' : '<i class="fas fa-pen"></i> Isi Sekarang' ?>
+            <?= $indDone ? '<i class="fas fa-pen"></i> Edit' : '<i class="fas fa-pen"></i> Isi Sekarang' ?>
         </a>
     </div>
 </div>
@@ -114,6 +114,7 @@ $urlMap = [
     'independensi' => '/admin/spt/'.$sptId.'/km/independensi',
     'km7'          => '/admin/spt/'.$sptId.'/kka',
     'km9'          => '/admin/spt/'.$sptId.'/nhp',
+    'routing_slip' => '/admin/spt/'.$sptId.'/routing-slip',
     'km10'         => '/admin/spt/'.$sptId.'/km/10',
     'km11'         => '/admin/spt/'.$sptId.'/km/11',
 ];
@@ -150,6 +151,7 @@ $roleBadge = [
     'independensi' => ['Semua AT', '#f0f9ff', '#0369a1'],
     'km7'          => ['AT → KT', '#f5f3ff', '#4f46e5'],
     'km9'          => ['KT', '#e0e7ff', '#3730a3'],
+    'routing_slip' => ['AT / KT', '#fdf4ff', '#7e22ce'],
     'km10'         => ['KT / Dalnis', '#e0e7ff', '#3730a3'],
     'km11'         => ['Dalnis', '#fef3c7', '#b45309'],
 ];
@@ -157,7 +159,7 @@ $roleBadge = [
 // Fase pengelompokan
 $phases = [
     'FASE 1 — PERSIAPAN PENUGASAN' => ['km1','km2','km3','independensi','km4','km5','km5b'],
-    'FASE 2 — PELAKSANAAN AUDIT'   => ['km7','km9'],
+    'FASE 2 — PELAKSANAAN AUDIT'   => ['km7','km9','routing_slip'],
     'FASE 3 — PELAPORAN'           => ['km10','km11'],
 ];
 
@@ -315,6 +317,8 @@ foreach ($checklist as $key => $item) {
             'km1' => '1', 'km2' => '2', 'km3' => '3', 'km4' => '4',
             'km5' => '5', 'km5b' => '6', 'independensi' => '★',
             'km7' => '7', 'km9' => '9', 'km10' => '10', 'km11' => '11',
+            'routing_slip' => 'RS',
+            default => '?',
         };
 
         // Tombol aksi

@@ -101,6 +101,14 @@ class SptKmModel
             'required' => true,
             'link'     => false,
         ],
+        'routing_slip' => [
+            'label'    => 'Routing Slip — Review Dokumen',
+            'icon'     => 'route',
+            'phase'    => 2,
+            'required' => false,   // informatif — tidak memblokir alur
+            'link'     => true,
+            'info'     => true,
+        ],
     ];
 
     // ──────────────────────────────────────────────────────────────
@@ -158,6 +166,12 @@ class SptKmModel
         // KM-10: Exit Meeting
         $km10Done   = $this->db->table('spt_km10')->where('spt_id', $sptId)->countAllResults() > 0;
 
+        // Routing Slip
+        $rsTotal   = $this->db->table('spt_routing_slip')->where('spt_id', $sptId)->countAllResults();
+        $rsSelesai = $this->db->table('spt_routing_slip')->where('spt_id', $sptId)->where('status', 'selesai')->countAllResults();
+        $rsPending = $this->db->table('spt_routing_slip')->where('spt_id', $sptId)
+                        ->whereNotIn('status', ['selesai','dikembalikan','draft'])->countAllResults();
+
         // KM-11: Reviu Laporan
         $km11Done   = $this->db->table('spt_km11')->where('spt_id', $sptId)->countAllResults() > 0;
         $km11Row    = $this->db->table('spt_km11')->where('spt_id', $sptId)->get()->getRowArray();
@@ -211,6 +225,13 @@ class SptKmModel
             'km11' => array_merge(self::$kmConfig['km11'], [
                 'complete' => $km11Done,
                 'detail'   => $km11Detail,
+            ]),
+            'routing_slip' => array_merge(self::$kmConfig['routing_slip'], [
+                'complete' => $rsTotal > 0,
+                'detail'   => $rsTotal > 0
+                    ? "{$rsTotal} slip ({$rsSelesai} selesai" . ($rsPending > 0 ? ", {$rsPending} menunggu review" : '') . ')'
+                    : 'Belum ada routing slip',
+                'url'      => "/admin/spt/{$sptId}/routing-slip",
             ]),
         ];
     }

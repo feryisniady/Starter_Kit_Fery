@@ -54,6 +54,14 @@ td.left { text-align:left; }
 .sig-col .sig-nip { font-size:8.5pt; }
 .sig-date { text-align:right; font-size:9pt; margin-bottom:4px; }
 
+/* ── Quill content di dalam sel tabel ───── */
+td ol, td ul {
+    margin: 0;
+    padding-left: 14px;
+}
+td li { margin: 0; padding: 0; line-height: 1.4; }
+td p  { margin: 0; padding: 0; }
+
 /* ── Print ─────────────────────────────── */
 @media print {
     body { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
@@ -94,7 +102,7 @@ td.left { text-align:left; }
         <div class="meta-row">
             <span class="meta-label">Nama Objek Pengawasan</span>
             <span class="meta-sep">:</span>
-            <span class="meta-value">&nbsp;<?= esc($spt['area_pengawasan'] ?? $spt['tujuan'] ?? '') ?></span>
+            <span class="meta-value">&nbsp;<?= wysiwyg_plain($spt['area_pengawasan'] ?? $spt['tujuan'] ?? '', 100) ?></span>
         </div>
         <div class="meta-row">
             <span class="meta-label">Kode Obyek</span>

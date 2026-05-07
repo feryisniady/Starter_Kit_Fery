@@ -69,7 +69,7 @@ ksort($grouped);
                 </td>
                 <td style="padding:12px 16px;text-align:center">
                     <a href="/admin/pka-template/<?= $tpl['id'] ?>/edit" class="btn btn-xs btn-primary">
-                        <i class="fas fa-edit"></i>
+                        <i class="fas fa-pen"></i>
                     </a>
                     <form action="/admin/pka-template/<?= $tpl['id'] ?>/delete" method="POST" style="display:inline"
                           data-confirm="Template <b><?= esc($tpl['nama']) ?></b> akan dihapus permanen beserta semua prosedurnya."

@@ -22,7 +22,7 @@
         <h3 class="card-title"><i class="fas fa-handshake-angle"></i> Notulensi Exit Meeting (KM-10)</h3>
     </div>
     <div class="card-body">
-        <div style="background:#f0fdf4;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#15803d">
+        <div class="box-success">
             <i class="fas fa-info-circle"></i>
             KM-10 mencatat hasil Exit Meeting dengan pihak auditi di akhir penugasan — penyampaian temuan dan kesepakatan tindak lanjut.
         </div>

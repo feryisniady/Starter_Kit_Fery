@@ -8,7 +8,7 @@
     </div>
     <div class="page-actions">
         <a href="/admin/spt/<?= $temuan['spt_id'] ?>/temuan" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Kembali</a>
-        <a href="/admin/spt/temuan/<?= $temuan['id'] ?>/edit" class="btn btn-warning"><i class="fas fa-edit"></i> Edit</a>
+        <a href="/admin/spt/temuan/<?= $temuan['id'] ?>/edit" class="btn btn-warning"><i class="fas fa-pen"></i> Edit</a>
     </div>
 </div>
 

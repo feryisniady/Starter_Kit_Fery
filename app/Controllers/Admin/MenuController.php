@@ -183,7 +183,10 @@ class MenuController extends BaseController
                 ->with('error', 'Format URL tidak diizinkan.');
         }
 
-        $rules = ['label' => 'required|min_length[2]|max_length[100]'];
+        $rules = [
+            'label' => 'required|min_length[2]|max_length[100]',
+            'icon'  => 'permit_empty|max_length[100]',
+        ];
         if (!$this->validate($rules)) {
             $errorString = implode('<br>', $this->validator->getErrors());
             return redirect()->back()->withInput()

@@ -98,7 +98,7 @@ class MasterSdmController extends BaseController
                 'aktif'              => $r['aktif']
                     ? '<span class="badge badge-success">Aktif</span>'
                     : '<span class="badge badge-secondary">Nonaktif</span>',
-                'aksi' => '<button class="btn btn-xs btn-warning btn-edit" data-id="' . $r['id'] . '"><i class="fas fa-edit"></i></button> '
+                'aksi' => '<button class="btn btn-xs btn-warning btn-edit" data-id="' . $r['id'] . '"><i class="fas fa-pen"></i></button> '
                         . '<button class="btn btn-xs btn-danger btn-delete" data-id="' . $r['id'] . '"><i class="fas fa-trash"></i></button>',
             ];
         }

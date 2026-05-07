@@ -24,7 +24,7 @@ $timDefault  = $spt['tim'] ?? [];
 <div class="alert-error-inline mb-3"><i class="fas fa-circle-exclamation"></i> <?= session()->getFlashdata('error') ?></div>
 <?php endif; ?>
 
-<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 18px;margin-bottom:20px;font-size:13px;color:#1e40af">
+<div class="box-info" style="font-size:13px">
     <i class="fas fa-info-circle"></i>
     <strong>SPT Non-PKPT</strong> — untuk penugasan mandatori yang tidak tercantum dalam PKPT Kegiatan,
     seperti Reviu LKPD, Evaluasi SPIP, Evaluasi SAKIP, dan lainnya.
@@ -125,18 +125,33 @@ $timDefault  = $spt['tim'] ?? [];
                     </div>
                     <div class="form-group">
                         <label>Tujuan / Untuk <span style="color:red">*</span></label>
-                        <textarea name="tujuan" class="form-control" rows="3" required><?= old('tujuan', $spt['tujuan'] ?? '') ?></textarea>
+                        <textarea name="tujuan" class="form-control" rows="3" required
+                                  data-wysiwyg data-wysiwyg-height="90px"><?= old('tujuan', $spt['tujuan'] ?? '') ?></textarea>
                     </div>
                     <div class="form-row-2">
                         <div class="form-group">
                             <label>Tanggal Mulai</label>
-                            <input type="date" name="tanggal_mulai" class="form-control"
+                            <input type="date" name="tanggal_mulai" id="spt-tgl-mulai" class="form-control"
                                    value="<?= old('tanggal_mulai', $spt['tanggal_mulai'] ?? '') ?>">
                         </div>
                         <div class="form-group">
-                            <label>Tanggal Selesai</label>
-                            <input type="date" name="tanggal_selesai" class="form-control"
+                            <label>Tanggal Selesai Penugasan</label>
+                            <input type="date" name="tanggal_selesai" id="spt-tgl-selesai" class="form-control"
                                    value="<?= old('tanggal_selesai', $spt['tanggal_selesai'] ?? '') ?>">
+                        </div>
+                    </div>
+                    <!-- HP Calculator Panel -->
+                    <div id="hp-calc-panel" style="display:none;margin-top:-6px;margin-bottom:14px;padding:10px 14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:13px">
+                        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+                            <div>
+                                <i class="fas fa-calendar-check" style="color:#3b82f6;margin-right:4px"></i>
+                                <strong id="hp-calc-count" style="color:#1d4ed8;font-size:18px;margin-right:4px">0</strong>
+                                <span style="color:#475569">hari kerja</span>
+                                <small id="hp-calc-detail" style="color:#94a3b8;margin-left:6px"></small>
+                            </div>
+                            <button type="button" id="btn-terapkan-hp" class="btn btn-sm btn-primary" style="font-size:12px;white-space:nowrap">
+                                <i class="fas fa-magic"></i> Terapkan ke Tim
+                            </button>
                         </div>
                     </div>
                     <div class="form-group">
@@ -294,6 +309,7 @@ function tambahTim() {
         <td style="padding:4px 6px;text-align:center"><button type="button" class="btn btn-xs btn-danger btn-del-tim" style="padding:2px 6px"><i class="fas fa-times"></i></button></td>
     </tr>`;
     $('#spt-tim-rows').append(row);
+    initSelect2($('#spt-tim-rows .spt-tim-row:last select.form-control'));
     updateTimSummary();
     const area = document.getElementById('tim-scroll-area');
     area.scrollTop = area.scrollHeight;
@@ -320,6 +336,63 @@ $(function() {
     $(document).on('input', 'input[name="tim_hp_desk[]"], input[name="tim_hp_field[]"]', function() {
         updateTimSummary();
     });
+
+    // ── HP Calculator ──────────────────────────────────────────────────────
+    $('#spt-tgl-mulai, #spt-tgl-selesai').on('change', function() {
+        refreshHpCalc();
+    });
+
+    $('#btn-terapkan-hp').on('click', function() {
+        const hp = parseInt($('#hp-calc-count').text()) || 0;
+        if (hp <= 0) return;
+        if (!confirm('Terapkan ' + hp + ' HP ke semua baris tim?\n(Desk = ' + hp + ', Field = 0)')) return;
+        $('#spt-tim-rows .spt-tim-row').each(function() {
+            $(this).find('input[name="tim_hp_desk[]"]').val(hp);
+            $(this).find('input[name="tim_hp_field[]"]').val(0);
+        });
+        updateTimSummary();
+        $('#btn-terapkan-hp').html('<i class="fas fa-check"></i> Diterapkan!').addClass('btn-success').removeClass('btn-primary');
+        setTimeout(function() {
+            $('#btn-terapkan-hp').html('<i class="fas fa-magic"></i> Terapkan ke Tim').addClass('btn-primary').removeClass('btn-success');
+        }, 2000);
+    });
+
+    refreshHpCalc();
 });
+
+// ── Kalkulator hari kerja ─────────────────────────────────────────────────
+const HARI_LIBUR_SPT = <?= json_encode($hariLibur ?? []) ?>;
+
+function hitungHariKerja(mulai, selesai) {
+    if (!mulai || !selesai) return {hp: 0, kalender: 0, libur: 0};
+    const d1 = new Date(mulai + 'T00:00:00'), d2 = new Date(selesai + 'T00:00:00');
+    if (d2 < d1) return {hp: 0, kalender: 0, libur: 0};
+    let hp = 0, kalender = 0, libur = 0;
+    const cur = new Date(d1);
+    while (cur <= d2) {
+        kalender++;
+        const dow = cur.getDay();
+        if (dow > 0 && dow < 6) {
+            const iso = cur.toISOString().split('T')[0];
+            if (HARI_LIBUR_SPT.includes(iso)) libur++; else hp++;
+        }
+        cur.setDate(cur.getDate() + 1);
+    }
+    return {hp, kalender, libur};
+}
+
+function refreshHpCalc() {
+    const mulai = $('#spt-tgl-mulai').val(), selesai = $('#spt-tgl-selesai').val();
+    if (!mulai || !selesai) { $('#hp-calc-panel').hide(); return; }
+    const r = hitungHariKerja(mulai, selesai);
+    if (r.kalender <= 0) { $('#hp-calc-panel').hide(); return; }
+    $('#hp-calc-count').text(r.hp);
+    const sabmgu = r.kalender - r.hp - r.libur;
+    let d = r.kalender + ' hari kalender';
+    if (sabmgu > 0) d += ' − ' + sabmgu + ' Sab/Min';
+    if (r.libur > 0) d += ' − ' + r.libur + ' libur nasional';
+    $('#hp-calc-detail').text('(' + d + ')');
+    $('#hp-calc-panel').show();
+}
 </script>
 <?= $this->endSection() ?>

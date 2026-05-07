@@ -161,11 +161,11 @@ th { background: #d4c89a; font-weight: bold; }
     <div class="meta-grid">
         <div class="meta-row">
             <span class="meta-label">Nama Objek Pengawasan &nbsp;:</span>
-            <span class="meta-value">&nbsp;<?= esc($spt['area_pengawasan'] ?? $spt['tujuan'] ?? '') ?></span>
+            <span class="meta-value">&nbsp;<?= wysiwyg_plain($spt['area_pengawasan'] ?? $spt['tujuan'] ?? '', 100) ?></span>
         </div>
         <div class="meta-row">
             <span class="meta-label">Sasaran Pengawasan &nbsp;:</span>
-            <span class="meta-value">&nbsp;<?= esc($spt['tujuan_sasaran'] ?? $spt['tujuan'] ?? '') ?></span>
+            <span class="meta-value">&nbsp;<?= wysiwyg_display($spt['tujuan_sasaran'] ?? $spt['tujuan'] ?? '') ?></span>
         </div>
         <div class="meta-row">
             <span class="meta-label">Nomor Kartu Penugasan &nbsp;:</span>

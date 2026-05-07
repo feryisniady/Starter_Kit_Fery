@@ -7,12 +7,13 @@ use CodeIgniter\Router\RouteCollection;
  */
 $routes->get('/', 'Auth::login');
 
-//Smart Reviu AI
-$routes->get('reviu', 'Reviu::index');
-$routes->post('reviu/prosesAjax', 'Reviu::prosesAjax');
-$routes->get('reviu/exportPdf/(:num)', 'Reviu::exportPdf/$1');
-$routes->get('reviu/cetak/(:num)', 'Reviu::cetak/$1');
-/*=============================*/
+// Smart Reviu AI — dilindungi auth (hanya user yang sudah login)
+$routes->group('', ['filter' => 'auth'], function($routes) {
+	$routes->get('reviu',                      'Reviu::index');
+	$routes->post('reviu/prosesAjax',          'Reviu::prosesAjax');
+	$routes->get('reviu/exportPdf/(:num)',     'Reviu::exportPdf/$1');
+	$routes->get('reviu/cetak/(:num)',         'Reviu::cetak/$1');
+});
 
 // Guest only (belum login)
 $routes->group('', ['filter' => 'guest'], function($routes) {
@@ -47,50 +48,50 @@ $routes->get('/logout', 'Auth::logout');
 
 $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	// Users
-	$routes->get('users',              'Admin\UserController::index',    ['filter' => 'permission:user.view']);
-	$routes->post('users/data',        'Admin\UserController::getData',  ['filter' => 'permission:user.view']);
-	$routes->get('users/create',       'Admin\UserController::create',   ['filter' => 'permission:user.create']);
-	$routes->post('users/store',       'Admin\UserController::store',    ['filter' => 'permission:user.create']);
-	$routes->get('users/edit/(:num)',   'Admin\UserController::edit/$1',  ['filter' => 'permission:user.edit']);
-	$routes->post('users/update/(:num)','Admin\UserController::update/$1',['filter' => 'permission:user.edit']);
-	$routes->get('users/delete/(:num)', 'Admin\UserController::delete/$1',['filter' => 'permission:user.delete']);
+	$routes->get( 'users',               'Admin\UserController::index',     ['filter' => 'permission:user.view']);
+	$routes->post('users/data',          'Admin\UserController::getData',   ['filter' => 'permission:user.view']);
+	$routes->get( 'users/create',        'Admin\UserController::create',    ['filter' => 'permission:user.create']);
+	$routes->post('users/store',         'Admin\UserController::store',     ['filter' => 'permission:user.create']);
+	$routes->get( 'users/edit/(:num)',   'Admin\UserController::edit/$1',   ['filter' => 'permission:user.edit']);
+	$routes->post('users/update/(:num)', 'Admin\UserController::update/$1', ['filter' => 'permission:user.edit']);
+	$routes->post('users/delete/(:num)', 'Admin\UserController::delete/$1', ['filter' => 'permission:user.delete']); // POST (bukan GET) untuk hindari CSRF
 	// Roles
-	$routes->get('roles',              'Admin\RoleController::index',    ['filter' => 'permission:role.view']);
-	$routes->post('roles/data',        'Admin\RoleController::getData',  ['filter' => 'permission:role.view']);
-	$routes->get('roles/create',       'Admin\RoleController::create',   ['filter' => 'permission:role.create']);
-	$routes->post('roles/store',       'Admin\RoleController::store',    ['filter' => 'permission:role.create']);
-	$routes->get('roles/edit/(:num)',   'Admin\RoleController::edit/$1',  ['filter' => 'permission:role.edit']);
-	$routes->post('roles/update/(:num)','Admin\RoleController::update/$1',['filter' => 'permission:role.edit']);
-	$routes->get('roles/delete/(:num)', 'Admin\RoleController::delete/$1',['filter' => 'permission:role.delete']);
+	$routes->get( 'roles',               'Admin\RoleController::index',     ['filter' => 'permission:role.view']);
+	$routes->post('roles/data',          'Admin\RoleController::getData',   ['filter' => 'permission:role.view']);
+	$routes->get( 'roles/create',        'Admin\RoleController::create',    ['filter' => 'permission:role.create']);
+	$routes->post('roles/store',         'Admin\RoleController::store',     ['filter' => 'permission:role.create']);
+	$routes->get( 'roles/edit/(:num)',   'Admin\RoleController::edit/$1',   ['filter' => 'permission:role.edit']);
+	$routes->post('roles/update/(:num)', 'Admin\RoleController::update/$1', ['filter' => 'permission:role.edit']);
+	$routes->post('roles/delete/(:num)', 'Admin\RoleController::delete/$1', ['filter' => 'permission:role.delete']); // POST
 	// Menus
-	$routes->get('menus',              'Admin\MenuController::index',    ['filter' => 'permission:menu.view']);
-	$routes->post('menus/data',        'Admin\MenuController::getData',  ['filter' => 'permission:menu.view']);
-	$routes->get('menus/create',       'Admin\MenuController::create',   ['filter' => 'permission:menu.create']);
-	$routes->post('menus/store',       'Admin\MenuController::store',    ['filter' => 'permission:menu.create']);
-	$routes->get('menus/edit/(:num)',   'Admin\MenuController::edit/$1',  ['filter' => 'permission:menu.edit']);
-	$routes->post('menus/update/(:num)','Admin\MenuController::update/$1',['filter' => 'permission:menu.edit']);
-	$routes->get('menus/delete/(:num)', 'Admin\MenuController::delete/$1',['filter' => 'permission:menu.delete']);
+	$routes->get( 'menus',               'Admin\MenuController::index',     ['filter' => 'permission:menu.view']);
+	$routes->post('menus/data',          'Admin\MenuController::getData',   ['filter' => 'permission:menu.view']);
+	$routes->get( 'menus/create',        'Admin\MenuController::create',    ['filter' => 'permission:menu.create']);
+	$routes->post('menus/store',         'Admin\MenuController::store',     ['filter' => 'permission:menu.create']);
+	$routes->get( 'menus/edit/(:num)',   'Admin\MenuController::edit/$1',   ['filter' => 'permission:menu.edit']);
+	$routes->post('menus/update/(:num)', 'Admin\MenuController::update/$1', ['filter' => 'permission:menu.edit']);
+	$routes->post('menus/delete/(:num)', 'Admin\MenuController::delete/$1', ['filter' => 'permission:menu.delete']); // POST
 	// Permissions
-	$routes->get('permissions',               'Admin\PermissionController::index',      ['filter' => 'permission:permission.view']);
-	$routes->post('permissions/store',        'Admin\PermissionController::store',      ['filter' => 'permission:permission.create']);
-	$routes->post('permissions/store-batch',  'Admin\PermissionController::storeBatch', ['filter' => 'permission:permission.create']);
-	$routes->get('permissions/delete/(:num)', 'Admin\PermissionController::delete/$1',  ['filter' => 'permission:permission.delete']);
+	$routes->get( 'permissions',               'Admin\PermissionController::index',      ['filter' => 'permission:permission.view']);
+	$routes->post('permissions/store',         'Admin\PermissionController::store',      ['filter' => 'permission:permission.create']);
+	$routes->post('permissions/store-batch',   'Admin\PermissionController::storeBatch', ['filter' => 'permission:permission.create']);
+	$routes->post('permissions/delete/(:num)', 'Admin\PermissionController::delete/$1',  ['filter' => 'permission:permission.delete']); // POST
 	// Activity Log
-	$routes->get('activity-logs',        'Admin\ActivityLogController::index',   ['filter' => 'permission:activitylog.view']);
+	$routes->get( 'activity-logs',       'Admin\ActivityLogController::index',   ['filter' => 'permission:activitylog.view']);
 	$routes->post('activity-logs/data',  'Admin\ActivityLogController::getData', ['filter' => 'permission:activitylog.view']);
-	$routes->get('activity-logs/export', 'Admin\ActivityLogController::export',  ['filter' => 'permission:activitylog.view']);
+	$routes->get( 'activity-logs/export','Admin\ActivityLogController::export',  ['filter' => 'permission:activitylog.view']);
 	// App Settings
-	$routes->get('settings',                           'Admin\AppSettingController::index',        ['filter' => 'permission:setting.manage']);
-	$routes->post('settings/update',                   'Admin\AppSettingController::update',       ['filter' => 'permission:setting.manage']);
-	$routes->get('settings/delete-image/(:segment)',   'Admin\AppSettingController::deleteImage/$1',['filter' => 'permission:setting.manage']);
-	$routes->post('settings/test-email',               'Admin\AppSettingController::testEmail',    ['filter' => 'permission:setting.manage']);
-	$routes->post('settings/test-wa',                  'Admin\AppSettingController::testWa',       ['filter' => 'permission:setting.manage']);
+	$routes->get( 'settings',                          'Admin\AppSettingController::index',          ['filter' => 'permission:setting.manage']);
+	$routes->post('settings/update',                   'Admin\AppSettingController::update',         ['filter' => 'permission:setting.manage']);
+	$routes->post('settings/delete-image/(:segment)',  'Admin\AppSettingController::deleteImage/$1', ['filter' => 'permission:setting.manage']); // POST
+	$routes->post('settings/test-email',               'Admin\AppSettingController::testEmail',      ['filter' => 'permission:setting.manage']);
+	$routes->post('settings/test-wa',                  'Admin\AppSettingController::testWa',         ['filter' => 'permission:setting.manage']);
 	// Login Services
-	$routes->get('login-services',              'Admin\LoginServiceController::index',     ['filter' => 'permission:setting.manage']);
-	$routes->post('login-services/data',        'Admin\LoginServiceController::getData',   ['filter' => 'permission:setting.manage']);
-	$routes->post('login-services/store',       'Admin\LoginServiceController::store',     ['filter' => 'permission:setting.manage']);
-	$routes->post('login-services/update/(:num)','Admin\LoginServiceController::update/$1',['filter' => 'permission:setting.manage']);
-	$routes->get('login-services/delete/(:num)','Admin\LoginServiceController::delete/$1', ['filter' => 'permission:setting.manage']);
+	$routes->get( 'login-services',               'Admin\LoginServiceController::index',      ['filter' => 'permission:setting.manage']);
+	$routes->post('login-services/data',          'Admin\LoginServiceController::getData',    ['filter' => 'permission:setting.manage']);
+	$routes->post('login-services/store',         'Admin\LoginServiceController::store',      ['filter' => 'permission:setting.manage']);
+	$routes->post('login-services/update/(:num)', 'Admin\LoginServiceController::update/$1',  ['filter' => 'permission:setting.manage']);
+	$routes->post('login-services/delete/(:num)', 'Admin\LoginServiceController::delete/$1',  ['filter' => 'permission:setting.manage']); // POST
 
 	// =====================================================================
 	// MASTER DATA PENGAWASAN
@@ -174,25 +175,20 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	$routes->post('spt/(:num)/reject',          'Admin\SptController::reject/$1',                     ['filter' => 'permission:spt.approve']);
 	$routes->post('spt/(:num)/revisi',          'Admin\SptController::revisi/$1',                     ['filter' => 'permission:spt.approve']);
 	$routes->get('spt/(:num)/word',             'Admin\SptController::downloadWord/$1',               ['filter' => 'permission:spt.view']);
+	$routes->get('spt/(:num)/lhp',             'Admin\SptController::showUploadLhp/$1',              ['filter' => 'permission:spt.create']);
+	$routes->post('spt/(:num)/lhp/store',      'Admin\SptController::storeLhp/$1',                   ['filter' => 'permission:spt.create']);
 
 	// =====================================================================
 	// PKA (Program Pengawasan) — per SPT
 	// =====================================================================
-	$routes->get('spt/(:num)/pka',                 'Admin\PkaController::index/$1',                    ['filter' => 'permission:spt.view']);
-	$routes->get('spt/(:num)/pka/print-km6',        'Admin\PkaController::printKm6/$1',                  ['filter' => 'permission:spt.view']);
-	$routes->post('spt/(:num)/pka/store',          'Admin\PkaController::store/$1',                    ['filter' => 'permission:spt.create']);
-	$routes->post('spt/(:num)/pka/apply-template', 'Admin\PkaController::applyTemplate/$1',            ['filter' => 'permission:spt.create']);
-	$routes->post('spt/pka/update/(:num)',          'Admin\PkaController::update/$1',                    ['filter' => 'permission:spt.create']);
-	$routes->post('spt/pka/delete/(:num)',          'Admin\PkaController::delete/$1',                    ['filter' => 'permission:spt.create']);
-	$routes->post('spt/pka/selesai/(:num)',         'Admin\PkaController::selesai/$1',                   ['filter' => 'permission:spt.create']);
-	$routes->get('spt/(:num)/pka',                 'Admin\PkaController::index/$1');
-	$routes->get('spt/(:num)/pka/print-km6',        'Admin\PkaController::printKm6/$1');
-	$routes->post('spt/(:num)/pka/store',          'Admin\PkaController::store/$1');
-	$routes->post('spt/(:num)/pka/apply-template', 'Admin\PkaController::applyTemplate/$1');
-	$routes->post('spt/pka/update/(:num)',          'Admin\PkaController::update/$1');
-	$routes->post('spt/pka/delete/(:num)',          'Admin\PkaController::delete/$1');
-	$routes->post('spt/pka/selesai/(:num)',                 'Admin\PkaController::selesai/$1');
-	$routes->post('spt/(:num)/pka/save-assignments',        'Admin\PkaController::saveAssignments/$1');
+	$routes->get( 'spt/(:num)/pka',                  'Admin\PkaController::index/$1',           ['filter' => 'permission:spt.view']);
+	$routes->get( 'spt/(:num)/pka/print-km6',         'Admin\PkaController::printKm6/$1',         ['filter' => 'permission:spt.view']);
+	$routes->post('spt/(:num)/pka/store',             'Admin\PkaController::store/$1',            ['filter' => 'permission:spt.create']);
+	$routes->post('spt/(:num)/pka/apply-template',    'Admin\PkaController::applyTemplate/$1',   ['filter' => 'permission:spt.create']);
+	$routes->post('spt/pka/update/(:num)',             'Admin\PkaController::update/$1',           ['filter' => 'permission:spt.create']);
+	$routes->post('spt/pka/delete/(:num)',             'Admin\PkaController::delete/$1',           ['filter' => 'permission:spt.create']);
+	$routes->post('spt/pka/selesai/(:num)',            'Admin\PkaController::selesai/$1',          ['filter' => 'permission:spt.create']);
+	$routes->post('spt/(:num)/pka/save-assignments',  'Admin\PkaController::saveAssignments/$1', ['filter' => 'permission:spt.create']);
 
 	// =====================================================================
 	// PKA Template Library
@@ -218,8 +214,9 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	// =====================================================================
 	// MASTER KODE TEMUAN
 	// =====================================================================
-	$routes->get('master/kode-temuan',          'Admin\KodetemuanController::index',                  ['filter' => 'permission:master.view']);
-	$routes->post('master/kode-temuan/data',    'Admin\KodetemuanController::getData',                ['filter' => 'permission:master.view']);
+	$routes->get('master/kode-temuan',                      'Admin\KodetemuanController::index',                  ['filter' => 'permission:master.view']);
+	$routes->post('master/kode-temuan/data',              'Admin\KodetemuanController::getData',                ['filter' => 'permission:master.view']);
+	$routes->get('master/kode-temuan/(:num)/rekomen',     'Admin\KodetemuanController::getRekomenByTemuan/$1',  ['filter' => 'permission:spt.view']);
 
 	// =====================================================================
 	// KM — Kendali Mutu (per SPT)
@@ -229,20 +226,14 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	$routes->get('spt/(:num)/km/1',                       'Admin\KmController::km1/$1',                            ['filter' => 'permission:spt.view']);
 	$routes->post('spt/(:num)/km/1/save',                 'Admin\KmController::saveKm1/$1',                        ['filter' => 'permission:spt.create']);
 	// KM-2: Anggaran Waktu
-	$routes->get('spt/(:num)/km/2',                       'Admin\KmController::anggaranWaktu/$1',                  ['filter' => 'permission:spt.view']);
-	$routes->get('spt/(:num)/km/2/print',                 'Admin\KmController::printKm4Aw/$1',                     ['filter' => 'permission:spt.view']);
-	$routes->post('spt/(:num)/km/2/save',                 'Admin\KmController::saveAnggaranWaktu/$1',              ['filter' => 'permission:spt.create']);
-	$routes->post('spt/(:num)/km/2/verifikasi',           'Admin\KmController::verifikasiAw/$1',                   ['filter' => 'permission:spt.approve']);
-	$routes->get('spt/(:num)/km/anggaran-waktu',          'Admin\KmController::anggaranWaktu/$1',                  ['filter' => 'permission:spt.view']);   // backward compat
-	$routes->post('spt/(:num)/km/anggaran-waktu/save',    'Admin\KmController::saveAnggaranWaktu/$1',              ['filter' => 'permission:spt.create']);
-	$routes->get('spt/(:num)/km/2',                       'Admin\KmController::anggaranWaktu/$1');
-	$routes->get('spt/(:num)/km/2/print',                 'Admin\KmController::printKm4Aw/$1');
-	$routes->get('spt/(:num)/km/print-km7b',              'Admin\KmController::printKm7b/$1');
-	$routes->post('spt/(:num)/km/2/save',                 'Admin\KmController::saveAnggaranWaktu/$1');
-	$routes->post('spt/(:num)/km/2/verifikasi',           'Admin\KmController::verifikasiAw/$1');
-	$routes->post('spt/(:num)/km/2/sync-from-kka',        'Admin\KmController::syncAwFromKka/$1');
-	$routes->get('spt/(:num)/km/anggaran-waktu',          'Admin\KmController::anggaranWaktu/$1');   // backward compat
-	$routes->post('spt/(:num)/km/anggaran-waktu/save',    'Admin\KmController::saveAnggaranWaktu/$1');
+	$routes->get( 'spt/(:num)/km/2',                    'Admin\KmController::anggaranWaktu/$1',     ['filter' => 'permission:spt.view']);
+	$routes->get( 'spt/(:num)/km/2/print',              'Admin\KmController::printKm4Aw/$1',        ['filter' => 'permission:spt.view']);
+	$routes->get( 'spt/(:num)/km/print-km7b',           'Admin\KmController::printKm7b/$1',         ['filter' => 'permission:spt.view']);
+	$routes->post('spt/(:num)/km/2/save',               'Admin\KmController::saveAnggaranWaktu/$1', ['filter' => 'permission:spt.create']);
+	$routes->post('spt/(:num)/km/2/verifikasi',         'Admin\KmController::verifikasiAw/$1',      ['filter' => 'permission:spt.approve']);
+	$routes->post('spt/(:num)/km/2/sync-from-kka',      'Admin\KmController::syncAwFromKka/$1',     ['filter' => 'permission:spt.create']);
+	$routes->get( 'spt/(:num)/km/anggaran-waktu',       'Admin\KmController::anggaranWaktu/$1',     ['filter' => 'permission:spt.view']);    // backward compat
+	$routes->post('spt/(:num)/km/anggaran-waktu/save',  'Admin\KmController::saveAnggaranWaktu/$1', ['filter' => 'permission:spt.create']); // backward compat
 	// KM-3: Dokumen SPT (auto-prefill)
 	$routes->get('spt/(:num)/km/3',                       'Admin\KmController::km3/$1',                            ['filter' => 'permission:spt.view']);
 	// KM-4: Lembar Perencanaan (form pendukung PKA)
@@ -254,6 +245,7 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	// KM-5b: Entry Meeting
 	$routes->get('spt/(:num)/km/5b',                      'Admin\KmController::km5b/$1',                           ['filter' => 'permission:spt.view']);
 	$routes->post('spt/(:num)/km/5b/save',                'Admin\KmController::saveKm5b/$1',                       ['filter' => 'permission:spt.create']);
+	$routes->get('spt/(:num)/km/5b/print',                'Admin\KmController::printBaEntry/$1',                   ['filter' => 'permission:spt.view']);
 	$routes->get('spt/(:num)/km/6',                       'Admin\KmController::km5b/$1',                           ['filter' => 'permission:spt.view']);   // backward compat
 	$routes->post('spt/(:num)/km/6/save',                 'Admin\KmController::saveKm5b/$1',                       ['filter' => 'permission:spt.create']);
 	// Independensi
@@ -265,6 +257,16 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	// KM-11: Reviu Laporan
 	$routes->get('spt/(:num)/km/11',                      'Admin\KmController::km11/$1',                           ['filter' => 'permission:spt.view']);
 	$routes->post('spt/(:num)/km/11/save',                'Admin\KmController::saveKm11/$1',                       ['filter' => 'permission:spt.create']);
+
+	// =====================================================================
+	// Routing Slip — lembar pengantar review dokumen/KKP
+	$routes->get( 'spt/(:num)/routing-slip',                    'Admin\RoutingSlipController::index/$1',      ['filter' => 'permission:spt.view']);
+	$routes->get( 'spt/(:num)/routing-slip/create',             'Admin\RoutingSlipController::create/$1',     ['filter' => 'permission:spt.view']);
+	$routes->post('spt/(:num)/routing-slip/store',              'Admin\RoutingSlipController::store/$1',      ['filter' => 'permission:spt.create']);
+	$routes->get( 'spt/(:num)/routing-slip/(:num)/edit',        'Admin\RoutingSlipController::edit/$1/$2',    ['filter' => 'permission:spt.view']);
+	$routes->post('spt/(:num)/routing-slip/(:num)/update',      'Admin\RoutingSlipController::update/$1/$2',  ['filter' => 'permission:spt.create']);
+	$routes->post('spt/(:num)/routing-slip/(:num)/review',      'Admin\RoutingSlipController::review/$1/$2',  ['filter' => 'permission:spt.create']);
+	$routes->get( 'spt/(:num)/routing-slip/(:num)/print',       'Admin\RoutingSlipController::printSlip/$1/$2', ['filter' => 'permission:spt.view']);
 
 	// =====================================================================
 	// KKA — Kertas Kerja Audit
@@ -308,15 +310,13 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
 	$routes->post('kka/(:num)/reject',                    'Admin\KkaController::rejectKka/$1',                   ['filter' => 'permission:spt.create']);
 	$routes->post('kka/(:num)/reopen',                    'Admin\KkaController::reopenKka/$1',                   ['filter' => 'permission:spt.create']);
 
-	// Catatan Dalnis
-	$routes->post('kka/(:num)/catatan-dalnis',            'Admin\KkaController::saveCatatanDalnis/$1',           ['filter' => 'permission:spt.manage_all']);
-	$routes->post('kka/(:num)/catatan-dalnis',            'Admin\KkaController::saveCatatanDalnis/$1');
+	// Catatan Dalnis (hanya Dalnis/manage_all)
+	$routes->post('kka/(:num)/catatan-dalnis',            'Admin\KkaController::saveCatatanDalnis/$1', ['filter' => 'permission:spt.manage_all']);
 
 	// KKA Dokumen Bukti per Prosedur
 	$routes->get( 'kka/dokumen/(:num)/download',          'Admin\KkaController::downloadDokumen/$1',  ['filter' => 'permission:spt.view']);
 	$routes->post('kka/dokumen/(:num)/hapus',             'Admin\KkaController::deleteDokumen/$1',    ['filter' => 'permission:spt.create']);
-	$routes->post('kka/dokumen/(:num)/hapus',             'Admin\KkaController::hapusDokumen/$1');
-	$routes->get( 'kka/(:num)/print',                     'Admin\KkaController::printKka/$1');
+	$routes->get( 'kka/(:num)/print',                     'Admin\KkaController::printKka/$1',         ['filter' => 'permission:spt.view']);
 
 	// =====================================================================
 	// NHP — Notisi Hasil Pemeriksaan

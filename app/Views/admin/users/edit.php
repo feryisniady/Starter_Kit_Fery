@@ -38,7 +38,22 @@
                         Password
                         <span style="font-size:11px;color:#94a3b8">(kosongkan jika tidak diubah)</span>
                     </label>
-                    <input type="password" name="password" class="form-control" placeholder="Minimal 8 karakter">
+                    <div style="position:relative">
+                        <input type="password" id="inputPassword" name="password" class="form-control"
+                               placeholder="Minimal 8 karakter" autocomplete="new-password">
+                        <button type="button" id="togglePassword"
+                                style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#94a3b8;padding:0">
+                            <i class="fas fa-eye" id="togglePasswordIcon"></i>
+                        </button>
+                    </div>
+                    <!-- Live password checker — hanya muncul saat diisi -->
+                    <div id="passwordChecker" style="display:none;margin-top:8px;padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:12px">
+                        <div style="margin-bottom:4px;font-weight:600;color:#475569">Syarat password:</div>
+                        <div class="pw-rule" id="rule-length"><i class="fas fa-circle" style="font-size:7px;margin-right:6px"></i>Minimal 8 karakter</div>
+                        <div class="pw-rule" id="rule-upper" ><i class="fas fa-circle" style="font-size:7px;margin-right:6px"></i>Mengandung huruf besar (A-Z)</div>
+                        <div class="pw-rule" id="rule-lower" ><i class="fas fa-circle" style="font-size:7px;margin-right:6px"></i>Mengandung huruf kecil (a-z)</div>
+                        <div class="pw-rule" id="rule-digit" ><i class="fas fa-circle" style="font-size:7px;margin-right:6px"></i>Mengandung angka (0-9)</div>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Status</label>
@@ -132,4 +147,48 @@
     </div>
 </form>
 
+<?= $this->endSection() ?>
+
+<?= $this->section('scripts') ?>
+<style>
+.pw-rule { color: #94a3b8; margin-bottom: 3px; transition: color .15s; }
+.pw-rule.ok  { color: #16a34a; }
+.pw-rule.ok i::before  { content: "\f058"; }
+.pw-rule.bad { color: #dc2626; }
+.pw-rule.bad i::before { content: "\f057"; }
+</style>
+<script>
+(function () {
+    const input   = document.getElementById('inputPassword');
+    const checker = document.getElementById('passwordChecker');
+    const toggle  = document.getElementById('togglePassword');
+    const icon    = document.getElementById('togglePasswordIcon');
+
+    const rules = {
+        'rule-length': v => v.length >= 8,
+        'rule-upper' : v => /[A-Z]/.test(v),
+        'rule-lower' : v => /[a-z]/.test(v),
+        'rule-digit' : v => /[0-9]/.test(v),
+    };
+
+    input.addEventListener('input', function () {
+        const val = this.value;
+        checker.style.display = val.length > 0 ? 'block' : 'none';
+
+        Object.entries(rules).forEach(([id, fn]) => {
+            const el = document.getElementById(id);
+            el.classList.toggle('ok',  fn(val));
+            el.classList.toggle('bad', val.length > 0 && !fn(val));
+        });
+    });
+
+    // Toggle show/hide password
+    toggle.addEventListener('click', function () {
+        const isText = input.type === 'text';
+        input.type = isText ? 'password' : 'text';
+        icon.classList.toggle('fa-eye',      isText);
+        icon.classList.toggle('fa-eye-slash', !isText);
+    });
+})();
+</script>
 <?= $this->endSection() ?>

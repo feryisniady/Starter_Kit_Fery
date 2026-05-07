@@ -102,6 +102,48 @@ if (!function_exists('render_wysiwyg')) {
 }
 
 /**
+ * Konversi konten Quill menjadi teks satu baris compact untuk tampilan matrix/ringkas.
+ * <ol><li>a</li><li>b</li></ol> → "1. a · 2. b"
+ * <ul><li>a</li><li>b</li></ul> → "• a · • b"
+ * <p>text</p>                   → "text"
+ */
+if (!function_exists('pka_matrix_text')) {
+    function pka_matrix_text(?string $html, int $max = 120): string
+    {
+        $html = trim((string) $html);
+        if ($html === '') return '';
+        if ($html[0] !== '<') {
+            $t = preg_replace('/\s+/', ' ', trim($html));
+            return mb_strlen($t) > $max ? mb_substr($t, 0, $max) . '…' : $t;
+        }
+
+        // Konversi <ol>: tiap <li> diberi nomor urut
+        $html = preg_replace_callback('/<ol[^>]*>(.*?)<\/ol>/si', function ($m) {
+            $items = [];
+            preg_match_all('/<li[^>]*>(.*?)<\/li>/si', $m[1], $li);
+            foreach ($li[1] as $i => $item) {
+                $items[] = ($i + 1) . '. ' . strip_tags($item);
+            }
+            return implode(' · ', $items);
+        }, $html);
+
+        // Konversi <ul>: tiap <li> diberi bullet
+        $html = preg_replace_callback('/<ul[^>]*>(.*?)<\/ul>/si', function ($m) {
+            $items = [];
+            preg_match_all('/<li[^>]*>(.*?)<\/li>/si', $m[1], $li);
+            foreach ($li[1] as $item) {
+                $items[] = '• ' . strip_tags($item);
+            }
+            return implode(' · ', $items);
+        }, $html);
+
+        // Buang tag sisa, rapikan whitespace
+        $text = preg_replace('/\s+/', ' ', trim(strip_tags($html)));
+        return mb_strlen($text) > $max ? mb_substr($text, 0, $max) . '…' : $text;
+    }
+}
+
+/**
  * Kirim WA ke user berdasarkan user_id (ambil phone dari tabel users).
  * No-op jika phone kosong atau WA tidak dikonfigurasi.
  */

@@ -67,9 +67,11 @@ class RoleModel extends Model
             ->getResultArray();
     }
 
-    // Sync permissions ke role
-    public function syncPermissions(int $roleId, array $permissionIds)
+    // Sync permissions ke role — atomic (wrapped dalam transaction)
+    public function syncPermissions(int $roleId, array $permissionIds): void
     {
+        $this->db->transStart();
+
         // Hapus permission lama
         $this->db->table('role_permissions')->where('role_id', $roleId)->delete();
 
@@ -77,10 +79,12 @@ class RoleModel extends Model
         if (!empty($permissionIds)) {
             $data = [];
             foreach ($permissionIds as $permId) {
-                $data[] = ['role_id' => $roleId, 'permission_id' => $permId];
+                $data[] = ['role_id' => $roleId, 'permission_id' => (int) $permId];
             }
             $this->db->table('role_permissions')->insertBatch($data);
         }
+
+        $this->db->transComplete();
     }
 
 }

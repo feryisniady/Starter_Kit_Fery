@@ -152,11 +152,25 @@ class NhpController extends BaseAuditi
         return $this->response->setJSON(['success' => true]);
     }
 
-    /** Download dokumen (auth-gated) */
+    /** Download dokumen — hanya dokumen milik entitas ini */
     public function downloadDokumen(int $dokId)
     {
-        $dok  = $this->dokModel->find($dokId);
+        $dok = $this->dokModel->find($dokId);
         if (!$dok) return redirect()->back()->with('error', 'Dokumen tidak ditemukan.');
+
+        // Verifikasi kepemilikan: dokumen harus terkait NHP entitas ini
+        $eid  = $this->entitasId;
+        $owns = \Config\Database::connect()->table('nhp_item_dokumen d')
+            ->join('nhp_item ni', 'ni.id = d.nhp_item_id')
+            ->join('nhp n',       'n.id = ni.nhp_id')
+            ->join('spt sp',      'sp.id = n.spt_id')
+            ->join('pkpt_kegiatan pk', 'pk.id = sp.pkpt_kegiatan_id', 'left')
+            ->join('pkpt_entitas pe',  'pe.pkpt_kegiatan_id = pk.id', 'left')
+            ->where('d.id', $dokId)
+            ->where("(pe.entitas_id = $eid OR sp.entitas_id = $eid)")
+            ->countAllResults();
+
+        if (!$owns) return redirect()->back()->with('error', 'Akses ditolak.');
 
         $path = WRITEPATH . 'uploads/' . $dok['path_file'];
         if (!file_exists($path)) return redirect()->back()->with('error', 'File tidak ditemukan di server.');

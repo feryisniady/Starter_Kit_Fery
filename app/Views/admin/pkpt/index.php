@@ -56,7 +56,7 @@
                     data-nomor="<?= esc($currentSetting['nomor_pkpt'] ?? '') ?>"
                     data-tanggal="<?= esc($currentSetting['tanggal_pkpt'] ?? '') ?>"
                     data-tahun="<?= $tahun ?>">
-                <i class="fas fa-edit"></i> Edit Header
+                <i class="fas fa-pen"></i> Edit Header
             </button>
             <a href="/admin/pkpt/setting" class="btn btn-sm btn-secondary" title="Setting PKPT lengkap">
                 <i class="fas fa-sliders"></i> Setting
@@ -149,7 +149,7 @@
             <input type="hidden" name="tahun" id="eh-tahun" value="<?= $tahun ?>">
             <input type="hidden" name="total_hp_tahunan" value="0">
             <input type="hidden" name="tarif_hp" id="eh-tarif" value="<?= $currentSetting['tarif_hp'] ?? 160000 ?>">
-            <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:#92400e">
+            <div class="box-warning">
                 <i class="fas fa-info-circle"></i>
                 Mengubah nomor/tanggal PKPT tidak mengubah data kegiatan. Perubahan akan dicatat dalam log.
             </div>

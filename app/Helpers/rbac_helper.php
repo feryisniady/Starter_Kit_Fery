@@ -92,8 +92,10 @@ if (!function_exists('getMenus')) {
     function getMenus(): array
     {
         // Cache per-user berdasarkan user_id + permissions hash
+        // Sort dulu agar urutan array tidak mempengaruhi hash (cache key stabil)
         $userId      = session()->get('user_id');
         $permissions = session()->get('user_permissions') ?? [];
+        sort($permissions);
         $cacheKey    = 'menus_u' . $userId . '_' . md5(implode(',', $permissions));
 
         $cache  = \Config\Services::cache();
@@ -145,8 +147,17 @@ if (!function_exists('getMenus')) {
 if (!function_exists('isActiveMenu')) {
     function isActiveMenu(string $url): string
     {
-        $currentUrl = '/' . service('request')->getUri()->getPath();
-        return $currentUrl === $url ? 'active' : '';
+        if ($url === '#' || empty($url)) return '';
+
+        $currentUrl = '/' . ltrim(service('request')->getUri()->getPath(), '/');
+
+        // Exact match
+        if ($currentUrl === $url) return 'active';
+
+        // Prefix match: /admin/users/edit/5 → aktif jika url = /admin/users
+        if (str_starts_with($currentUrl, rtrim($url, '/') . '/')) return 'active';
+
+        return '';
     }
 }
 
@@ -583,5 +594,59 @@ if (!function_exists('isAuditi')) {
     function isAuditi(): bool
     {
         return getCurrentEntitas() !== null;
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WYSIWYG / Rich Text Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+if (!function_exists('wysiwyg_display')) {
+    /**
+     * Render konten yang mungkin berisi HTML dari Quill editor.
+     *
+     * - Jika konten adalah HTML (dimulai dengan tag) → izinkan tag aman, render langsung.
+     * - Jika konten adalah plain text → nl2br + esc.
+     *
+     * JANGAN gunakan esc() pada konten wysiwyg — tag HTML akan tampil sebagai teks.
+     *
+     * @param  string|null $html   Nilai dari database
+     * @param  string      $empty  Teks fallback jika kosong
+     * @return string
+     */
+    function wysiwyg_display(?string $html, string $empty = '—'): string
+    {
+        $html = trim($html ?? '');
+        if ($html === '' || $html === '<p><br></p>' || $html === '<p></p>') {
+            return esc($empty);
+        }
+
+        // Deteksi apakah isi adalah HTML (dari Quill)
+        if (preg_match('/^\s*<[a-zA-Z]/', $html)) {
+            // Izinkan tag HTML dasar dari Quill, buang script/iframe/style
+            $allowed = '<p><br><b><strong><i><em><u><s><ol><ul><li><h1><h2><h3><h4><blockquote><pre><span><a>';
+            return strip_tags($html, $allowed);
+        }
+
+        // Plain text lama → escape + newline
+        return nl2br(esc($html));
+    }
+}
+
+if (!function_exists('wysiwyg_plain')) {
+    /**
+     * Ambil teks bersih (tanpa tag HTML) dari konten wysiwyg.
+     * Berguna untuk preview singkat, subject email, dll.
+     *
+     * @param  string|null $html
+     * @param  int         $maxLen  0 = tidak dipotong
+     */
+    function wysiwyg_plain(?string $html, int $maxLen = 0): string
+    {
+        $text = trim(strip_tags(html_entity_decode($html ?? '')));
+        if ($maxLen > 0 && mb_strlen($text) > $maxLen) {
+            $text = mb_substr($text, 0, $maxLen) . '…';
+        }
+        return $text;
     }
 }

@@ -33,7 +33,7 @@ class PkaController extends BaseController
         $db      = \Config\Database::connect();
         $sdmList = $this->getSdmTim($sptId);
 
-        // Budget HP dari KM-2 per SDM
+        // Budget HP dari KM-2 per SDM (total)
         $awRows = $db->table('spt_anggaran_waktu')
             ->select('sdm_id,
                 COALESCE(persiapan_rencana_hari,0) +
@@ -45,6 +45,20 @@ class PkaController extends BaseController
         foreach ($awRows as $r) {
             $awBudgetMap[(int)$r['sdm_id']] = (float)$r['total_rencana'];
         }
+
+        // Budget HP dari KM-2 per FASE (sum semua SDM) — untuk PKA soft warning
+        $awFaseRow = $db->table('spt_anggaran_waktu')
+            ->select('
+                SUM(COALESCE(persiapan_rencana_hari,0))    as persiapan,
+                SUM(COALESCE(pelaksanaan_rencana_hari,0))  as pelaksanaan,
+                SUM(COALESCE(penyelesaian_rencana_hari,0)) as penyelesaian')
+            ->where('spt_id', $sptId)
+            ->get()->getRowArray();
+        $awFaseBudget = [
+            'persiapan'   => (float)($awFaseRow['persiapan']    ?? 0),
+            'pelaksanaan' => (float)($awFaseRow['pelaksanaan']  ?? 0),
+            'pelaporan'   => (float)($awFaseRow['penyelesaian'] ?? 0),
+        ];
 
         $sdmInfoMap = [];
         foreach ($sdmList as $s) {
@@ -61,6 +75,14 @@ class PkaController extends BaseController
 
         $pkaGrouped = $this->pkaModel->getBySptGrouped($sptId);
         $pkaList    = $this->pkaModel->getBySpt($sptId);
+
+        // HP PKA terpakai per fase saat ini
+        $pkaFaseHp = ['persiapan' => 0.0, 'pelaksanaan' => 0.0, 'pelaporan' => 0.0];
+        foreach ($pkaGrouped as $fase => $rows) {
+            foreach ($rows as $row) {
+                $pkaFaseHp[$fase] = ($pkaFaseHp[$fase] ?? 0) + (float)($row['rencana_waktu'] ?? 0);
+            }
+        }
 
         // Build assignment map: pka_id → [sdm_id1, sdm_id2, ...]
         $assignmentMap = [];
@@ -79,6 +101,8 @@ class PkaController extends BaseController
             'atList'        => $atList,
             'sdmInfoMap'    => $sdmInfoMap,
             'awBudgetMap'   => $awBudgetMap,
+            'awFaseBudget'  => $awFaseBudget,
+            'pkaFaseHp'     => $pkaFaseHp,
             'stats'         => $this->pkaModel->getStatsBySpt($sptId),
             'templateList'  => $templateList,
             'canEdit'       => canEditKmInSpt($sptId, 'km4'),
@@ -120,6 +144,20 @@ class PkaController extends BaseController
         }
 
         logActivity('pka.create', 'pka', "Tambah PKA id={$pkaId} fase={$fase} SPT id={$sptId}");
+
+        if ($this->request->isAJAX()) {
+            $newPka = $this->pkaModel->find((int)$pkaId);
+            return $this->response->setJSON([
+                'success'     => true,
+                'id'          => (int)$pkaId,
+                'nomor'       => $newPka['nomor_urut'],
+                'fase'        => $newPka['fase'],
+                'uraian_html' => wysiwyg_display($newPka['uraian_prosedur']),
+                'uraian_raw'  => $newPka['uraian_prosedur'],
+                'rencana'     => $newPka['rencana_waktu'],
+                'status'      => $newPka['status'],
+            ]);
+        }
         return redirect()->to('/admin/spt/' . $sptId . '/pka')->with('success', 'Prosedur PKA ditambahkan.');
     }
 
@@ -150,7 +188,15 @@ class PkaController extends BaseController
         logActivity('pka.update', 'pka', "Update PKA id={$id}");
 
         if ($this->request->isAJAX()) {
-            return $this->response->setJSON(['success' => true]);
+            $updated = $this->pkaModel->find($id);
+            return $this->response->setJSON([
+                'success'      => true,
+                'fase_changed' => ($updated['fase'] !== ($pka['fase'] ?? '')),
+                'uraian_html'  => wysiwyg_display($updated['uraian_prosedur']),
+                'uraian_raw'   => $updated['uraian_prosedur'],
+                'rencana'      => $updated['rencana_waktu'],
+                'fase'         => $updated['fase'],
+            ]);
         }
         return redirect()->to('/admin/spt/' . $pka['spt_id'] . '/pka')->with('success', 'PKA diperbarui.');
     }

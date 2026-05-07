@@ -38,21 +38,47 @@ abstract class BaseController extends Controller
     protected $helpers = [];
 
     /**
-     * Be sure to declare properties for any property fetch you initialized.
-     * The creation of dynamic property is deprecated in PHP 8.2.
-     */
-    // protected $session;
-
-    /**
      * @return void
      */
     public function initController(RequestInterface $request, ResponseInterface $response, LoggerInterface $logger)
     {
         // Do Not Edit This Line
         parent::initController($request, $response, $logger);
+    }
 
-        // Preload any models, libraries, etc, here.
+    // =========================================================================
+    // RBAC Helpers — tersedia di semua controller turunan
+    // =========================================================================
 
-        // E.g.: $this->session = \Config\Services::session();
+    /**
+     * Cek apakah user yang sedang login adalah admin/superadmin
+     * atau memiliki permission spt.manage_all.
+     */
+    protected function isAdmin(): bool
+    {
+        return hasRole('superadmin') || hasRole('admin') || hasPermission('spt.manage_all');
+    }
+
+    /**
+     * Ambil irban_id berdasarkan user_id (lewat tabel sdm).
+     * Return null jika SDM belum terdaftar / tidak punya irban.
+     */
+    protected function getUserIrbanId(int $userId): ?int
+    {
+        $sdm = (new \App\Models\SdmModel())->where('user_id', $userId)->first();
+        return $sdm ? (int) $sdm['irban_id'] : null;
+    }
+
+    /**
+     * Cek apakah user saat ini boleh mengakses SPT tertentu.
+     * Admin: semua SPT. Non-admin: hanya SPT milik irbannya sendiri.
+     *
+     * @param array $spt  Baris SPT yang sudah di-JOIN (harus ada kolom irban_id)
+     */
+    protected function canAccessSpt(array $spt): bool
+    {
+        if ($this->isAdmin()) return true;
+        $irbanId = $this->getUserIrbanId((int) session()->get('user_id'));
+        return $irbanId !== null && (int) $spt['irban_id'] === $irbanId;
     }
 }

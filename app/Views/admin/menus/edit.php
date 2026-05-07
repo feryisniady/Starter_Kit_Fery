@@ -16,7 +16,7 @@
 <div class="card">
     <div class="card-header">
         <div class="card-title">
-            <i class="fas fa-pen-to-square"></i> Form Edit Menu
+            <i class="fas fa-pen"></i> Form Edit Menu
         </div>
     </div>
     <div class="card-body">

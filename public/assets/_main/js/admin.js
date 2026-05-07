@@ -500,7 +500,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (window._flashSuccess) SIP.success(window._flashSuccess);
     if (window._flashError)   SIP.error(window._flashError);
 
-    // AJAX Delete — reload DataTable jika ada, fallback fadeOut
+    // AJAX Delete — POST dengan CSRF token (aman dari CSRF attack)
     $(document).on('click', '.btn-delete', function(e) {
         e.preventDefault();
         var url   = $(this).data('url');
@@ -508,10 +508,22 @@ document.addEventListener('DOMContentLoaded', function() {
         var dtId  = $row.closest('table').attr('id');
 
         SIP.confirmDelete(null, function() {
+            // Ambil CSRF token dari meta tag (di-render oleh layout)
+            var csrfName = $('meta[name="csrf-token-name"]').attr('content') || 'csrf_token';
+            var csrfHash = $('meta[name="csrf-token"]').attr('content')      || '';
+            var postData = { _method: 'DELETE' };
+            postData[csrfName] = csrfHash;
+
             $.ajax({
                 url:  url,
-                type: 'GET',
+                type: 'POST',   // POST — dilindungi CSRF
+                data: postData,
                 success: function(res) {
+                    // Perbarui CSRF token dari response header jika ada (CI4 auto-rotate)
+                    if (res.csrf_token && res.csrf_name) {
+                        $('meta[name="csrf-token-name"]').attr('content', res.csrf_name);
+                        $('meta[name="csrf-token"]').attr('content', res.csrf_token);
+                    }
                     if (res.status === 'success') {
                         SIP.success(res.message || 'Data berhasil dihapus!');
                         if (dtId && DT_INSTANCES[dtId]) {
@@ -523,8 +535,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         SIP.error(res.message || 'Gagal menghapus data.');
                     }
                 },
-                error: function() {
-                    SIP.error('Terjadi kesalahan pada server.');
+                error: function(xhr) {
+                    if (xhr.status === 419 || xhr.status === 403) {
+                        SIP.error('Sesi keamanan kedaluwarsa. Silakan refresh halaman.');
+                    } else {
+                        SIP.error('Terjadi kesalahan pada server.');
+                    }
                 }
             });
         });

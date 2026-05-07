@@ -10,7 +10,7 @@
         <a href="/admin/spt" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Kembali</a>
 
         <?php if($canEdit): ?>
-            <a href="/admin/spt/<?= $spt['id'] ?>/edit" class="btn btn-warning"><i class="fas fa-edit"></i> Edit</a>
+            <a href="/admin/spt/<?= $spt['id'] ?>/edit" class="btn btn-warning"><i class="fas fa-pen"></i> Edit</a>
             <a href="/admin/spt/<?= $spt['id'] ?>/km" class="btn btn-info">
                 <i class="fas fa-shield-check"></i> Kelengkapan KM
                 <?php
@@ -126,7 +126,7 @@
                     <?php if($spt['dasar_2']): ?>
                     <tr><th>Dasar 2</th><td style="font-size:13px"><?= esc($spt['dasar_2']) ?></td></tr>
                     <?php endif; ?>
-                    <tr><th>Tujuan</th><td><?= esc($spt['tujuan']) ?></td></tr>
+                    <tr><th>Tujuan</th><td><?= wysiwyg_display($spt['tujuan']) ?></td></tr>
                     <tr><th>Periode</th><td>
                         <?= $spt['tanggal_mulai'] ? date('d/m/Y', strtotime($spt['tanggal_mulai'])) : '—' ?>
                         s.d.
@@ -303,7 +303,7 @@ $kmAllDone  = $kmDoneAll === $kmTotalAll;
                     <span style="color:#64748b;font-size:11px;font-weight:600;white-space:nowrap">IRBAN</span>
                     <span style="color:#475569"><?= esc($spt['irban_nama']) ?></span>
                     <span style="color:#64748b;font-size:11px;font-weight:600;white-space:nowrap">TUJUAN</span>
-                    <span style="color:#475569;line-height:1.4"><?= esc($spt['tujuan']) ?></span>
+                    <span style="color:#475569;line-height:1.4"><?= wysiwyg_display($spt['tujuan']) ?></span>
                 </div>
             </div>
 

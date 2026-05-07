@@ -10,8 +10,9 @@ function imageFieldPreview(array $s, string $activeTab): string {
         $html .= '<div class="image-preview-wrap mb-2">';
         $html .= '<img src="' . base_url(esc($s['value'])) . '" alt="' . esc($s['label']) . '" class="img-preview">';
         $html .= '<span class="image-preview-name">' . esc(basename($s['value'])) . '</span>';
-        $html .= '<a href="' . $deleteUrl . '" class="btn-img-delete btn-delete-image" data-url="' . $deleteUrl . '" title="Hapus gambar">';
-        $html .= '<i class="fas fa-trash-can"></i></a>';
+        // Gunakan form POST + CSRF — bukan link GET (mencegah CSRF attack)
+        $html .= '<button type="button" class="btn-img-delete btn-delete-image" data-url="' . $deleteUrl . '" title="Hapus gambar">';
+        $html .= '<i class="fas fa-trash"></i></button>';
         $html .= '</div>';
     } else {
         $html .= '<div class="image-preview-wrap mb-2 text-muted"><i class="fas fa-image"></i> Belum ada gambar</div>';
@@ -524,12 +525,18 @@ $(document).on('click', '.btn-delete-image', function(e) {
         showCancelButton: true,
         confirmButtonColor: '#dc2626',
         cancelButtonColor: '#64748b',
-        confirmButtonText: '<i class="fas fa-trash-can"></i> Ya, Hapus!',
+        confirmButtonText: '<i class="fas fa-trash"></i> Ya, Hapus!',
         cancelButtonText: 'Batal',
         reverseButtons: true,
     }).then(function(result) {
         if (result.isConfirmed) {
-            window.location.href = url;
+            // POST form — bukan redirect GET (aman dari CSRF)
+            var csrfName = $('meta[name="csrf-token-name"]').attr('content') || 'csrf_token';
+            var csrfHash = $('meta[name="csrf-token"]').attr('content') || '';
+            var $form = $('<form method="POST"></form>').attr('action', url);
+            $form.append($('<input type="hidden">').attr('name', csrfName).val(csrfHash));
+            $('body').append($form);
+            $form.submit();
         }
     });
 });

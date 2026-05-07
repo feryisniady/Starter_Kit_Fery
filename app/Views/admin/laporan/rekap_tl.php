@@ -46,11 +46,11 @@
 </div>
 
 <?php if($filterOnly === 'overdue' && $countOverdue > 0): ?>
-<div style="padding:12px 16px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;margin-bottom:16px;display:flex;align-items:center;gap:12px">
-    <i class="fas fa-triangle-exclamation" style="font-size:20px;color:#ef4444"></i>
+<div class="box-danger" style="display:flex;align-items:center;gap:12px;font-size:13px">
+    <i class="fas fa-triangle-exclamation" style="font-size:20px;flex-shrink:0"></i>
     <div>
-        <strong style="color:#ef4444"><?= $countOverdue ?> rekomendasi melewati batas waktu!</strong>
-        <p style="margin:0;font-size:13px;color:#64748b">Segera koordinasikan dengan entitas terkait untuk penyelesaian tindak lanjut.</p>
+        <strong><?= $countOverdue ?> rekomendasi melewati batas waktu!</strong>
+        <p style="margin:4px 0 0;font-size:12px;opacity:.85">Segera koordinasikan dengan entitas terkait untuk penyelesaian tindak lanjut.</p>
     </div>
 </div>
 <?php endif; ?>

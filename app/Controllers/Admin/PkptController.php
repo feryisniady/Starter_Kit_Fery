@@ -616,7 +616,7 @@ class PkptController extends BaseController
             $actions[] = ['type'=>'secondary', 'icon'=>'fa-lock', 'title'=>'SPT Terbit — Terkunci', 'href'=>'#', 'extra'=>'disabled title="Kegiatan tidak dapat diedit karena SPT sudah terbit" '];
         } else {
             // SPT belum terbit → semua aksi tersedia
-            $actions[] = ['type'=>'warning', 'icon'=>'fa-edit',           'title'=>'Edit Kegiatan', 'href'=>'/admin/pkpt/kegiatan/edit/'.$id];
+            $actions[] = ['type'=>'warning', 'icon'=>'fa-pen',            'title'=>'Edit Kegiatan', 'href'=>'/admin/pkpt/kegiatan/edit/'.$id];
             $actions[] = ['type'=>'success', 'icon'=>'fa-file-signature', 'title'=>$jumlahSpt > 0 ? 'Buat Tim Baru' : 'Buat SPT', 'href'=>'/admin/spt/create/'.$id];
             $actions[] = ['type'=>'danger',  'icon'=>'fa-trash',          'title'=>'Hapus',         'href'=>'#', 'extra'=>'onclick="delKegiatan('.$id.')" '];
         }
@@ -848,34 +848,42 @@ class PkptController extends BaseController
 
     private function parseTimPost(): array
     {
-        $sdmIds = $this->request->getPost('tim_sdm_id') ?? [];
-        $perans = $this->request->getPost('tim_peran') ?? [];
-        $hps    = $this->request->getPost('tim_hp') ?? [];
+        $sdmIds   = $this->request->getPost('tim_sdm_id')   ?? [];
+        $perans   = $this->request->getPost('tim_peran')    ?? [];
+        // Format baru (desk + field) dari kegiatan_form; format lama (tim_hp) tetap didukung
+        $hpsDesk  = $this->request->getPost('tim_hp_desk')  ?? [];
+        $hpsField = $this->request->getPost('tim_hp_field') ?? [];
+        $hpsLama  = $this->request->getPost('tim_hp')       ?? [];
 
         $result = [];
         foreach ((array)$sdmIds as $i => $sdmId) {
             if (!$sdmId) continue;
+            if (!empty($hpsDesk) || !empty($hpsField)) {
+                $hp = (int)($hpsDesk[$i] ?? 0) + (int)($hpsField[$i] ?? 0);
+            } else {
+                $hp = (int)($hpsLama[$i] ?? 0);
+            }
             $result[] = [
                 'sdm_id'   => (int)$sdmId,
                 'peran'    => $perans[$i] ?? 'AT',
-                'hp_total' => (int)($hps[$i] ?? 0),
+                'hp_total' => max(0, $hp),
             ];
         }
         return $result;
     }
 
-    private function isAdmin(): bool
+    protected function isAdmin(): bool
     {
         return hasRole('superadmin') || hasRole('admin') || hasPermission('pkpt.manage_all');
     }
 
     /** Role yang bisa melihat SEMUA PKPT lintas irban (read-only, tanpa filter irban_id). */
-    private function canViewAllIrban(): bool
+    protected function canViewAllIrban(): bool
     {
         return hasRole('inspektur') || hasRole('sekretaris') || hasRole('evlap') || hasRole('dalnis');
     }
 
-    private function getUserIrbanId(int $userId): ?int
+    protected function getUserIrbanId(int $userId): ?int
     {
         $sdm     = $this->sdmModel->where('user_id', $userId)->first();
         $irbanId = $sdm['irban_id'] ?? null;
@@ -888,7 +896,7 @@ class PkptController extends BaseController
      * - inspektur/sekretaris/evlap/dalnis → semua irban (read-only)
      * - staf biasa → hanya irban sendiri
      */
-    private function canViewPkpt(array $pkpt): bool
+    protected function canViewPkpt(array $pkpt): bool
     {
         if ($this->isAdmin()) return true;
         if ($this->canViewAllIrban()) return true;

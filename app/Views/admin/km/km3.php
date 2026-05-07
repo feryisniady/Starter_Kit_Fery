@@ -11,7 +11,7 @@
             <i class="fas fa-arrow-left"></i> Kembali ke KM
         </a>
         <a href="/admin/spt/<?= $spt['id'] ?>/edit" class="btn btn-warning">
-            <i class="fas fa-edit"></i> Edit SPT
+            <i class="fas fa-pen"></i> Edit SPT
         </a>
     </div>
 </div>
@@ -80,7 +80,7 @@ $isComplete = !empty($spt['nomor_naskah']) && !empty($spt['tanggal_naskah']) && 
                 </tr>
                 <tr style="border-bottom:1px solid #f1f5f9">
                     <th style="padding:10px 16px;color:#64748b;font-weight:500">Tujuan</th>
-                    <td style="padding:10px 16px"><?= esc($spt['tujuan']) ?></td>
+                    <td style="padding:10px 16px"><?= wysiwyg_display($spt['tujuan']) ?></td>
                 </tr>
                 <tr style="border-bottom:1px solid #f1f5f9">
                     <th style="padding:10px 16px;color:#64748b;font-weight:500">Periode</th>
@@ -129,7 +129,7 @@ $isComplete = !empty($spt['nomor_naskah']) && !empty($spt['tanggal_naskah']) && 
                     <i class="fas fa-exclamation-triangle" style="font-size:24px;margin-bottom:6px;display:block"></i>
                     <div style="font-size:13px">Penandatangan belum dipilih</div>
                     <a href="/admin/spt/<?= $spt['id'] ?>/edit" class="btn btn-sm btn-warning" style="margin-top:8px">
-                        <i class="fas fa-edit"></i> Lengkapi di SPT
+                        <i class="fas fa-pen"></i> Lengkapi di SPT
                     </a>
                 </div>
                 <?php endif; ?>

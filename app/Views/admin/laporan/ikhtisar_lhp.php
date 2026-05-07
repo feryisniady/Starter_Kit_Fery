@@ -300,7 +300,7 @@ $jenisBadge = [
         <td style="padding:7px 6px;border:1px solid #e2e8f0;text-align:center;font-weight:700;color:#6366f1"><?= $noUrut ?></td>
         <td style="padding:7px 6px;border:1px solid #e2e8f0">
             <div style="font-weight:700;color:#1e293b;margin-bottom:3px"><?= esc($r['judul_temuan']) ?></div>
-            <div style="color:#475569;margin-bottom:4px;line-height:1.4"><?= nl2br(esc($r['kondisi'] ?? '')) ?></div>
+            <div style="color:#475569;margin-bottom:4px;line-height:1.4"><?= wysiwyg_display($r['kondisi']) ?></div>
             <?php if (!empty($r['kode_temuan_kode'])): ?>
             <span style="background:#e0e7ff;color:#3730a3;font-size:9.5px;padding:1px 6px;border-radius:3px">
                 <?= esc($r['kode_temuan_kode']) ?>
@@ -318,7 +318,7 @@ $jenisBadge = [
         <td style="padding:7px 6px;border:1px solid #e2e8f0;line-height:1.4">
             <?php if (!empty($r['rekomendasi_id'])): ?>
             <div style="font-size:10px;color:#94a3b8;margin-bottom:2px">Rek. <?= $r['rek_nomor'] ?>:</div>
-            <?= nl2br(esc($r['isi_rekomendasi'])) ?>
+            <?= wysiwyg_display($r['isi_rekomendasi']) ?>
             <?php else: ?>
             <span style="color:#94a3b8;font-style:italic">—</span>
             <?php endif; ?>

@@ -189,7 +189,7 @@ function viewKegiatan(id) {
         let editBtn = '';
         <?php if ($canWrite ?? false): ?>
         if (!hasTerbit) {
-            editBtn = `<a href="/admin/pkpt/kegiatan/edit/${d.id}" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i> Edit Kegiatan</a>`;
+            editBtn = `<a href="/admin/pkpt/kegiatan/edit/${d.id}" class="btn btn-sm btn-warning"><i class="fas fa-pen"></i> Edit Kegiatan</a>`;
         } else {
             editBtn = `<span style="font-size:11px;color:#94a3b8;padding:5px 10px;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0;display:inline-flex;align-items:center;gap:5px"><i class="fas fa-lock"></i> Terkunci — SPT Terbit</span>`;
         }

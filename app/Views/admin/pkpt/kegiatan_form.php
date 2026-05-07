@@ -158,7 +158,7 @@ $hpBarColor = $hpPct >= 90 ? '#ef4444' : ($hpPct >= 70 ? '#f59e0b' : '#22c55e');
                     <div class="form-row-2">
                         <?php foreach ([
                             ['id'=>'rmp','label'=>'Jadwal RMP','sub'=>'Rencana Mulai Penugasan','parts'=>$rmpParts,'field'=>'jadwal_rmp','mulai_id'=>'inp-mulai'],
-                            ['id'=>'rpl','label'=>'Jadwal RPL','sub'=>'Rencana Pelaksanaan Lapangan','parts'=>$rplParts,'field'=>'jadwal_rpl','mulai_id'=>'inp-selesai'],
+                            ['id'=>'rpl','label'=>'Jadwal RPL','sub'=>'Rencana Penerbitan Laporan','parts'=>$rplParts,'field'=>'jadwal_rpl','mulai_id'=>'inp-selesai'],
                         ] as $sel): ?>
                         <div class="form-group">
                             <label><?= $sel['label'] ?>
@@ -202,15 +202,15 @@ $hpBarColor = $hpPct >= 90 ? '#ef4444' : ($hpPct >= 70 ? '#f59e0b' : '#22c55e');
                     </div>
                     <div class="form-row-2">
                         <div class="form-group">
-                            <label>Tanggal Mulai
+                            <label>Tanggal Mulai Pengawasan
                                 <small style="color:#6366f1;font-size:10px"><i class="fas fa-bolt"></i> Auto dari RMP</small>
                             </label>
                             <input type="date" name="tanggal_mulai" id="inp-mulai" class="form-control"
                                    value="<?= old('tanggal_mulai', $row['tanggal_mulai'] ?? '') ?>">
                         </div>
                         <div class="form-group">
-                            <label>Tanggal Selesai
-                                <small style="color:#6366f1;font-size:10px"><i class="fas fa-bolt"></i> Auto dari RPL</small>
+                            <label>Tgl. Selesai Penugasan Lap.
+                                <small style="color:#94a3b8;font-size:10px" title="Bukan RPL. Isi manual atau gunakan kalkulator HP di form SPT."><i class="fas fa-info-circle"></i> Rencana Selesai Lapangan</small>
                             </label>
                             <input type="date" name="tanggal_selesai" id="inp-selesai" class="form-control"
                                    value="<?= old('tanggal_selesai', $row['tanggal_selesai'] ?? '') ?>">
@@ -233,73 +233,93 @@ $hpBarColor = $hpPct >= 90 ? '#ef4444' : ($hpPct >= 70 ? '#f59e0b' : '#22c55e');
                         <i class="fas fa-plus"></i> Tambah
                     </button>
                 </div>
-                <div class="card-body">
-                    <div id="hp-kegiatan-counter" style="display:flex;align-items:center;gap:16px;padding:10px 14px;background:#f8fafc;border-radius:8px;margin-bottom:12px;font-size:13px">
+                <div class="card-body" style="padding:10px 14px">
+                    <!-- HP counter bar -->
+                    <div id="hp-kegiatan-counter" style="display:flex;align-items:center;gap:16px;padding:9px 14px;background:#f8fafc;border-radius:8px;margin-bottom:10px;font-size:13px;flex-wrap:wrap">
                         <span>HP kegiatan ini: <strong id="hp-kegiatan-val" style="color:#6366f1">0</strong> hari</span>
+                        <span style="color:#94a3b8">|</span>
+                        <span>Anggaran: <strong id="total-anggaran" style="color:#0f766e">Rp 0</strong></span>
                         <span style="color:#94a3b8">|</span>
                         <span>Sisa setelah simpan: <strong id="hp-after-val" style="color:#22c55e">—</strong> hari</span>
                         <span id="hp-warning" style="color:#ef4444;display:none"><i class="fas fa-triangle-exclamation"></i> Melebihi sisa HP!</span>
                     </div>
-                    <table class="table-admin w-100" id="tbl-tim">
-                        <thead>
-                            <tr>
-                                <th>Peran</th>
-                                <th>SDM</th>
-                                <th>HP (Hari)</th>
-                                <th>Anggaran</th>
-                                <th width="40"></th>
+
+                    <!-- Tim table — same structure as SPT form -->
+                    <div style="max-height:300px;overflow-y:auto;overflow-x:hidden;border-bottom:1px solid #e2e8f0" id="tim-scroll-area">
+                        <table class="w-100" id="tbl-tim" style="border-collapse:collapse">
+                            <thead>
+                                <tr>
+                                    <th style="position:sticky;top:0;z-index:2;background:#f8fafc;padding:7px 10px;border-bottom:2px solid #e2e8f0;font-weight:600;text-align:left;font-size:12px">Nama SDM</th>
+                                    <th style="position:sticky;top:0;z-index:2;background:#f8fafc;padding:7px 8px;border-bottom:2px solid #e2e8f0;font-weight:600;text-align:left;font-size:12px;width:160px">Peran SPT</th>
+                                    <th style="position:sticky;top:0;z-index:2;background:#f8fafc;padding:7px 6px;border-bottom:2px solid #e2e8f0;font-weight:600;text-align:center;width:64px;font-size:12px">HP</th>
+                                    <th style="position:sticky;top:0;z-index:2;background:#f8fafc;padding:7px 6px;border-bottom:2px solid #e2e8f0;width:36px"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="tim-rows">
+                            <?php
+                            $peranMap = [
+                                'PJ'     => 'Penanggung Jawab',
+                                'WPJ'    => 'Wakil Penanggung Jawab',
+                                'Dalnis' => 'Pengendali Teknis',
+                                'KT'     => 'Ketua Tim',
+                                'AT'     => 'Anggota Tim',
+                            ];
+                            $existingTim = $timRows ?? [];
+                            $selStyle   = 'font-size:12px;padding:3px 6px;height:28px';
+                            $inputStyle = 'width:48px;text-align:center;padding:3px 4px;height:28px;font-size:12px';
+                            foreach($existingTim as $t): ?>
+                            <tr class="tim-row" style="border-bottom:1px solid #f1f5f9">
+                                <td style="padding:4px 8px">
+                                    <select name="tim_sdm_id[]" class="form-control form-control-sm sdm-select" required
+                                            style="<?= $selStyle ?>">
+                                        <option value="">— Pilih SDM —</option>
+                                        <?php foreach($sdm as $s): ?>
+                                        <option value="<?= $s['id'] ?>" <?= $t['sdm_id'] == $s['id'] ? 'selected' : '' ?>>
+                                            <?= esc($s['nama']) ?> (<?= esc($s['irban_nama'] ?? '-') ?>)
+                                        </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <div class="sisa-hp-info"></div>
+                                </td>
+                                <td style="padding:4px 6px">
+                                    <select name="tim_peran[]" class="form-control form-control-sm" required style="<?= $selStyle ?>">
+                                        <?php foreach($peranMap as $val => $label): ?>
+                                        <option value="<?= $val ?>" <?= ($t['peran'] ?? '') === $val ? 'selected' : '' ?>><?= $label ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </td>
+                                <td style="padding:4px 6px;text-align:center">
+                                    <input type="number" name="tim_hp[]" class="form-control form-control-sm hp-total"
+                                           value="<?= $t['hp_total'] ?>" min="0" style="<?= $inputStyle ?>"
+                                           oninput="hitungTotal();refreshSisaHp(this)">
+                                </td>
+                                <td style="padding:4px 6px;text-align:center">
+                                    <button type="button" class="btn btn-xs btn-danger btn-del-tim" title="Hapus">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody id="tim-rows">
-                        <?php
-                        $peranOptions = ['PJ','WPJ','Dalnis','KT','AT'];
-                        $sdmMap = array_column($sdm, null, 'id');
-                        $existingTim = $timRows ?? [];
-                        foreach($existingTim as $t): ?>
-                        <tr class="tim-row">
-                            <td>
-                                <select name="tim_peran[]" class="form-control form-control-sm" required>
-                                    <?php foreach($peranOptions as $p): ?>
-                                    <option value="<?= $p ?>" <?= $t['peran'] === $p ? 'selected' : '' ?>><?= $p ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </td>
-                            <td>
-                                <select name="tim_sdm_id[]" class="form-control form-control-sm sdm-select" required
-                                        onchange="updateSisaHp(this)">
-                                    <option value="">— Pilih —</option>
-                                    <?php foreach($sdm as $s): ?>
-                                    <option value="<?= $s['id'] ?>" <?= $t['sdm_id'] == $s['id'] ? 'selected' : '' ?>>
-                                        <?= esc($s['nama']) ?> (<?= esc($s['irban_nama'] ?? '-') ?>)
-                                    </option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <div class="sisa-hp-info"></div>
-                            </td>
-                            <td>
-                                <input type="number" name="tim_hp[]" class="form-control form-control-sm hp-input"
-                                       value="<?= $t['hp_total'] ?>" min="1"
-                                       onchange="hitungTotal();refreshSisaHp(this)" style="width:70px">
-                            </td>
-                            <td class="anggaran-cell" style="font-size:12px;white-space:nowrap">
-                                Rp <?= number_format($t['anggaran'], 0, ',', '.') ?>
-                            </td>
-                            <td>
-                                <button type="button" class="btn btn-xs btn-danger" onclick="$(this).closest('tr').remove();hitungTotal()">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                        </tbody>
-                        <tfoot>
-                            <tr style="font-weight:700;background:#f8fafc">
-                                <td colspan="2" style="text-align:right">Total</td>
-                                <td id="total-hp">0</td>
-                                <td id="total-anggaran" colspan="2">Rp 0</td>
-                            </tr>
-                        </tfoot>
-                    </table>
+                            <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Empty state -->
+                    <?php if(empty($existingTim)): ?>
+                    <div id="tim-empty" style="text-align:center;color:#94a3b8;padding:18px;font-size:13px">
+                        <i class="fas fa-users-slash"></i> Belum ada anggota tim.
+                    </div>
+                    <?php else: ?>
+                    <div id="tim-empty" style="display:none;text-align:center;color:#94a3b8;padding:18px;font-size:13px">
+                        <i class="fas fa-users-slash"></i> Belum ada anggota tim.
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- Footer summary -->
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 4px 0;font-size:12px;color:#64748b;border-top:1px solid #f1f5f9;margin-top:6px">
+                        <span>Total: <strong id="total-hp" style="color:#6366f1">—</strong> HP</span>
+                        <span id="tim-count-badge" class="badge badge-secondary" style="font-size:11px"><?= count($existingTim) ?> orang</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -364,6 +384,7 @@ $hpBarColor = $hpPct >= 90 ? '#ef4444' : ($hpPct >= 70 ? '#f59e0b' : '#22c55e');
 </form>
 
 <?= $this->endSection() ?>
+
 <?= $this->section('scripts') ?>
 <script>
 const tarif    = <?= ($setting['tarif_hp'] ?? 160000) ?>;
@@ -373,35 +394,61 @@ const hpEfektif = <?= (int)($hpEfektif ?? 0) ?>;
 const hpTerpakai = <?= (int)($hpTerpakai ?? 0) ?>;
 
 const sdmOptions = `<?php foreach($sdm as $s): ?><option value="<?= $s['id'] ?>"><?= esc($s['nama']) ?> (<?= esc($s['irban_nama'] ?? '-') ?>)</option><?php endforeach; ?>`;
-const peranOptions = ['PJ','WPJ','Dalnis','KT','AT'];
+const peranMap   = {
+    'PJ'    : 'Penanggung Jawab',
+    'WPJ'   : 'Wakil Penanggung Jawab',
+    'Dalnis': 'Pengendali Teknis',
+    'KT'    : 'Ketua Tim',
+    'AT'    : 'Anggota Tim',
+};
+const selStyle   = 'font-size:12px;padding:3px 6px;height:28px';
+const inputStyle = 'width:48px;text-align:center;padding:3px 4px;height:28px;font-size:12px';
 
 function tambahBarisTim() {
-    const peranSel = peranOptions.map(p => `<option value="${p}">${p}</option>`).join('');
-    const tr = `<tr class="tim-row">
-        <td><select name="tim_peran[]" class="form-control form-control-sm" required>${peranSel}</select></td>
-        <td>
-            <select name="tim_sdm_id[]" class="form-control form-control-sm sdm-select" required onchange="updateSisaHp(this)">
-                <option value="">— Pilih —</option>${sdmOptions}
+    const peranSel = Object.entries(peranMap).map(([v,l]) => `<option value="${v}">${l}</option>`).join('');
+    const tr = `<tr class="tim-row" style="border-bottom:1px solid #f1f5f9">
+        <td style="padding:4px 8px">
+            <select name="tim_sdm_id[]" class="form-control form-control-sm sdm-select" required
+                    style="${selStyle}">
+                <option value="">— Pilih SDM —</option>${sdmOptions}
             </select>
             <div class="sisa-hp-info"></div>
         </td>
-        <td><input type="number" name="tim_hp[]" class="form-control form-control-sm hp-input" value="1" min="1" onchange="hitungTotal();refreshSisaHp(this)" style="width:70px"></td>
-        <td class="anggaran-cell" style="font-size:12px">Rp 160.000</td>
-        <td><button type="button" class="btn btn-xs btn-danger" onclick="$(this).closest('tr').remove();hitungTotal()"><i class="fas fa-times"></i></button></td>
+        <td style="padding:4px 6px">
+            <select name="tim_peran[]" class="form-control form-control-sm" required style="${selStyle}">${peranSel}</select>
+        </td>
+        <td style="padding:4px 6px;text-align:center">
+            <input type="number" name="tim_hp[]" class="form-control form-control-sm hp-total"
+                   value="1" min="0" style="${inputStyle}" oninput="hitungTotal();refreshSisaHp(this)">
+        </td>
+        <td style="padding:4px 6px;text-align:center">
+            <button type="button" class="btn btn-xs btn-danger btn-del-tim" title="Hapus">
+                <i class="fas fa-times"></i>
+            </button>
+        </td>
     </tr>`;
     $('#tim-rows').append(tr);
+    initSdmSelect2($('#tim-rows .tim-row:last .sdm-select'));
+    updateTimState();
     hitungTotal();
+    const area = document.getElementById('tim-scroll-area');
+    if (area) area.scrollTop = area.scrollHeight;
+}
+
+function updateTimState() {
+    const rows = $('#tim-rows .tim-row');
+    const n    = rows.length;
+    $('#tim-count-badge').text(n + ' orang');
+    $('#tim-empty').toggle(n === 0);
 }
 
 function hitungTotal() {
-    let totalHp = 0, totalAng = 0;
-    $('.hp-input').each(function() {
-        const hp  = parseInt($(this).val()) || 0;
-        const ang = hp * tarif;
-        totalHp  += hp;
-        totalAng += ang;
-        $(this).closest('tr').find('.anggaran-cell').text('Rp ' + ang.toLocaleString('id-ID'));
+    let totalHp = 0;
+    $('#tim-rows .tim-row').each(function() {
+        totalHp += parseInt($(this).find('.hp-total').val()) || 0;
     });
+    const totalAng = totalHp * tarif;
+
     $('#total-hp').text(totalHp);
     $('#total-anggaran').text('Rp ' + totalAng.toLocaleString('id-ID'));
 
@@ -422,7 +469,7 @@ function hitungTotal() {
 
     // Update progress bar
     if (hpEfektif > 0) {
-        const pct = Math.min(100, Math.round(((hpTerpakai + totalHp) / hpEfektif) * 100));
+        const pct   = Math.min(100, Math.round(((hpTerpakai + totalHp) / hpEfektif) * 100));
         const color = pct >= 90 ? '#ef4444' : (pct >= 70 ? '#f59e0b' : '#22c55e');
         $('#hp-progress-bar').css({'width': pct + '%', 'background': color});
         $('#disp-sisa-hp').text(Math.max(0, hpSisa - totalHp)).css('color', sisaSetelah <= 0 ? '#ef4444' : '#22c55e');
@@ -438,17 +485,18 @@ function updateSisaHp(sel) {
 
     $.get('/admin/pkpt/sisa-hp?sdm_id=' + sdmId + '&tahun=' + tahun, res => {
         const sisa = parseInt(res.sisa_hp) || 0;
-        const hp   = parseInt($(sel).closest('tr').find('.hp-input').val()) || 0;
+        const hp   = parseInt($(sel).closest('tr').find('.hp-total').val()) || 0;
         $(sel).attr('data-sisa-hp', sisa);
         renderSisaHp($info, sisa, hp);
     });
 }
 
 function refreshSisaHp(input) {
-    const $sel  = $(input).closest('tr').find('.sdm-select');
+    const $row  = $(input).closest('tr');
+    const $sel  = $row.find('.sdm-select');
     const sisa  = parseInt($sel.attr('data-sisa-hp'));
     if (isNaN(sisa)) return;
-    const hp    = parseInt($(input).val()) || 0;
+    const hp    = parseInt($row.find('.hp-total').val()) || 0;
     const $info = $sel.closest('td').find('.sisa-hp-info');
     renderSisaHp($info, sisa, hp);
 }
@@ -479,9 +527,17 @@ function renderSisaHp($el, sisa, hp) {
 
 $(document).ready(function() {
     hitungTotal();
+    updateTimState();
     // Load sisa HP untuk semua baris yang sudah ada
     $('.sdm-select').each(function() {
         if ($(this).val()) updateSisaHp(this);
+    });
+
+    // Delete row
+    $(document).on('click', '.btn-del-tim', function() {
+        $(this).closest('tr').remove();
+        hitungTotal();
+        updateTimState();
     });
 });
 
@@ -514,7 +570,8 @@ function updateJadwal(id) {
             const dateEnd   = y+'-'+pad(m)+'-'+pad(eDay);
 
             if (id === 'rmp') document.getElementById('inp-mulai').value   = dateStart;
-            if (id === 'rpl') document.getElementById('inp-selesai').value = dateEnd;
+            // RPL = Rencana Penerbitan Laporan, bukan tanggal selesai lapangan.
+            // tanggal_selesai diisi manual atau dihitung dari RMP + total HP.
         }
     } else {
         prev.innerHTML = '';
@@ -538,7 +595,8 @@ function filterEntitas(q) {
     const keyword = q.toLowerCase().trim();
     document.querySelectorAll('#entitas-list .entitas-item').forEach(function(item) {
         const nama = item.querySelector('.entitas-nama').textContent.toLowerCase();
-        item.style.display = (!keyword || nama.includes(keyword)) ? '' : 'none';
+        // Gunakan 'flex' (bukan '') agar inline display:flex tidak terhapus saat item ditampilkan kembali
+        item.style.display = (!keyword || nama.includes(keyword)) ? 'flex' : 'none';
     });
 }
 
@@ -560,4 +618,17 @@ function updateEntitasCounter() {
     }
 }
 </script>
+
+<script>
+// Wrapper tipis: baris baru yang ditambah via tambahBarisTim() juga dapat Select2
+function initSdmSelect2($sel) { initSelect2($sel); }
+
+$(document).ready(function() {
+    // Event delegation — Select2 hanya trigger jQuery 'change', bukan native onchange
+    $(document).on('change', '.sdm-select', function() {
+        updateSisaHp(this);
+    });
+});
+</script>
 <?= $this->endSection() ?>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         

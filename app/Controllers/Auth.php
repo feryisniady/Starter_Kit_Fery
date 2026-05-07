@@ -159,9 +159,15 @@ class Auth extends BaseController
 
         $user = $this->userModel->where('email', $email)->first();
 
+        // Pesan generik — tidak mengungkapkan apakah email terdaftar (mencegah email enumeration)
+        $genericMsg = 'Jika email <strong>' . esc($email) . '</strong> terdaftar di sistem, '
+                    . 'link reset password akan dikirim dalam beberapa saat. '
+                    . 'Berlaku ' . self::RESET_EXPIRE_MINUTES . ' menit.';
+
         if (!$user) {
-            return redirect()->back()->withInput()
-                ->with('error', 'Email ' . esc($email) . ' tidak terdaftar di sistem.');
+            // Tetap log attempt tanpa memberi tahu pengirim
+            logActivity('forgot_password.unknown', 'auth', "Reset attempt untuk email tidak dikenal: {$email}");
+            return redirect()->to('/forgot-password')->with('success', $genericMsg);
         }
 
         $resetModel = new PasswordResetModel();
@@ -173,14 +179,12 @@ class Auth extends BaseController
 
         logActivity('forgot_password', 'auth', "Request reset password: {$email}", $user['id'], $user['name']);
 
-        $msg = 'Link reset password telah dikirim ke ' . esc($email) . '. Berlaku ' . self::RESET_EXPIRE_MINUTES . ' menit.';
-
         // Di mode development, tampilkan link langsung jika email gagal
         if (!$sent && ENVIRONMENT !== 'production') {
-            $msg .= '<br><br><strong>Dev mode:</strong> <a href="' . $resetUrl . '">' . $resetUrl . '</a>';
+            $genericMsg .= '<br><br><strong>Dev mode:</strong> <a href="' . $resetUrl . '">' . $resetUrl . '</a>';
         }
 
-        return redirect()->to('/forgot-password')->with('success', $msg);
+        return redirect()->to('/forgot-password')->with('success', $genericMsg);
     }
 
     public function resetPassword(string $token)

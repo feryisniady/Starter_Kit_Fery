@@ -129,6 +129,9 @@ class NhpController extends BaseController
                 ->with('error', implode('<br>', $errors));
         }
 
+        $db = \Config\Database::connect();
+        $db->transStart();
+
         // Buat NHP header
         $nhpId = $this->nhpModel->create($sptId, [
             'tanggal_nhp' => $tanggalNhp,
@@ -138,7 +141,6 @@ class NhpController extends BaseController
 
         // Tambahkan item dari simpulan yang dipilih
         if (!empty($selected)) {
-            $db = \Config\Database::connect();
             $noUrut = 1;
             foreach ($selected as $simpulanId) {
                 $simpulan = $db->table('kka_simpulan ks')
@@ -161,6 +163,13 @@ class NhpController extends BaseController
                     ]);
                 }
             }
+        }
+
+        $db->transComplete();
+
+        if (!$db->transStatus()) {
+            return redirect()->back()->withInput()
+                ->with('error', 'Gagal menyimpan NHP. Silakan coba lagi.');
         }
 
         logActivity('nhp.create', 'nhp', "Buat NHP spt_id={$sptId}");

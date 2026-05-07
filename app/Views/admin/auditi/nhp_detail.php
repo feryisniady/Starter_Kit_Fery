@@ -20,7 +20,7 @@
 <div class="alert-error-inline mb-3"><i class="fas fa-circle-exclamation"></i> <?= esc(session()->getFlashdata('error')) ?></div>
 <?php endif; ?>
 
-<div style="background:#eff6ff;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:#1d4ed8">
+<div class="box-info">
     <i class="fas fa-info-circle"></i>
     Berikan tanggapan atas setiap temuan di bawah. Temuan yang ditanggapi <strong>Sesuai</strong> akan ditutup.
     Temuan <strong>Tidak Sesuai</strong> akan diproses lebih lanjut dalam Laporan Hasil Pemeriksaan.

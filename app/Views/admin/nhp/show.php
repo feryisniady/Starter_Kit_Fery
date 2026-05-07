@@ -35,9 +35,9 @@
 
         <?php /* — DIAJUKAN: Dalnis/Admin → Setujui & Kirim atau Kembalikan — */ ?>
         <?php if ($nhpStatus === 'diajukan'): ?>
-        <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:8px 14px;display:flex;align-items:center;gap:10px;font-size:13px">
-            <i class="fas fa-clock" style="color:#d97706"></i>
-            <span style="color:#92400e">Menunggu persetujuan Dalnis/PJ</span>
+        <div class="box-warning" style="display:flex;align-items:center;gap:10px;font-size:13px;margin-bottom:0">
+            <i class="fas fa-clock"></i>
+            <span>Menunggu persetujuan Dalnis/PJ</span>
             <?php if ($canApproveNhp): ?>
             <form method="POST" action="/admin/spt/<?= $spt['id'] ?>/nhp/<?= $nhp['id'] ?>/kirim" style="display:inline"
                   data-confirm="Setujui dan kirim NHP ke:<br><b><?= esc($entitasNama) ?></b>"
@@ -51,7 +51,7 @@
             <?php endif; ?>
         </div>
         <?php if ($canApproveNhp): ?>
-        <div id="form-kembalikan" style="display:none;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 16px;margin-top:8px">
+        <div id="form-kembalikan" class="box-danger" style="display:none;margin-top:8px">
             <form method="POST" action="/admin/spt/<?= $spt['id'] ?>/nhp/<?= $nhp['id'] ?>/kembalikan">
                 <?= csrf_field() ?>
                 <div class="form-group" style="margin-bottom:8px">

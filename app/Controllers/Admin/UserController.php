@@ -135,11 +135,22 @@ class UserController extends BaseController
         $email  = $this->request->getPost('email');
         $status = $this->request->getPost('status') ?? 'active';
 
+        $password = $this->request->getPost('password');
+        if (!preg_match('/[A-Z]/', $password)) {
+            return redirect()->back()->withInput()->with('error', 'Password harus mengandung minimal 1 huruf besar.');
+        }
+        if (!preg_match('/[a-z]/', $password)) {
+            return redirect()->back()->withInput()->with('error', 'Password harus mengandung minimal 1 huruf kecil.');
+        }
+        if (!preg_match('/[0-9]/', $password)) {
+            return redirect()->back()->withInput()->with('error', 'Password harus mengandung minimal 1 angka.');
+        }
+
         $userId = $this->userModel->insert([
             'name'     => $name,
             'email'    => $email,
             'status'   => $status,
-            'password' => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
+            'password' => password_hash($password, PASSWORD_DEFAULT),
         ]);
 
         $this->userModel->syncRoles($userId, $this->request->getPost('roles') ?? []);
@@ -213,6 +224,15 @@ class UserController extends BaseController
             if (strlen($password) < 8) {
                 return redirect()->back()->withInput()->with('error', 'Password minimal 8 karakter.');
             }
+            if (!preg_match('/[A-Z]/', $password)) {
+                return redirect()->back()->withInput()->with('error', 'Password harus mengandung minimal 1 huruf besar.');
+            }
+            if (!preg_match('/[a-z]/', $password)) {
+                return redirect()->back()->withInput()->with('error', 'Password harus mengandung minimal 1 huruf kecil.');
+            }
+            if (!preg_match('/[0-9]/', $password)) {
+                return redirect()->back()->withInput()->with('error', 'Password harus mengandung minimal 1 angka.');
+            }
             $dataUpdate['password'] = password_hash($password, PASSWORD_DEFAULT);
         }
 
@@ -283,7 +303,19 @@ class UserController extends BaseController
             return redirect()->to('/admin/users');
         }
 
+        // Cegah self-delete
+        if ($id === (int) session()->get('user_id')) {
+            return $this->response->setJSON([
+                'status'  => 'error',
+                'message' => 'Anda tidak dapat menghapus akun Anda sendiri.',
+            ]);
+        }
+
         $user = $this->userModel->find($id);
+        if (!$user) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'User tidak ditemukan.']);
+        }
+
         $this->userModel->delete($id);
 
         logActivity('user.delete', 'user', "Hapus user ID:{$id}" . ($user ? " — {$user['name']}" : ''), null, null, [

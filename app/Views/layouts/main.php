@@ -19,6 +19,8 @@
   <!-- DataTables + Buttons CSS — load sebelum admin-extra agar override kita menang -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css">
+  <!-- Select2 -->
+  <link rel="stylesheet" href="/assets/_main/modules/select2/dist/css/select2.min.css">
   <!-- Admin Extra (override DataTables default) — HARUS paling akhir -->
   <link rel="stylesheet" href="/assets/_main/css/admin-extra.css?v=6">
   <!-- Quill WYSIWYG Editor -->
@@ -36,6 +38,113 @@
       display: inline-block; font-size: 9px; font-weight: 600; letter-spacing: .3px;
       background: #ede9fe; color: #6d28d9; padding: 1px 6px; border-radius: 4px;
       margin-left: 6px; vertical-align: middle;
+    }
+  </style>
+  <style>
+    /* ═══════════════════════════════════════════════════════════
+       Select2 — Global Theme (selaras dengan .form-control admin)
+       ═══════════════════════════════════════════════════════════ */
+
+    /* Container */
+    .select2-container { width: 100% !important; }
+
+    /* ── Normal (.form-control) — height ~38px ── */
+    .select2-container .select2-selection--single {
+      height: 38px !important;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      background: #f8fafc;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+      line-height: 36px;
+      font-size: 13.5px;
+      color: #1e293b;
+      padding-left: 13px;
+      padding-right: 28px;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__placeholder {
+      color: #94a3b8;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+      height: 36px;
+      right: 8px;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__clear {
+      line-height: 36px;
+      font-size: 15px;
+      color: #94a3b8;
+      margin-right: 4px;
+    }
+
+    /* ── Small (.select2-sm → dari form-control-sm) — height 28px ── */
+    .select2-sm .select2-selection--single {
+      height: 28px !important;
+      border-radius: 6px;
+    }
+    .select2-sm .select2-selection__rendered {
+      line-height: 26px !important;
+      font-size: 12px !important;
+      padding-left: 8px !important;
+    }
+    .select2-sm .select2-selection__arrow { height: 26px !important; }
+    .select2-sm .select2-selection__clear { line-height: 26px !important; }
+
+    /* ── Focus / Open state ── */
+    .select2-container--default.select2-container--focus .select2-selection--single,
+    .select2-container--default.select2-container--open  .select2-selection--single {
+      border-color: #2563eb !important;
+      background: #fff !important;
+      box-shadow: 0 0 0 3px rgba(37,99,235,.1) !important;
+    }
+
+    /* ── Dropdown panel ── */
+    .select2-dropdown {
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      box-shadow: 0 8px 28px rgba(0,0,0,.12);
+      font-size: 13.5px;
+      overflow: hidden;
+      z-index: 9999;
+    }
+    .select2-search--dropdown { padding: 8px 10px 4px; }
+    .select2-search--dropdown .select2-search__field {
+      border: 1.5px solid #e2e8f0;
+      border-radius: 7px;
+      font-size: 13px;
+      padding: 6px 10px;
+      outline: none;
+      width: 100%;
+      background: #f8fafc;
+    }
+    .select2-search--dropdown .select2-search__field:focus {
+      border-color: #2563eb;
+      background: #fff;
+      box-shadow: 0 0 0 2px rgba(37,99,235,.1);
+    }
+    .select2-results__options { padding: 4px 0; }
+    .select2-results__option {
+      padding: 7px 13px;
+      font-size: 13px;
+      color: #374151;
+    }
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+      background: #2563eb;
+      color: #fff;
+    }
+    .select2-container--default .select2-results__option[aria-selected=true] {
+      background: #eff6ff;
+      color: #1d4ed8;
+    }
+    .select2-results__option--disabled {
+      color: #94a3b8 !important;
+      font-style: italic;
+    }
+    .select2-container--default .select2-results__message {
+      color: #94a3b8;
+      font-size: 12px;
+      padding: 8px 13px;
     }
   </style>
 
@@ -104,109 +213,109 @@
         <div class="user-info">
           <div class="name"><?= esc(session()->get('user_name')) ?></div>
           <div class="role"><?= esc(getUserRoleLabel()) ?></div>
+        </div>
+        <a href="/logout" class="user-logout" title="Logout">
+          <i class="fas fa-right-from-bracket"></i>
+        </a>
       </div>
-      <a href="/logout" class="user-logout" title="Logout">
-        <i class="fas fa-right-from-bracket"></i>
-      </a>
-    </div>
-  </div>
-
-</aside>
-
-<!-- ===== MAIN WRAPPER ===== -->
-<div class="main-wrapper" id="mainWrapper">
-
-  <!-- Topbar -->
-  <header class="topbar">
-    <div class="topbar-toggle" onclick="toggleSidebar()" title="Toggle Sidebar">
-      <i class="fas fa-bars"></i>
     </div>
 
-    <div class="topbar-breadcrumb">
-      <a href="/dashboard" style="color:#94a3b8">
-        <i class="fas fa-house" style="font-size:12px"></i>
-      </a>
-      <i class="fas fa-chevron-right"></i>
-      <span class="current"><?= esc($title ?? 'Dashboard') ?></span>
-    </div>
+  </aside>
 
-    <div class="topbar-actions">
-      <!-- Notifikasi Bell -->
-      <div class="notif-wrap" id="notifWrap">
-        <button class="topbar-btn" id="notifBtn" title="Notifikasi" onclick="toggleNotifDropdown()">
-          <i class="fas fa-bell"></i>
-          <span class="notif-badge" id="notifBadge" style="display:none">0</span>
-        </button>
+  <!-- ===== MAIN WRAPPER ===== -->
+  <div class="main-wrapper" id="mainWrapper">
 
-        <!-- Dropdown -->
-        <div class="notif-dropdown" id="notifDropdown">
-          <div class="notif-header">
-            <span><i class="fas fa-bell"></i> Notifikasi</span>
-            <button class="notif-read-all" id="btnReadAll" onclick="readAllNotif()" title="Tandai semua dibaca">
-              <i class="fas fa-check-double"></i> Semua dibaca
-            </button>
-          </div>
-          <div class="notif-list" id="notifList">
-            <div class="notif-empty">
-              <i class="fas fa-bell-slash"></i>
-              <span>Tidak ada notifikasi</span>
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-toggle" onclick="toggleSidebar()" title="Toggle Sidebar">
+        <i class="fas fa-bars"></i>
+      </div>
+
+      <div class="topbar-breadcrumb">
+        <a href="/dashboard" style="color:#94a3b8">
+          <i class="fas fa-house" style="font-size:12px"></i>
+        </a>
+        <i class="fas fa-chevron-right"></i>
+        <span class="current"><?= esc($title ?? 'Dashboard') ?></span>
+      </div>
+
+      <div class="topbar-actions">
+        <!-- Notifikasi Bell -->
+        <div class="notif-wrap" id="notifWrap">
+          <button class="topbar-btn" id="notifBtn" title="Notifikasi" onclick="toggleNotifDropdown()">
+            <i class="fas fa-bell"></i>
+            <span class="notif-badge" id="notifBadge" style="display:none">0</span>
+          </button>
+
+          <!-- Dropdown -->
+          <div class="notif-dropdown" id="notifDropdown">
+            <div class="notif-header">
+              <span><i class="fas fa-bell"></i> Notifikasi</span>
+              <button class="notif-read-all" id="btnReadAll" onclick="readAllNotif()" title="Tandai semua dibaca">
+                <i class="fas fa-check-double"></i> Semua dibaca
+              </button>
+            </div>
+            <div class="notif-list" id="notifList">
+              <div class="notif-empty">
+                <i class="fas fa-bell-slash"></i>
+                <span>Tidak ada notifikasi</span>
+              </div>
+            </div>
+            <div class="notif-footer">
+              <a href="/notifications">Lihat semua notifikasi</a>
             </div>
           </div>
-          <div class="notif-footer">
-            <a href="/notifications">Lihat semua notifikasi</a>
+        </div>
+
+        <div class="topbar-divider"></div>
+
+        <!-- User dropdown -->
+        <div class="topbar-user">
+          <a href="/profile" style="text-decoration:none">
+            <div class="topbar-avatar">
+              <?php if($avatarPath): ?>
+                <img src="<?= base_url(esc($avatarPath)) ?>" alt="avatar"
+                style="width:100%;height:100%;object-fit:cover;border-radius:50%">
+              <?php else: ?>
+                <?= esc(strtoupper(substr(session()->get('user_name') ?? 'A', 0, 1))) ?>
+              <?php endif; ?>
+            </div>
+          </a>
+          <div class="topbar-user-info">
+            <div class="name"><?= esc(session()->get('user_name')) ?></div>
+            <div class="role"><?= esc(getUserRoleLabel()) ?></div>
           </div>
         </div>
       </div>
+    </header>
 
-      <div class="topbar-divider"></div>
+    <!-- Page Content -->
+    <main class="page-content">
 
-      <!-- User dropdown -->
-      <div class="topbar-user">
-        <a href="/profile" style="text-decoration:none">
-          <div class="topbar-avatar">
-            <?php if($avatarPath): ?>
-              <img src="<?= base_url(esc($avatarPath)) ?>" alt="avatar"
-              style="width:100%;height:100%;object-fit:cover;border-radius:50%">
-            <?php else: ?>
-              <?= esc(strtoupper(substr(session()->get('user_name') ?? 'A', 0, 1))) ?>
-            <?php endif; ?>
-          </div>
-        </a>
-        <div class="topbar-user-info">
-          <div class="name"><?= esc(session()->get('user_name')) ?></div>
-          <div class="role"><?= esc(getUserRoleLabel()) ?></div>
-      </div>
-    </div>
+      <?= $this->include('partials/_alert') ?>
+      <?= $this->renderSection('content') ?>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="page-footer">
+      <?php
+      $footerText = app_setting('footer_text');
+      if ($footerText): ?>
+        <span><?= esc($footerText) ?></span>
+      <?php else: ?>
+        <span>&copy; <?= date('Y') ?> <strong><?= esc(app_setting('org_name')) ?></strong>. All rights reserved.</span>
+        <span><?= esc(app_setting('app_name')) ?> v<?= esc(app_setting('app_version')) ?> — Powered by CodeIgniter 4</span>
+      <?php endif; ?>
+    </footer>
+
   </div>
-</header>
 
-<!-- Page Content -->
-<main class="page-content">
-
-  <?= $this->include('partials/_alert') ?>
-  <?= $this->renderSection('content') ?>
-
-</main>
-
-<!-- Footer -->
-<footer class="page-footer">
-  <?php
-  $footerText = app_setting('footer_text');
-  if ($footerText): ?>
-    <span><?= esc($footerText) ?></span>
-  <?php else: ?>
-    <span>&copy; <?= date('Y') ?> <strong><?= esc(app_setting('org_name')) ?></strong>. All rights reserved.</span>
-    <span><?= esc(app_setting('app_name')) ?> v<?= esc(app_setting('app_version')) ?> — Powered by CodeIgniter 4</span>
-  <?php endif; ?>
-</footer>
-
-</div>
-
-<!-- Flash Message Script -->
-<?php if(session()->getFlashdata('success')): ?>
-<script>
-  window._flashSuccess = "<?= addslashes(session()->getFlashdata('success')) ?>";
-</script>
+  <!-- Flash Message Script -->
+  <?php if(session()->getFlashdata('success')): ?>
+  <script>
+    window._flashSuccess = "<?= addslashes(session()->getFlashdata('success')) ?>";
+  </script>
 <?php endif; ?>
 <?php if(session()->getFlashdata('success_modal')): ?>
 <script>
@@ -221,10 +330,46 @@
 
 <!-- Scripts -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="/assets/_main/modules/select2/dist/js/select2.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/11.10.1/sweetalert2.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
 <script src="/assets/_main/js/admin.js?v=6"></script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   initSelect2(target) — Global Select2 initializer
+   target: selector string, DOM element, atau jQuery object
+   ═══════════════════════════════════════════════════════════════════ */
+window.initSelect2 = function(target) {
+  $(target).each(function() {
+    var $s = $(this);
+    if ($s.hasClass('select2-hidden-accessible')) return; // sudah di-init
+
+    var optCount = $s.find('option').length;
+    var isSmall  = $s.hasClass('form-control-sm') || parseInt($s.css('height')) <= 30;
+
+    $s.select2({
+      placeholder         : $s.find('option[value=""]').first().text() || '— Pilih —',
+      allowClear          : $s.prop('required') ? false : true,
+      width               : '100%',
+      dropdownParent      : $('body'),
+      containerCssClass   : isSmall ? 'select2-sm' : '',
+      // Tampilkan kotak cari HANYA bila opsi > 6
+      minimumResultsForSearch: optCount > 6 ? 0 : Infinity,
+      language: {
+        noResults : function() { return 'Tidak ditemukan'; },
+        searching : function() { return 'Mencari…';        },
+      }
+    });
+  });
+};
+
+$(document).ready(function() {
+  // Auto-init semua select.form-control kecuali yang opt-out
+  initSelect2('select.form-control:not(.no-select2)');
+});
+</script>
 
 <script>
 // CSRF Setup
@@ -309,33 +454,33 @@
   });
 
 // ── Global Swal Confirm Helper ────────────────────────────────────────────
-function swalConfirm(opts, onConfirm) {
+  function swalConfirm(opts, onConfirm) {
     Swal.fire(Object.assign({
-        icon: 'question',
-        title: 'Konfirmasi',
-        showCancelButton: true,
-        confirmButtonColor: '#4f46e5',
-        cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Ya, Lanjutkan',
-        cancelButtonText: 'Batal',
-        reverseButtons: true,
+      icon: 'question',
+      title: 'Konfirmasi',
+      showCancelButton: true,
+      confirmButtonColor: '#4f46e5',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Ya, Lanjutkan',
+      cancelButtonText: 'Batal',
+      reverseButtons: true,
     }, opts)).then(function(r) { if (r.isConfirmed) onConfirm(); });
-}
+  }
 
 // Intercept form[data-confirm] on submit (capture phase)
-document.addEventListener('submit', function(e) {
+  document.addEventListener('submit', function(e) {
     var form = e.target;
     if (!form.dataset.confirm || form._swalOk) return;
     e.preventDefault();
     var isDel  = form.dataset.confirmType === 'delete';
     swalConfirm({
-        title: form.dataset.confirmTitle || (isDel ? 'Hapus Data?' : 'Konfirmasi'),
-        html:  form.dataset.confirm,
-        icon:  isDel ? 'warning' : 'question',
-        confirmButtonColor: isDel ? '#ef4444' : '#4f46e5',
-        confirmButtonText:  isDel ? '<i class="fas fa-trash"></i>&nbsp;Ya, Hapus' : (form.dataset.confirmBtn || 'Ya, Lanjutkan'),
+      title: form.dataset.confirmTitle || (isDel ? 'Hapus Data?' : 'Konfirmasi'),
+      html:  form.dataset.confirm,
+      icon:  isDel ? 'warning' : 'question',
+      confirmButtonColor: isDel ? '#ef4444' : '#4f46e5',
+      confirmButtonText:  isDel ? '<i class="fas fa-trash"></i>&nbsp;Ya, Hapus' : (form.dataset.confirmBtn || 'Ya, Lanjutkan'),
     }, function() { form._swalOk = true; form.submit(); });
-}, true);
+  }, true);
 </script>
 
 <!-- Notifikasi CSS -->
@@ -572,88 +717,107 @@ document.addEventListener('submit', function(e) {
  * Inisialisasi semua [data-wysiwyg] di dalam container menjadi Quill editor.
  * Dipanggil lazy saat card di-expand agar tidak boros memory.
  */
-window._quillInstances = window._quillInstances || {};
+  window._quillInstances = window._quillInstances || {};
 
-const WYSIWYG_TOOLBAR = [
+  const WYSIWYG_TOOLBAR = [
     [{ header: [2, 3, false] }],
     ['bold', 'italic', 'underline'],
     [{ list: 'ordered' }, { list: 'bullet' }],
     [{ indent: '-1' }, { indent: '+1' }],
     ['clean']
-];
+    ];
 
-function initWysiwyg(container) {
+  function initWysiwyg(container) {
     container = container || document;
     container.querySelectorAll('textarea[data-wysiwyg]').forEach(function(ta) {
-        if (ta._quillInit || ta.disabled) return; // sudah di-init atau read-only
+        if (ta._quillInit || ta.disabled) return; // Skip jika sudah di-init atau read-only
         ta._quillInit = true;
 
         const id = ta.id || ('qeditor-' + Math.random().toString(36).slice(2));
-        if (!ta.id) ta.id = id; // simpan id agar bisa di-cleanup nanti
+        if (!ta.id) ta.id = id; // Simpan id agar mudah di-tracking
         const height = ta.getAttribute('data-wysiwyg-height') || '120px';
 
-        // Buat wrapper div untuk Quill di atas textarea
+        // 1. Buat wrapper div
         const wrapper = document.createElement('div');
-        wrapper.style.cssText = 'margin-bottom:0';
+        // Styling tambahan agar background rapi dan menyatu dengan form
+        wrapper.style.cssText = 'margin-bottom: 0; background: #ffffff;';
 
+        // 2. Buat editor div
         const editorDiv = document.createElement('div');
-        editorDiv.id    = id + '-editor';
+        editorDiv.id = id + '-editor';
         editorDiv.style.minHeight = height;
+        // Agar font di dalam editor mengikuti font website (bukan font default bawaan Quill)
+        editorDiv.style.fontFamily = 'inherit'; 
 
         wrapper.appendChild(editorDiv);
         ta.parentNode.insertBefore(wrapper, ta);
-        ta.style.display = 'none'; // sembunyikan textarea asli
+        
+        // Sembunyikan textarea asli
+        ta.style.display = 'none';
 
-        // Init Quill
+        // 3. Inisialisasi Quill
         const quill = new Quill(editorDiv, {
-            theme:   'snow',
+            theme: 'snow', // Wajib ada quill.snow.css
             modules: { toolbar: WYSIWYG_TOOLBAR },
             placeholder: ta.placeholder || 'Ketik di sini...',
-        });
+          });
 
-        // Pre-fill dari nilai textarea yang sudah ada
+        // 4. Pre-fill data lama (jika sedang mode edit)
         const existingVal = ta.value.trim();
         if (existingVal) {
-            if (existingVal.startsWith('<')) {
-                quill.root.innerHTML = existingVal; // HTML dari WYSIWYG sebelumnya
-            } else {
-                // Plain text lama — convert newline ke paragraf
-                quill.root.innerHTML = '<p>' + existingVal.replace(/\n\n+/g, '</p><p>').replace(/\n/g, '<br>') + '</p>';
-            }
+            // Cek apakah isinya mengandung HTML tag
+          if (existingVal.includes('<') && existingVal.includes('>')) {
+            quill.root.innerHTML = existingVal;
+          } else {
+                // Jika plain text lama — convert newline ke tag <p> dan <br>
+            quill.root.innerHTML = '<p>' + existingVal.replace(/\n\n+/g, '</p><p>').replace(/\n/g, '<br>') + '</p>';
+          }
         }
 
-        // Sync ke textarea saat konten berubah
+        // 5. Auto-Sync saat user mengetik
         quill.on('text-change', function() {
-            ta.value = quill.root.innerHTML === '<p><br></p>' ? '' : quill.root.innerHTML;
+            // Hindari menyimpan string kosong berformat HTML saat dihapus habis
+          ta.value = quill.root.innerHTML === '<p><br></p>' ? '' : quill.root.innerHTML;
         });
 
+        // Simpan instance ke global object
         window._quillInstances[id] = quill;
-    });
-}
+      });
+  }
 
-// Sync semua quill ke textarea sebelum form submit
-document.addEventListener('submit', function(e) {
+// 6. BACKUP SYNC: Pastikan isi Quill masuk ke Textarea sesaat sebelum Submit Form
+// Ini penting untuk mencegah data kosong jika event 'text-change' terlewat oleh browser
+  document.addEventListener('submit', function(e) {
     var form = e.target;
     form.querySelectorAll('textarea[data-wysiwyg]').forEach(function(ta) {
-        var id     = ta.id || '';
-        var editor = ta.previousElementSibling && ta.previousElementSibling.querySelector('[id$="-editor"]');
-        // Konten sudah disync via text-change event — tidak perlu action tambahan
+      var id = ta.id;
+      if (id && window._quillInstances[id]) {
+        var quill = window._quillInstances[id];
+        ta.value = quill.root.innerHTML === '<p><br></p>' ? '' : quill.root.innerHTML;
+      }
     });
-}, true);
+  }, true);
 
-// Auto-init untuk textarea wysiwyg yang TIDAK di dalam card collapsible
-document.addEventListener('DOMContentLoaded', function() {
-    // Init wysiwyg yang tidak ada di dalam div.card-collapsible (langsung visible)
+// 7. Auto-init untuk elemen yang langsung tampil (TIDAK lazy-load)
+  document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('textarea[data-wysiwyg]:not(.wysiwyg-lazy)').forEach(function(ta) {
-        // Cek apakah parent visible
-        var parent = ta.parentElement;
-        while (parent) {
-            if (getComputedStyle(parent).display === 'none') return; // skip hidden
-            parent = parent.parentElement;
+        // Cek secara mendalam apakah form ini posisinya hidden atau tampil
+      var parent = ta.parentElement;
+      var isHidden = false;
+      while (parent && parent !== document.body) {
+        if (window.getComputedStyle(parent).display === 'none') {
+          isHidden = true;
+          break;
         }
+        parent = parent.parentElement;
+      }
+      
+        // Jika form tidak hidden, langsung jadikan Quill editor
+      if (!isHidden) {
         initWysiwyg(ta.closest('form') || ta.parentElement);
+      }
     });
-});
+  });
 </script>
 
 <!-- Scripts Per Halaman -->

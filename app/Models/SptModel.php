@@ -154,4 +154,132 @@ class SptModel extends Model
             default          => null,
         };
     }
+
+    // =========================================================
+    // KUOTA SPT — Maks 3 SPT reguler aktif per Irban
+    // =========================================================
+
+    /**
+     * Jenis Non-PKPT yang dikecualikan dari kuota (tidak dihitung).
+     */
+    private const PENGECUALIAN_NONPKPT = ['Pemeriksaan Kasus/Khusus'];
+    private const SLOT_MAKS            = 3;
+
+    /**
+     * Query antrian: semua SPT reguler (bukan pengecualian) milik irban
+     * yang BELUM punya LHP, diurutkan tgl_naskah ASC.
+     */
+    private function _queryAntrian(int $irbanId): string
+    {
+        $px = implode("','", self::PENGECUALIAN_NONPKPT);
+        return "
+            SELECT s.id, s.nomor_naskah, s.tanggal_naskah,
+                   COALESCE(pk.kode_kegiatan, s.jenis_non_pkpt) AS label_kegiatan,
+                   COALESCE(pk.jenis_pengawasan, s.jenis_non_pkpt) AS jenis_label
+            FROM   spt s
+            LEFT   JOIN pkpt_kegiatan pk ON pk.id = s.pkpt_kegiatan_id
+            LEFT   JOIN pkpt p           ON p.id  = pk.pkpt_id
+            LEFT   JOIN spt_lhp sl       ON sl.spt_id = s.id
+            WHERE  sl.id IS NULL
+              AND  COALESCE(p.irban_id, s.irban_id) = {$irbanId}
+              AND  NOT (
+                     (s.jenis_spt = 'non_pkpt' AND s.jenis_non_pkpt IN ('{$px}'))
+                     OR
+                     (s.jenis_spt = 'pkpt' AND (
+                         LOWER(IFNULL(pk.jenis_pengawasan,'')) LIKE '%investigasi%'
+                         OR LOWER(IFNULL(pk.jenis_pengawasan,'')) LIKE '%adtt%'
+                     ))
+                   )
+            ORDER  BY s.tanggal_naskah ASC, s.id ASC
+        ";
+    }
+
+    /**
+     * Cek apakah Irban boleh mengajukan SPT baru.
+     *
+     * @return array{boleh: bool, pesan: string, slot_terpakai: int, slot_maks: int}
+     */
+    public function canAjukanSpt(int $irbanId): array
+    {
+        $list         = $this->db->query($this->_queryAntrian($irbanId))->getResultArray();
+        $slotTerpakai = count($list);
+        $slotMaks     = self::SLOT_MAKS;
+
+        if ($slotTerpakai >= $slotMaks) {
+            return [
+                'boleh'         => false,
+                'slot_terpakai' => $slotTerpakai,
+                'slot_maks'     => $slotMaks,
+                'pesan'         => "Masih ada <strong>{$slotTerpakai}</strong> SPT yang belum memiliki LHP. "
+                                 . "Pengajuan SPT reguler dibatasi maksimal {$slotMaks}. "
+                                 . "Selesaikan LHP terlebih dahulu sebelum mengajukan SPT baru.",
+            ];
+        }
+
+        $sisa = $slotMaks - $slotTerpakai;
+        return [
+            'boleh'         => true,
+            'slot_terpakai' => $slotTerpakai,
+            'slot_maks'     => $slotMaks,
+            'pesan'         => "Sisa slot: {$sisa} dari {$slotMaks}.",
+        ];
+    }
+
+    /**
+     * Validasi apakah SPT tertentu boleh diupload LHP-nya.
+     * Aturan: harus urut — SPT tertua yang belum punya LHP harus diupload duluan.
+     *
+     * @return bool true = boleh upload
+     */
+    public function cekUrutanLhp(int $sptId, int $irbanId): bool
+    {
+        $list = $this->db->query($this->_queryAntrian($irbanId))->getResultArray();
+        if (empty($list)) return true;
+        return (int)$list[0]['id'] === $sptId;
+    }
+
+    /**
+     * Info slot untuk view (progress bar + antrian banner).
+     *
+     * @return array{terpakai: int, maks: int, sisa: int, persen: int, list_antrian: array}
+     */
+    public function getInfoSlot(int $irbanId): array
+    {
+        $list     = $this->db->query($this->_queryAntrian($irbanId))->getResultArray();
+        $terpakai = count($list);
+        $maks     = self::SLOT_MAKS;
+
+        return [
+            'terpakai'     => $terpakai,
+            'maks'         => $maks,
+            'sisa'         => max(0, $maks - $terpakai),
+            'persen'       => min(100, (int) round($terpakai / $maks * 100)),
+            'list_antrian' => $list,
+        ];
+    }
+
+    /**
+     * Cek apakah SPT tertentu adalah jenis pengecualian (tidak masuk kuota).
+     */
+    public function isPengecualian(int $sptId): bool
+    {
+        $row = $this->db->query("
+            SELECT s.jenis_spt, s.jenis_non_pkpt, IFNULL(pk.jenis_pengawasan,'') AS jenis_pengawasan
+            FROM   spt s
+            LEFT   JOIN pkpt_kegiatan pk ON pk.id = s.pkpt_kegiatan_id
+            WHERE  s.id = ?
+            LIMIT  1
+        ", [$sptId])->getRowArray();
+
+        if (!$row) return false;
+
+        if ($row['jenis_spt'] === 'non_pkpt') {
+            return in_array($row['jenis_non_pkpt'], self::PENGECUALIAN_NONPKPT);
+        }
+
+        $j = strtolower($row['jenis_pengawasan']);
+        return str_contains($j, 'investigasi') || str_contains($j, 'adtt');
+    }
+
 }
+

@@ -6,7 +6,7 @@ class KodetemuanModel extends Model
 {
     protected $table      = 'kode_temuan';
     protected $primaryKey = 'id';
-    protected $allowedFields = ['kode','uraian','jenis'];
+    protected $allowedFields = ['kode','uraian','jenis','alternatif'];
     protected $useTimestamps = true;
 
     public static array $jenisLabel = [

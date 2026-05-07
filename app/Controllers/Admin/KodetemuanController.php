@@ -4,17 +4,20 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\KodetemuanModel;
+use App\Models\KodeRekomendasiModel;
 use App\Traits\DatatableTrait;
 
 class KodetemuanController extends BaseController
 {
     use DatatableTrait;
 
-    protected KodetemuanModel $model;
+    protected KodetemuanModel       $model;
+    protected KodeRekomendasiModel  $rekomenModel;
 
     public function __construct()
     {
-        $this->model = new KodetemuanModel();
+        $this->model        = new KodetemuanModel();
+        $this->rekomenModel = new KodeRekomendasiModel();
     }
 
     public function index()
@@ -63,5 +66,30 @@ class KodetemuanController extends BaseController
         }, $rows);
 
         return $this->dtResponse($draw, $total, $filtered, $data);
+    }
+
+    // =========================================================
+    // AJAX: ambil saran rekomendasi untuk kode temuan tertentu
+    // GET /admin/master/kode-temuan/{id}/rekomen
+    // =========================================================
+
+    public function getRekomenByTemuan(int $id)
+    {
+        if (!$this->request->isAJAX()) return $this->response->setStatusCode(403);
+
+        $kodeTemuan = $this->model->find($id);
+        if (!$kodeTemuan) {
+            return $this->response->setJSON(['success' => false, 'data' => []]);
+        }
+
+        $alternatif = $kodeTemuan['alternatif'] ?? '';
+        $rekomen    = $this->rekomenModel->getByAlternatif($alternatif);
+
+        return $this->response->setJSON([
+            'success'     => true,
+            'kode_temuan' => $kodeTemuan['kode'],
+            'uraian'      => $kodeTemuan['uraian'],
+            'data'        => $rekomen,  // [{id, kode, uraian}, ...]
+        ]);
     }
 }

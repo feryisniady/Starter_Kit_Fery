@@ -42,6 +42,10 @@ td.left   { text-align:left; }
 .sig-col .sig-nip   { font-size:8.5pt; }
 .sig-date { text-align:right; font-size:9pt; margin-bottom:4px; }
 .no-data  { text-align:center; color:#666; font-style:italic; }
+/* ── Quill content di dalam sel tabel ───── */
+td ol, td ul { margin:0; padding-left:14px; }
+td li { margin:0; padding:0; line-height:1.4; }
+td p  { margin:0; padding:0; }
 @media print { body{-webkit-print-color-adjust:exact;print-color-adjust:exact;} .no-print{display:none!important;} }
 @media screen {
     body { background:#e5e7eb; padding:20px; }
@@ -139,7 +143,7 @@ td.left   { text-align:left; }
         <?php endif; $rowNum++; ?>
             <tr>
                 <td class="center"><?= $rowNum ?></td>
-                <td class="left"><?= esc($pka['uraian_prosedur']) ?></td>
+                <td class="left"><?= wysiwyg_display($pka['uraian_prosedur']) ?></td>
                 <td class="center" style="font-size:8pt"><?= $faseLabel[$pka['fase']] ?? ucfirst($pka['fase']) ?></td>
                 <td class="center"><?php $r = (float)($pka['rencana_waktu'] ?? 0); $totalRencana += $r; echo $r ?: '—'; ?></td>
                 <td class="left" style="min-height:18px"><?= esc($ikh['hasil_observasi'] ?? '') ?></td>
@@ -163,14 +167,14 @@ td.left   { text-align:left; }
     <div class="simpulan-box">
         <div class="sp-header">Temuan <?= $i+1 ?>
             <?php if (!empty($sp['kode_temuan_kode'])): ?>
-            <span style="font-weight:normal;font-size:8pt">(Kode: <?= esc($sp['kode_temuan_kode']) ?>)</span>
+            <span style="font-weight:normal;font-size:8pt">(Kode: <?= wysiwyg_display($sp['kode_temuan_kode']) ?>)</span>
             <?php endif; ?>
         </div>
-        <div class="sp-row"><span class="sp-label">Kondisi</span><span class="meta-sep">:</span><span class="sp-value"><?= esc($sp['kondisi'] ?? '') ?></span></div>
-        <div class="sp-row"><span class="sp-label">Kriteria</span><span class="meta-sep">:</span><span class="sp-value"><?= esc($sp['kriteria'] ?? '') ?></span></div>
-        <div class="sp-row"><span class="sp-label">Sebab</span><span class="meta-sep">:</span><span class="sp-value"><?= esc($sp['sebab'] ?? '') ?></span></div>
-        <div class="sp-row"><span class="sp-label">Akibat</span><span class="meta-sep">:</span><span class="sp-value"><?= esc($sp['akibat'] ?? '') ?></span></div>
-        <div class="sp-row"><span class="sp-label">Rekomendasi Awal</span><span class="meta-sep">:</span><span class="sp-value"><?= esc($sp['rekomendasi_awal'] ?? '') ?></span></div>
+        <div class="sp-row"><span class="sp-label">Kondisi</span><span class="meta-sep">:</span><span class="sp-value"><?= wysiwyg_display($sp['kondisi']) ?></span></div>
+        <div class="sp-row"><span class="sp-label">Kriteria</span><span class="meta-sep">:</span><span class="sp-value"><?= wysiwyg_display($sp['kriteria']) ?></span></div>
+        <div class="sp-row"><span class="sp-label">Sebab</span><span class="meta-sep">:</span><span class="sp-value"><?= wysiwyg_display($sp['sebab']) ?></span></div>
+        <div class="sp-row"><span class="sp-label">Akibat</span><span class="meta-sep">:</span><span class="sp-value"><?= wysiwyg_display($sp['akibat']) ?></span></div>
+        <div class="sp-row"><span class="sp-label">Rekomendasi Awal</span><span class="meta-sep">:</span><span class="sp-value"><?= wysiwyg_display($sp['rekomendasi_awal']) ?></span></div>
         <?php if (!empty($sp['nilai_financial'])): ?>
         <div class="sp-row"><span class="sp-label">Nilai Temuan (Rp)</span><span class="meta-sep">:</span><span class="sp-value"><?= number_format($sp['nilai_financial'], 0, ',', '.') ?></span></div>
         <?php endif; ?>

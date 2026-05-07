@@ -213,12 +213,12 @@ class TemuanController extends BaseController
     // HELPERS
     // ===================================================
 
-    private function isAdmin(): bool
+    protected function isAdmin(): bool
     {
         return hasRole('superadmin') || hasRole('admin') || hasPermission('spt.manage_all');
     }
 
-    private function getUserIrbanId(int $userId): ?int
+    protected function getUserIrbanId(int $userId): ?int
     {
         $sdm = $this->sdmModel->where('user_id', $userId)->first();
         return $sdm ? (int)$sdm['irban_id'] : null;

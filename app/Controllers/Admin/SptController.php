@@ -49,11 +49,16 @@ class SptController extends BaseController
 
     public function index()
     {
+        $userId   = session()->get('user_id');
+        $irbanId  = $this->isAdmin() ? null : $this->getUserIrbanId($userId);
+        $slotInfo = $irbanId ? $this->sptModel->getInfoSlot($irbanId) : null;
+
         return view('admin/spt/index', [
             'title'       => 'Surat Perintah Tugas (SPT)',
             'statusLabel' => SptModel::$statusLabel,
             'tahunAktif'  => $this->settingModel->getTahunAktif(),
             'settings'    => $this->settingModel->orderBy('tahun', 'DESC')->findAll(),
+            'slotInfo'    => $slotInfo,
         ]);
     }
 
@@ -102,7 +107,8 @@ class SptController extends BaseController
             ->select('s.id, s.nomor_naskah, s.nama_tim, s.tanggal_mulai, s.tujuan, s.status,
                       s.jenis_spt, s.jenis_non_pkpt,
                       COALESCE(pk.kode_kegiatan, s.jenis_non_pkpt) as kode_kegiatan,
-                      COALESCE(i_pkpt.nama, i_spt.nama) as irban_nama');
+                      COALESCE(i_pkpt.nama, i_spt.nama) as irban_nama,
+                      (SELECT COUNT(*) FROM spt_lhp sl WHERE sl.spt_id = s.id) as has_lhp');
 
         if ($search) {
             $q->groupStart()
@@ -136,12 +142,16 @@ class SptController extends BaseController
             if ($r['nama_tim']) {
                 $kodeHtml .= ' <span class="badge badge-warning" style="font-size:10px">' . esc($r['nama_tim']) . '</span>';
             }
+            $lhpHtml = (int)($r['has_lhp'] ?? 0) > 0
+                ? '<span class="badge badge-success"><i class="fas fa-check"></i> Ada</span>'
+                : '<a href="/admin/spt/' . $r['id'] . '/lhp" class="badge badge-warning" style="cursor:pointer"><i class="fas fa-upload"></i> Upload</a>';
             return [
                 'nomor_naskah'  => esc($r['nomor_naskah'] ?: '—'),
                 'kode_kegiatan' => $kodeHtml,
                 'irban_nama'    => esc($r['irban_nama'] ?? '—'),
-                'tujuan'        => '<span style="display:block;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' . esc($r['tujuan']) . '">' . esc($r['tujuan']) . '</span>',
+                'tujuan'        => '<span style="display:block;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' . esc(strip_tags($r['tujuan'])) . '">' . esc(strip_tags($r['tujuan'])) . '</span>',
                 'tanggal_mulai' => $r['tanggal_mulai'] ? date('d/m/Y', strtotime($r['tanggal_mulai'])) : '—',
+                'lhp_status'    => $lhpHtml,
                 'status'        => $badge,
                 'aksi'          => $actions,
             ];
@@ -160,17 +170,23 @@ class SptController extends BaseController
             $irbanId = $this->getUserIrbanId(session()->get('user_id'));
             if ($irbanId === null) return redirect()->to('/admin/spt')->with('error', 'Akses ditolak.');
         }
-        $db = \Config\Database::connect();
+        $db        = \Config\Database::connect();
+        $tahunAktif = $this->settingModel->getTahunAktif();
+        $hariLibur  = array_column(
+            $db->table('hari_libur')->select('tanggal')->where('tahun', $tahunAktif)->get()->getResultArray(),
+            'tanggal'
+        );
         return view('admin/spt/form_non_pkpt', [
             'title'       => 'Buat SPT Non-PKPT / Mandatori',
             'irbanList'   => $this->irbanModel->orderBy('kode')->findAll(),
             'sdmAll'      => $this->sdmModel->getAktif(),
             'sdmPenanda'  => $this->sdmModel->getAktif(),
             'jenisOpts'   => SptModel::$jenisNonPkpt,
-            'tahunAktif'  => $this->settingModel->getTahunAktif(),
+            'tahunAktif'  => $tahunAktif,
             'spt'         => null,
-            'setting'     => $this->settingModel->getByTahun($this->settingModel->getTahunAktif()),
+            'setting'     => $this->settingModel->getByTahun($tahunAktif),
             'entitasList' => $db->table('entitas')->where('aktif', 1)->orderBy('nama')->get()->getResultArray(),
+            'hariLibur'   => $hariLibur,
         ]);
     }
 
@@ -188,6 +204,21 @@ class SptController extends BaseController
             $postIrban = (int)$this->request->getPost('irban_id');
             if ($myIrbanId === null || $myIrbanId !== $postIrban) {
                 return redirect()->to('/admin/spt')->with('error', 'Akses ditolak.');
+            }
+        }
+
+        // ── Cek kuota SPT ──
+        $jenisNonPkpt   = $this->request->getPost('jenis_non_pkpt');
+        $isPengecualian = in_array($jenisNonPkpt, ['Pemeriksaan Kasus/Khusus']);
+        if (!$isPengecualian) {
+            $irbanIdForQuota = $this->isAdmin()
+                ? (int)$this->request->getPost('irban_id')
+                : $this->getUserIrbanId(session()->get('user_id'));
+            if ($irbanIdForQuota) {
+                $kuota = $this->sptModel->canAjukanSpt($irbanIdForQuota);
+                if (!$kuota['boleh']) {
+                    return redirect()->back()->withInput()->with('error', $kuota['pesan']);
+                }
             }
         }
 
@@ -271,6 +302,12 @@ class SptController extends BaseController
                 . ' Nomor : ' . $setting['nomor_pkpt'] . ', dengan ini :';
         }
 
+        // Hari libur untuk kalkulator HP di form
+        $hariLibur = array_column(
+            $db->table('hari_libur')->select('tanggal')->where('tahun', (int)$pkpt['tahun'])->get()->getResultArray(),
+            'tanggal'
+        );
+
         return view('admin/spt/form', [
             'title'         => 'Generate SPT — ' . $kegiatan['kode_kegiatan'],
             'kegiatan'      => $kegiatan,
@@ -284,6 +321,7 @@ class SptController extends BaseController
             'existingSpts'  => $existingSpts,
             'hpAllocated'   => $hpAllocated,
             'suggestedNama' => $suggestedNama,
+            'hariLibur'     => $hariLibur,
         ]);
     }
 
@@ -293,11 +331,25 @@ class SptController extends BaseController
         if (!$kegiatan) return redirect()->back()->with('error', 'Kegiatan tidak ditemukan.');
 
         // Irban user hanya boleh buat SPT untuk irbannya sendiri
+        $pkpt = $this->pkptModel->find($kegiatan['pkpt_id']);
         if (!$this->isAdmin()) {
-            $pkpt      = $this->pkptModel->find($kegiatan['pkpt_id']);
             $myIrbanId = $this->getUserIrbanId(session()->get('user_id'));
             if (!$pkpt || $myIrbanId === null || (int)$pkpt['irban_id'] !== $myIrbanId) {
                 return redirect()->to('/admin/spt')->with('error', 'Akses ditolak.');
+            }
+        }
+
+        // ── Cek kuota SPT (PKPT reguler — bukan investigasi/ADTT) ──
+        $irbanIdForQuota = $pkpt ? (int)$pkpt['irban_id'] : null;
+        if ($irbanIdForQuota) {
+            $kegiatanDetail = $this->kegiatanModel->getDetail($pkptKegiatanId);
+            $jenisP         = strtolower($kegiatanDetail['jenis_pengawasan'] ?? '');
+            $isPengecualian = str_contains($jenisP, 'investigasi') || str_contains($jenisP, 'adtt');
+            if (!$isPengecualian) {
+                $kuota = $this->sptModel->canAjukanSpt($irbanIdForQuota);
+                if (!$kuota['boleh']) {
+                    return redirect()->back()->withInput()->with('error', $kuota['pesan']);
+                }
             }
         }
 
@@ -382,15 +434,21 @@ class SptController extends BaseController
         }
 
         if (($spt['jenis_spt'] ?? 'pkpt') === 'non_pkpt') {
+            $tahunNp   = (int)($spt['tahun'] ?? $this->settingModel->getTahunAktif());
+            $hariLibNp = array_column(
+                \Config\Database::connect()->table('hari_libur')->select('tanggal')->where('tahun', $tahunNp)->get()->getResultArray(),
+                'tanggal'
+            );
             return view('admin/spt/form_non_pkpt', [
-                'title'     => 'Edit SPT Non-PKPT — ' . ($spt['nomor_naskah'] ?: '#' . $id),
-                'irbanList' => $this->irbanModel->orderBy('kode')->findAll(),
-                'sdmAll'    => $this->sdmModel->getAktif(),
-                'sdmPenanda'=> $this->sdmModel->getAktif(),
-                'jenisOpts' => SptModel::$jenisNonPkpt,
-                'tahunAktif'=> (int)($spt['tahun'] ?? $this->settingModel->getTahunAktif()),
-                'spt'       => $spt,
-                'setting'   => $this->settingModel->getByTahun((int)($spt['tahun'] ?? $this->settingModel->getTahunAktif())),
+                'title'      => 'Edit SPT Non-PKPT — ' . ($spt['nomor_naskah'] ?: '#' . $id),
+                'irbanList'  => $this->irbanModel->orderBy('kode')->findAll(),
+                'sdmAll'     => $this->sdmModel->getAktif(),
+                'sdmPenanda' => $this->sdmModel->getAktif(),
+                'jenisOpts'  => SptModel::$jenisNonPkpt,
+                'tahunAktif' => $tahunNp,
+                'spt'        => $spt,
+                'setting'    => $this->settingModel->getByTahun($tahunNp),
+                'hariLibur'  => $hariLibNp,
             ]);
         }
 
@@ -406,6 +464,11 @@ class SptController extends BaseController
             ->get()->getResultArray();
         $hpAllocated = $this->timModel->getHpAllocatedByKegiatan($spt['pkpt_kegiatan_id'], $id);
 
+        $hariLiburEdit = array_column(
+            \Config\Database::connect()->table('hari_libur')->select('tanggal')->where('tahun', (int)$pkpt['tahun'])->get()->getResultArray(),
+            'tanggal'
+        );
+
         return view('admin/spt/form', [
             'title'         => 'Edit SPT — ' . $spt['kode_kegiatan'],
             'kegiatan'      => $kegiatan,
@@ -419,6 +482,7 @@ class SptController extends BaseController
             'existingSpts'  => $existingSpts,
             'hpAllocated'   => $hpAllocated,
             'suggestedNama' => $spt['nama_tim'] ?? null,
+            'hariLibur'     => $hariLiburEdit,
         ]);
     }
 
@@ -661,6 +725,14 @@ class SptController extends BaseController
         if (!$spt) return redirect()->back()->with('error', 'SPT tidak ditemukan.');
         if (!$this->canAccessSpt($spt)) return redirect()->back()->with('error', 'Akses ditolak.');
 
+        // Bersihkan HTML dari field Quill editor
+        $plain = function(string $v): string {
+            $v = preg_replace('/<\/li>/i', ' ', $v);
+            $v = preg_replace('/<li[^>]*>/i', '', $v);
+            $v = preg_replace('/<br\s*\/?>/i', ' ', $v);
+            return trim(preg_replace('/\s+/', ' ', strip_tags($v)));
+        };
+
         $phpWord = new \PhpOffice\PhpWord\PhpWord();
         $phpWord->setDefaultFontName('Times New Roman');
         $phpWord->setDefaultFontSize(12);
@@ -668,208 +740,219 @@ class SptController extends BaseController
         $cm  = fn(float $v): int => (int) \PhpOffice\PhpWord\Shared\Converter::cmToTwip($v);
         $jcC = ['alignment' => \PhpOffice\PhpWord\SimpleType\Jc::CENTER];
         $jcL = ['alignment' => \PhpOffice\PhpWord\SimpleType\Jc::LEFT];
+        $jcJ = ['alignment' => \PhpOffice\PhpWord\SimpleType\Jc::BOTH];
+
+        // Lebar konten = 21 - 3.0 - 2.0 = 16.0 cm
+        $W = 16.0;
 
         $section = $phpWord->addSection([
             'marginTop'    => $cm(2.5),
-            'marginBottom' => $cm(2.5),
+            'marginBottom' => $cm(2.0),
             'marginLeft'   => $cm(3.0),
-            'marginRight'  => $cm(2.5),
+            'marginRight'  => $cm(2.0),
         ]);
 
-        // ── Named styles ─────────────────────────────────────
         $noBorder = [
-            'borderTopSize' => 0,    'borderTopColor'    => 'FFFFFF',
+            'borderTopSize'    => 0, 'borderTopColor'    => 'FFFFFF',
             'borderBottomSize' => 0, 'borderBottomColor' => 'FFFFFF',
-            'borderLeftSize' => 0,   'borderLeftColor'   => 'FFFFFF',
-            'borderRightSize' => 0,  'borderRightColor'  => 'FFFFFF',
+            'borderLeftSize'   => 0, 'borderLeftColor'   => 'FFFFFF',
+            'borderRightSize'  => 0, 'borderRightColor'  => 'FFFFFF',
         ];
 
-        $phpWord->addTableStyle('noBorder', [
-            'borderTopSize' => 0,    'borderTopColor'    => 'FFFFFF',
-            'borderBottomSize' => 0, 'borderBottomColor' => 'FFFFFF',
-            'borderLeftSize' => 0,   'borderLeftColor'   => 'FFFFFF',
-            'borderRightSize' => 0,  'borderRightColor'  => 'FFFFFF',
-        ]);
-
+        $phpWord->addTableStyle('noBorder', $noBorder);
         $phpWord->addTableStyle('timBorder', [
             'borderSize'  => 6,
             'borderColor' => '000000',
-            'cellMargin'  => 100,
+            'cellMargin'  => 80,
         ]);
-
         $phpWord->addParagraphStyle('hrThick', [
             'borderBottomSize'  => 18,
             'borderBottomColor' => '000000',
-            'spaceBefore'       => 30,
+            'spaceBefore'       => 20,
             'spaceAfter'        => 0,
         ]);
         $phpWord->addParagraphStyle('hrThin', [
             'borderBottomSize'  => 4,
             'borderBottomColor' => '000000',
-            'spaceBefore'       => 8,
-            'spaceAfter'        => 60,
+            'spaceBefore'       => 4,
+            'spaceAfter'        => 40,
         ]);
 
-        // ── KOP ──────────────────────────────────────────────
-        // Usable width = 21 - 3.0 - 2.5 = 15.5 cm
+        // ── Ambil setting organisasi ───────────────────────────
+        $orgNama    = app_setting('org_name',    'PEMERINTAH KABUPATEN SAMPANG');
+        $orgUnit    = app_setting('org_unit',    'INSPEKTORAT DAERAH');
+        $orgAlamat  = app_setting('org_address', 'Jalan Rajawali, No. 36 Telp/Fax (0323) 321053');
+        $orgEmail   = app_setting('org_email',   'itda@sampangkab.go.id');
+        $orgWebsite = app_setting('org_website', 'https://itkab.sampangkab.go.id');
+        $orgKota    = app_setting('org_city',    'Sampang');
+
+        // ── KOP ───────────────────────────────────────────────
         $logoPath = FCPATH . 'assets/images/logo-sampang.png';
         $hasLogo  = is_file($logoPath);
 
         $kopTbl = $section->addTable('noBorder');
-        $kopTbl->addRow($cm(3.0));
+        $kopTbl->addRow($cm(2.8));
 
         if ($hasLogo) {
-            $lc = $kopTbl->addCell($cm(2.5), $noBorder + ['valign' => 'center']);
+            $lc = $kopTbl->addCell($cm(2.6), $noBorder + ['valign' => 'center']);
             $lc->addImage($logoPath, [
                 'width'     => 65,
                 'height'    => 65,
                 'alignment' => \PhpOffice\PhpWord\SimpleType\Jc::CENTER,
             ]);
-            $tc = $kopTbl->addCell($cm(13.0), $noBorder + ['valign' => 'center']);
+            $tc = $kopTbl->addCell($cm($W - 2.6), $noBorder + ['valign' => 'center']);
         } else {
-            $tc = $kopTbl->addCell($cm(15.5), $noBorder + ['valign' => 'center']);
+            $tc = $kopTbl->addCell($cm($W), $noBorder + ['valign' => 'center']);
         }
-        $tc->addText('PEMERINTAH KABUPATEN SAMPANG', ['bold' => true, 'size' => 11], $jcC);
-        $tc->addText('INSPEKTORAT DAERAH', ['bold' => true, 'size' => 14, 'allCaps' => true], $jcC);
-        $tc->addText('Jl. Syamsul Arifin No. 1 Sampang  Telp/Fax (0323) 323456', ['size' => 9], $jcC);
-        $tc->addText('Email : inspektorat@sampangkab.go.id', ['size' => 9], $jcC);
+        $tc->addText($orgNama, ['bold' => true, 'size' => 11], $jcC);
+        $tc->addText($orgUnit, ['bold' => true, 'size' => 14], $jcC);
+        $tc->addText($orgAlamat, ['size' => 9], $jcC);
+        $tc->addText('Email : ' . $orgEmail . '   Website : ' . $orgWebsite, ['size' => 9], $jcC);
 
         $section->addText('', null, 'hrThick');
         $section->addText('', null, 'hrThin');
 
         // ── JUDUL ────────────────────────────────────────────
-        $section->addText('SURAT PERINTAH', ['bold' => true, 'size' => 14],
-            $jcC + ['spaceBefore' => 60, 'spaceAfter' => 20]);
         $section->addText(
-            'NOMOR : ' . ($spt['nomor_naskah'] ?: '....................................'),
+            'SURAT PERINTAH',
+            ['bold' => true, 'underline' => 'single', 'size' => 12],
+            $jcC + ['spaceBefore' => 80, 'spaceAfter' => 20]
+        );
+        $section->addText(
+            'NOMOR : ' . ($spt['nomor_naskah'] ?: '...............................'),
             ['size' => 12],
-            $jcC + ['spaceBefore' => 0, 'spaceAfter' => 100]
+            $jcC + ['spaceBefore' => 0, 'spaceAfter' => 120]
         );
 
-        // ── DASAR (borderless 3-col: label | : | isi) ────────
+        // ── DASAR ────────────────────────────────────────────
+        $labelW = 1.8;
+        $colonW = 0.4;
+        $isiW   = $W - $labelW - $colonW;
+
+        $dasar1 = $plain($spt['dasar_1'] ?? '');
+        $dasar2 = $plain($spt['dasar_2'] ?? '');
+
         $dtbl = $section->addTable('noBorder');
         $dtbl->addRow();
-        $dtbl->addCell($cm(1.8), $noBorder)->addText('Dasar', ['size' => 12], $jcL);
-        $dtbl->addCell($cm(0.3), $noBorder)->addText(':', ['size' => 12], $jcL);
-        // Hanging indent agar baris kedua sejajar dengan awal teks (bukan angka "1.")
-        $pDasar = ['indentation' => ['left' => 320, 'hanging' => 320]];
-        $dtbl->addCell($cm(13.4), $noBorder)->addText('1.  ' . ($spt['dasar_1'] ?? ''), ['size' => 12], $pDasar);
-        if (!empty($spt['dasar_2'])) {
-            $dtbl->addRow();
-            $dtbl->addCell($cm(1.8), $noBorder)->addText('');
-            $dtbl->addCell($cm(0.3), $noBorder)->addText('');
-            $dtbl->addCell($cm(13.4), $noBorder)->addText('2.  ' . $spt['dasar_2'], ['size' => 12], $pDasar);
+        $dtbl->addCell($cm($labelW), $noBorder)->addText('Dasar', ['size' => 12], $jcL);
+        $dtbl->addCell($cm($colonW), $noBorder)->addText(':', ['size' => 12], $jcL);
+        if (empty($dasar2)) {
+            $dtbl->addCell($cm($isiW), $noBorder)->addText($dasar1, ['size' => 12], $jcJ);
+        } else {
+            $dc = $dtbl->addCell($cm($isiW), $noBorder);
+            $hang = $jcJ + ['indentation' => ['left' => 240, 'hanging' => 240]];
+            $dc->addText('1.  ' . $dasar1, ['size' => 12], $hang);
+            $dc->addText('2.  ' . $dasar2, ['size' => 12], $hang);
         }
         $section->addTextBreak(1);
 
         // ── MEMERINTAHKAN ────────────────────────────────────
-        $section->addText('MEMERINTAHKAN :', ['bold' => true, 'underline' => 'single', 'size' => 12], $jcC);
-        $section->addTextBreak(0);
+        $section->addText(
+            'MEMERINTAHKAN',
+            ['bold' => true, 'underline' => 'single', 'size' => 12],
+            $jcC + ['spaceAfter' => 80]
+        );
 
-        // ── TABEL TIM ─────────────────────────────────────────
-        // Col widths: No=1.2 | Nama=5.0 | Jabatan=3.8 | Desk=2.75 | Field=2.75 → total=15.5cm
-        $hFont = ['bold' => true, 'size' => 11];
-        $hBg   = ['bgColor' => 'D9D9D9'];
+        // ── TABEL TIM ────────────────────────────────────────
+        // No=1.0 | Nama=5.5 | Jabatan=4.5 | Desk=2.5 | Field=2.5 → total=16.0 cm
+        $hFont = ['bold' => true, 'size' => 12];
+        $hBg   = [];
 
         $timTbl = $section->addTable('timBorder');
 
-        // Header row 1: No(rowspan 2) | Nama(rowspan 2) | Jabatan(rowspan 2) | Jumlah Hari(colspan 2)
+        // Baris header 1 (rowspan/colspan)
         $timTbl->addRow(400);
-        $timTbl->addCell($cm(1.2),  $hBg + ['vMerge' => 'restart'])->addText('No',              $hFont, $jcC);
-        $timTbl->addCell($cm(5.0),  $hBg + ['vMerge' => 'restart'])->addText('Nama / NIP',      $hFont, $jcC);
-        $timTbl->addCell($cm(3.8),  $hBg + ['vMerge' => 'restart'])->addText('Jabatan / Peran', $hFont, $jcC);
-        $timTbl->addCell($cm(5.5),  $hBg + ['gridSpan' => 2])->addText('Jumlah Hari',           $hFont, $jcC);
+        $timTbl->addCell($cm(1.0), $hBg + ['vMerge' => 'restart'])->addText('No',       $hFont, $jcC);
+        $timTbl->addCell($cm(5.5), $hBg + ['vMerge' => 'restart'])->addText('Nama',     $hFont, $jcC);
+        $timTbl->addCell($cm(4.5), $hBg + ['vMerge' => 'restart'])->addText('Jabatan',  $hFont, $jcC);
+        $timTbl->addCell($cm(5.0), $hBg + ['gridSpan' => 2])->addText('Jumlah Hari',    $hFont, $jcC);
 
-        // Header row 2: vMerge continues | On Desk | On Field
-        $timTbl->addRow(360);
-        $timTbl->addCell($cm(1.2),  $hBg + ['vMerge' => 'continue'])->addText('');
-        $timTbl->addCell($cm(5.0),  $hBg + ['vMerge' => 'continue'])->addText('');
-        $timTbl->addCell($cm(3.8),  $hBg + ['vMerge' => 'continue'])->addText('');
-        $timTbl->addCell($cm(2.75), $hBg)->addText('On Desk',  $hFont, $jcC);
-        $timTbl->addCell($cm(2.75), $hBg)->addText('On Field', $hFont, $jcC);
+        // Baris header 2
+        $timTbl->addRow(340);
+        $timTbl->addCell($cm(1.0), $hBg + ['vMerge' => 'continue'])->addText('');
+        $timTbl->addCell($cm(5.5), $hBg + ['vMerge' => 'continue'])->addText('');
+        $timTbl->addCell($cm(4.5), $hBg + ['vMerge' => 'continue'])->addText('');
+        $timTbl->addCell($cm(2.5), $hBg)->addText('On Desk',  $hFont, $jcC);
+        $timTbl->addCell($cm(2.5), $hBg)->addText('On Field', $hFont, $jcC);
 
-        $fNorm = ['size' => 11];
-        $fSub  = ['size' => 9, 'color' => '555555'];
+        $fNorm = ['size' => 12];
         foreach (($spt['tim'] ?? []) as $idx => $t) {
             $timTbl->addRow();
-            $timTbl->addCell($cm(1.2))->addText((string)($idx + 1), $fNorm, $jcC);
-            $nc = $timTbl->addCell($cm(5.0));
-            $nc->addText($t['sdm_nama'] ?? '', ['bold' => true, 'size' => 11]);
-            if (!empty($t['nip'])) $nc->addText('NIP. ' . $t['nip'], $fSub);
-            if (!empty($t['pangkat_golongan'])) $nc->addText($t['pangkat_golongan'], $fSub);
-            $timTbl->addCell($cm(3.8))->addText($t['peran_spt'] ?? '', $fNorm);
-            $timTbl->addCell($cm(2.75))->addText((string)($t['hp_desk']  ?? 0), $fNorm, $jcC);
-            $timTbl->addCell($cm(2.75))->addText((string)($t['hp_field'] ?? 0), $fNorm, $jcC);
+            $timTbl->addCell($cm(1.0))->addText((string)($idx + 1) . '.', $fNorm, $jcC);
+            $timTbl->addCell($cm(5.5))->addText($t['sdm_nama'] ?? '', $fNorm);
+            $timTbl->addCell($cm(4.5))->addText($t['peran_spt'] ?? '', $fNorm);
+            $timTbl->addCell($cm(2.5))->addText((string)($t['hp_desk']  ?? 0), $fNorm, $jcC);
+            $timTbl->addCell($cm(2.5))->addText((string)($t['hp_field'] ?? 0), $fNorm, $jcC);
         }
         $section->addTextBreak(1);
 
-        // ── UNTUK (borderless 3-col) ──────────────────────────
+        // ── UNTUK ────────────────────────────────────────────
         $tglMulai   = $spt['tanggal_mulai']   ? tgl_indo($spt['tanggal_mulai'])   : '...';
         $tglSelesai = $spt['tanggal_selesai'] ? tgl_indo($spt['tanggal_selesai']) : '...';
+        $tujuan     = $plain($spt['tujuan'] ?? '');
+        $untukIsi   = $tujuan . ' mulai tanggal ' . $tglMulai . ' s.d. ' . $tglSelesai . '.';
 
         $utbl = $section->addTable('noBorder');
         $utbl->addRow();
-        $utbl->addCell($cm(1.8), $noBorder)->addText('Untuk', ['size' => 12], $jcL);
-        $utbl->addCell($cm(0.3), $noBorder)->addText(':', ['size' => 12], $jcL);
-        $utbl->addCell($cm(13.4), $noBorder)->addText($spt['tujuan'] ?? '', ['size' => 12]);
-        $utbl->addRow();
-        $utbl->addCell($cm(1.8), $noBorder)->addText('Waktu', ['size' => 12], $jcL);
-        $utbl->addCell($cm(0.3), $noBorder)->addText(':', ['size' => 12], $jcL);
-        $utbl->addCell($cm(13.4), $noBorder)->addText($tglMulai . ' s.d. ' . $tglSelesai, ['size' => 12]);
+        $utbl->addCell($cm($labelW), $noBorder)->addText('Untuk', ['size' => 12], $jcL);
+        $utbl->addCell($cm($colonW), $noBorder)->addText(':', ['size' => 12], $jcL);
+        $utbl->addCell($cm($isiW),   $noBorder)->addText($untukIsi, ['size' => 12], $jcJ);
         $section->addTextBreak(1);
 
-        // ── PENUTUP ───────────────────────────────────────────
+        // ── PENUTUP ──────────────────────────────────────────
         $section->addText(
-            'Demikian Surat Perintah ini dibuat untuk dapat dilaksanakan dengan penuh rasa tanggung jawab.',
-            ['size' => 12]
+            'Demikian Surat Perintah ini dibuat dengan sebenarnya dan dapat dipergunakan sebagaimana mestinya.',
+            ['size' => 12],
+            $jcJ + ['spaceAfter' => 80]
         );
-        $section->addTextBreak(1);
 
-        // ── TANDA TANGAN (kanan) ──────────────────────────────
-        $tglNaskah   = $spt['tanggal_naskah']         ? tgl_indo($spt['tanggal_naskah']) : '...';
-        $jabatan     = $spt['penandatangan_jabatan']  ?? 'Inspektur Daerah';
-        $namaPenanda = $spt['penandatangan_nama']     ?? '';
-        $pangkat     = $spt['penandatangan_pangkat']  ?? '';
-        $nip         = $spt['penandatangan_nip']      ?? '';
+        // ── TANDA TANGAN ─────────────────────────────────────
+        $tglNaskah   = $spt['tanggal_naskah']        ? tgl_indo($spt['tanggal_naskah']) : '...';
+        $jabatan     = $spt['penandatangan_jabatan'] ?? 'Inspektur Daerah';
+        $namaPenanda = $spt['penandatangan_nama']    ?? '';
+        $pangkat     = $spt['penandatangan_pangkat'] ?? '';
+        $nip         = $spt['penandatangan_nip']     ?? '';
 
         $ttdTbl = $section->addTable('noBorder');
         $ttdTbl->addRow();
-        $ttdTbl->addCell($cm(8.0), $noBorder)->addText('');
+        $ttdTbl->addCell($cm(8.5), $noBorder)->addText('');
         $sig = $ttdTbl->addCell($cm(7.5), $noBorder);
-        $sig->addText('Ditetapkan di  : Sampang',        ['size' => 12], $jcL);
-        $sig->addText('Pada tanggal    : ' . $tglNaskah, ['size' => 12], $jcL);
+        $sig->addText('Ditetapkan di : ' . $orgKota,   ['size' => 12], $jcL);
+        $sig->addText('Pada tanggal  : ' . $tglNaskah, ['size' => 12], $jcL);
         $sig->addTextBreak(1);
-        $sig->addText($jabatan . ',',                    ['size' => 12], $jcC);
-        $sig->addTextBreak(3);
+        $sig->addText($jabatan,                         ['size' => 12], $jcC);
+        $sig->addTextBreak(4);
         $sig->addText($namaPenanda, ['bold' => true, 'underline' => 'single', 'size' => 12], $jcC);
-        if ($pangkat) $sig->addText($pangkat,            ['size' => 11], $jcC);
-        $sig->addText('NIP. ' . $nip,                   ['size' => 12], $jcC);
+        if ($pangkat) {
+            $sig->addText($pangkat, ['size' => 11], $jcC);
+        }
+        $sig->addText('NIP. ' . $nip, ['size' => 12], $jcC);
 
-        // ── TEMBUSAN ──────────────────────────────────────────
+        // ── TEMBUSAN ─────────────────────────────────────────
         if (!empty($spt['tembusan'])) {
             $section->addTextBreak(2);
             $section->addText('Tembusan :', ['size' => 12]);
-            foreach (preg_split('/\r?\n/', trim($spt['tembusan'])) as $idx => $line) {
+            foreach (preg_split('/\r?\n/', trim($spt['tembusan'])) as $line) {
                 if (trim($line)) {
-                    $section->addText(($idx + 1) . '. ' . trim($line), ['size' => 11]);
+                    $section->addText('Yth. ' . trim($line), ['size' => 12]);
                 }
             }
         }
 
-        // ── FOOTER ────────────────────────────────────────────
+        // ── FOOTER ───────────────────────────────────────────
         $footer = $section->addFooter();
         $footer->addText(
-            '"BERANI JUJUR ITU HEBAT — Tolak Gratifikasi, Tegakkan Integritas"',
-            ['bold' => true, 'italic' => true, 'size' => 9, 'color' => '8B0000'],
-            $jcL
+            'PEMBERI DAN PENERIMA SUAP SAMA-SAMA KENA SANKSI PIDANA',
+            ['bold' => true, 'size' => 9],
+            $jcC
         );
         $footer->addText(
-            'Dokumen ini ditandatangani secara elektronik melalui sistem BSrE BSSN dan sah tanpa tanda tangan basah.',
-            ['size' => 8, 'color' => '666666'],
-            $jcL
+            'Pasal 12 UU No.20 Tahun 2001 tentang Pemberantasan Tindak Pidana Korupsi',
+            ['size' => 9],
+            $jcC
         );
 
-        // ── SIMPAN & UNDUH ────────────────────────────────────
+        // ── SIMPAN & UNDUH ───────────────────────────────────
         if (!is_dir(WRITEPATH . 'uploads')) {
             mkdir(WRITEPATH . 'uploads', 0775, true);
         }
@@ -885,16 +968,99 @@ class SptController extends BaseController
     }
 
     // ===================================================
+    // UPLOAD LHP
+    // ===================================================
+
+    public function showUploadLhp(int $id)
+    {
+        $spt = $this->sptModel->getDetail($id);
+        if (!$spt) return redirect()->to('/admin/spt')->with('error', 'SPT tidak ditemukan.');
+        if (!$this->canAccessSpt($spt)) return redirect()->to('/admin/spt')->with('error', 'Akses ditolak.');
+
+        $db       = \Config\Database::connect();
+        $existLhp = $db->table('spt_lhp')->where('spt_id', $id)->get()->getRowArray();
+        if ($existLhp) {
+            return redirect()->to('/admin/spt/' . $id)->with('error', 'LHP untuk SPT ini sudah diupload.');
+        }
+
+        $irbanId = (int)($spt['irban_id'] ?? 0);
+        if ($irbanId && !$this->isAdmin()) {
+            if (!$this->sptModel->cekUrutanLhp($id, $irbanId)) {
+                $slot    = $this->sptModel->getInfoSlot($irbanId);
+                $pertama = $slot['list_antrian'][0] ?? null;
+                $hint    = $pertama
+                    ? ' Selesaikan dahulu LHP untuk SPT <strong>' . esc($pertama['nomor_naskah'] ?: '#' . $pertama['id']) . '</strong>.'
+                    : '';
+                return redirect()->to('/admin/spt')->with('error',
+                    'LHP harus diselesaikan secara urut sesuai tanggal SPT.' . $hint);
+            }
+        }
+
+        return view('admin/spt/upload_lhp', [
+            'title'    => 'Upload LHP — ' . ($spt['nomor_naskah'] ?: '#' . $id),
+            'spt'      => $spt,
+            'slotInfo' => $irbanId ? $this->sptModel->getInfoSlot($irbanId) : null,
+        ]);
+    }
+
+    public function storeLhp(int $id)
+    {
+        $spt = $this->sptModel->getDetail($id);
+        if (!$spt) return redirect()->to('/admin/spt')->with('error', 'SPT tidak ditemukan.');
+        if (!$this->canAccessSpt($spt)) return redirect()->to('/admin/spt')->with('error', 'Akses ditolak.');
+
+        $irbanId = (int)($spt['irban_id'] ?? 0);
+        if ($irbanId && !$this->isAdmin()) {
+            if (!$this->sptModel->cekUrutanLhp($id, $irbanId)) {
+                return redirect()->to('/admin/spt')->with('error', 'LHP harus diselesaikan secara urut.');
+            }
+        }
+
+        $rules = [
+            'nomor_lhp'   => 'required|max_length[100]',
+            'tanggal_lhp' => 'required|valid_date',
+            'file_lhp'    => 'uploaded[file_lhp]|ext_in[file_lhp,pdf,doc,docx]|max_size[file_lhp,10240]',
+        ];
+        if (!$this->validate($rules)) {
+            return redirect()->back()->withInput()
+                ->with('error', implode('<br>', $this->validator->getErrors()));
+        }
+
+        $uploadDir = WRITEPATH . 'uploads/lhp/';
+        if (!is_dir($uploadDir)) mkdir($uploadDir, 0775, true);
+
+        $file    = $this->request->getFile('file_lhp');
+        $newName = 'LHP_' . $id . '_' . time() . '.' . $file->getClientExtension();
+        $file->move($uploadDir, $newName);
+
+        $db = \Config\Database::connect();
+        $db->table('spt_lhp')->insert([
+            'spt_id'      => $id,
+            'nomor_lhp'   => $this->request->getPost('nomor_lhp'),
+            'tanggal_lhp' => $this->request->getPost('tanggal_lhp'),
+            'file_lhp'    => 'writable/uploads/lhp/' . $newName,
+            'keterangan'  => $this->request->getPost('keterangan'),
+            'created_by'  => session()->get('user_id'),
+            'created_at'  => date('Y-m-d H:i:s'),
+            'updated_at'  => date('Y-m-d H:i:s'),
+        ]);
+
+        logActivity('spt.lhp.upload', 'spt', "Upload LHP untuk SPT id={$id}");
+        return redirect()->to('/admin/spt/' . $id)
+            ->with('success', 'LHP berhasil diupload. Slot SPT tersedia kembali.');
+    }
+
+    // ===================================================
     // HELPERS
     // ===================================================
 
     private function parseTimPost(): array
     {
-        $sdmIds  = $this->request->getPost('tim_sdm_id')   ?? [];
-        $perans  = $this->request->getPost('tim_peran_spt') ?? [];
-        $desks   = $this->request->getPost('tim_hp_desk')  ?? [];
-        $fields  = $this->request->getPost('tim_hp_field') ?? [];
-        $fromPkpts = $this->request->getPost('tim_from_pkpt') ?? [];
+        $sdmIds    = $this->request->getPost('tim_sdm_id')    ?? [];
+        $perans    = $this->request->getPost('tim_peran_spt')  ?? [];
+        $desks     = $this->request->getPost('tim_hp_desk')    ?? [];
+        $fields    = $this->request->getPost('tim_hp_field')   ?? [];
+        $fromPkpts = $this->request->getPost('tim_from_pkpt')  ?? [];
 
         $result = [];
         foreach ((array)$sdmIds as $i => $sdmId) {
@@ -910,26 +1076,5 @@ class SptController extends BaseController
         }
         return $result;
     }
-
-    private function isAdmin(): bool
-    {
-        return hasRole('superadmin') || hasRole('admin') || hasPermission('spt.manage_all');
-    }
-
-    private function getUserIrbanId(int $userId): ?int
-    {
-        $sdm = $this->sdmModel->where('user_id', $userId)->first();
-        return $sdm ? (int)$sdm['irban_id'] : null;
-    }
-
-    /**
-     * Cek apakah user saat ini boleh mengakses SPT ini.
-     * Admin: semua SPT. Irban user: hanya SPT milik irbannya.
-     */
-    private function canAccessSpt(array $spt): bool
-    {
-        if ($this->isAdmin()) return true;
-        $irbanId = $this->getUserIrbanId(session()->get('user_id'));
-        return $irbanId !== null && (int)$spt['irban_id'] === $irbanId;
-    }
+    // isAdmin(), getUserIrbanId(), canAccessSpt() diwarisi dari BaseController (protected)
 }

@@ -90,7 +90,7 @@
                 </td>
                 <td>
                     <a href="/admin/spt/temuan/<?= $t['id'] ?>" class="btn btn-xs btn-primary" title="Detail"><i class="fas fa-eye"></i></a>
-                    <a href="/admin/spt/temuan/<?= $t['id'] ?>/edit" class="btn btn-xs btn-warning" title="Edit"><i class="fas fa-edit"></i></a>
+                    <a href="/admin/spt/temuan/<?= $t['id'] ?>/edit" class="btn btn-xs btn-warning" title="Edit"><i class="fas fa-pen"></i></a>
                     <button class="btn btn-xs btn-danger btn-del-temuan" data-id="<?= $t['id'] ?>" title="Hapus"><i class="fas fa-trash"></i></button>
                 </td>
             </tr>

@@ -149,35 +149,35 @@ td.no     { text-align:center; width:26px; }
             <div class="f-row">
                 <span class="f-label">Kondisi</span>
                 <span class="surat-sep">:</span>
-                <span class="f-value"><?= nl2br(esc($item['kondisi'])) ?></span>
+                <span class="f-value"><?= wysiwyg_display($item['kondisi']) ?></span>
             </div>
             <?php endif; ?>
             <?php if ($item['kriteria']): ?>
             <div class="f-row">
                 <span class="f-label">Kriteria</span>
                 <span class="surat-sep">:</span>
-                <span class="f-value"><?= nl2br(esc($item['kriteria'])) ?></span>
+                <span class="f-value"><?= wysiwyg_display($item['kriteria']) ?></span>
             </div>
             <?php endif; ?>
             <?php if ($item['sebab']): ?>
             <div class="f-row">
                 <span class="f-label">Sebab</span>
                 <span class="surat-sep">:</span>
-                <span class="f-value"><?= nl2br(esc($item['sebab'])) ?></span>
+                <span class="f-value"><?= wysiwyg_display($item['sebab']) ?></span>
             </div>
             <?php endif; ?>
             <?php if ($item['akibat']): ?>
             <div class="f-row">
                 <span class="f-label">Akibat</span>
                 <span class="surat-sep">:</span>
-                <span class="f-value"><?= nl2br(esc($item['akibat'])) ?></span>
+                <span class="f-value"><?= wysiwyg_display($item['akibat']) ?></span>
             </div>
             <?php endif; ?>
             <?php if ($item['rekomendasi']): ?>
             <div class="f-row">
                 <span class="f-label">Rekomendasi</span>
                 <span class="surat-sep">:</span>
-                <span class="f-value" style="font-weight:500"><?= nl2br(esc($item['rekomendasi'])) ?></span>
+                <span class="f-value" style="font-weight:500"><?= wysiwyg_display($item['rekomendasi']) ?></span>
             </div>
             <?php endif; ?>
             <?php if ((int)$item['nilai_temuan'] > 0): ?>
@@ -191,7 +191,7 @@ td.no     { text-align:center; width:26px; }
             <div class="f-row" style="border-top:1px dashed #ccc;padding-top:4px;margin-top:4px">
                 <span class="f-label">Tanggapan Entitas</span>
                 <span class="surat-sep">:</span>
-                <span class="f-value"><?= nl2br(esc($item['tanggapan_entitas'])) ?></span>
+                <span class="f-value"><?= wysiwyg_display($item['tanggapan_entitas']) ?></span>
             </div>
             <?php if ($item['tgl_tanggapan']): ?>
             <div class="f-row">

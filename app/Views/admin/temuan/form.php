@@ -59,7 +59,8 @@ $old        = fn($f, $def='') => old($f, $isEdit ? ($temuan[$f] ?? $def) : $def)
 
                     <div class="form-group">
                         <label>Kode Temuan (PermenpanRB 41/2011)</label>
-                        <select name="kode_temuan_id" class="form-control" id="sel-kode">
+                        <select name="kode_temuan_id" class="form-control" id="sel-kode"
+                                data-rekomen-url="/admin/master/kode-temuan">
                             <option value="">— Pilih kode temuan —</option>
                             <?php foreach($grouped as $jenis => $items): ?>
                             <optgroup label="<?= esc($jenisLabel[$jenis] ?? 'Jenis '.$jenis) ?>">
@@ -71,6 +72,18 @@ $old        = fn($f, $def='') => old($f, $isEdit ? ($temuan[$f] ?? $def) : $def)
                             </optgroup>
                             <?php endforeach; ?>
                         </select>
+                    </div>
+
+                    <!-- Panel saran rekomendasi (muncul saat kode temuan dipilih) -->
+                    <div id="panel-saran-rekom" style="display:none;margin-top:4px;margin-bottom:8px">
+                        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:10px 12px">
+                            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+                                <i class="fas fa-wand-magic-sparkles" style="color:#15803d;font-size:12px"></i>
+                                <span style="font-size:11px;font-weight:600;color:#15803d">Saran Rekomendasi otomatis</span>
+                                <span style="font-size:10px;color:#6b7280;margin-left:auto">Klik untuk menambahkan</span>
+                            </div>
+                            <div id="saran-rekom-list" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+                        </div>
                     </div>
 
                     <?php if($isEdit): ?>
@@ -130,7 +143,7 @@ $old        = fn($f, $def='') => old($f, $isEdit ? ($temuan[$f] ?? $def) : $def)
                 <div class="card-body" id="rekom-container">
                     <?php if(empty($rekomendasi)): ?>
                     <div id="rekom-placeholder" style="text-align:center;color:#94a3b8;padding:16px;font-size:13px">
-                        Klik "+ Tambah" untuk menambah rekomendasi
+                        Pilih kode temuan untuk saran otomatis,<br>atau klik "+ Tambah" untuk input manual
                     </div>
                     <?php else: ?>
                     <?php foreach($rekomendasi as $i => $r): ?>
@@ -185,14 +198,16 @@ $old        = fn($f, $def='') => old($f, $isEdit ? ($temuan[$f] ?? $def) : $def)
 <script>
 let rekomIdx = <?= max(count($rekomendasi ?? []) - 1, -1) ?>;
 
-function makeRekomRow(idx) {
+// ── Buat baris rekomendasi baru ──────────────────────────────
+function makeRekomRow(idx, prefill) {
+    const isi = prefill ? prefill.replace(/`/g, '\\`') : '';
     return `<div class="rekom-row card mb-2" style="border:1px solid #e2e8f0">
         <div class="card-body" style="padding:12px">
             <div style="display:flex;justify-content:space-between;margin-bottom:8px">
                 <strong style="font-size:12px">Rekomendasi ${idx+1}</strong>
                 <button type="button" class="btn btn-xs btn-danger btn-del-rekom"><i class="fas fa-times"></i></button>
             </div>
-            <textarea name="rekomendasi[${idx}][isi_rekomendasi]" class="form-control mb-1" rows="2" placeholder="Isi rekomendasi..."></textarea>
+            <textarea name="rekomendasi[${idx}][isi_rekomendasi]" class="form-control mb-1" rows="2" placeholder="Isi rekomendasi...">${isi}</textarea>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">
                 <div>
                     <label style="font-size:11px;margin-bottom:2px">Batas Waktu</label>
@@ -208,14 +223,87 @@ function makeRekomRow(idx) {
     </div>`;
 }
 
+// ── Tombol tambah manual ─────────────────────────────────────
 $('#btn-add-rekom').on('click', function() {
     rekomIdx++;
     $('#rekom-placeholder').remove();
-    $('#rekom-container').append(makeRekomRow(rekomIdx));
+    $('#rekom-container').append(makeRekomRow(rekomIdx, ''));
 });
 
+// ── Hapus baris ──────────────────────────────────────────────
 $(document).on('click', '.btn-del-rekom', function() {
     $(this).closest('.rekom-row').remove();
+    if ($('#rekom-container .rekom-row').length === 0) {
+        $('#rekom-container').prepend(
+            '<div id="rekom-placeholder" style="text-align:center;color:#94a3b8;padding:16px;font-size:13px">' +
+            'Pilih kode temuan untuk saran otomatis,<br>atau klik "+ Tambah" untuk input manual</div>'
+        );
+    }
 });
+
+// ── Auto-suggest rekomendasi saat kode temuan berubah ────────
+$('#sel-kode').on('change', function() {
+    const id  = $(this).val();
+    const $panel = $('#panel-saran-rekom');
+    const $list  = $('#saran-rekom-list');
+
+    if (!id) {
+        $panel.hide();
+        $list.empty();
+        return;
+    }
+
+    const url = $(this).data('rekomen-url') + '/' + id + '/rekomen';
+
+    $.ajax({
+        url: url,
+        method: 'GET',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        success: function(res) {
+            $list.empty();
+            if (!res.success || !res.data.length) {
+                $panel.hide();
+                return;
+            }
+
+            res.data.forEach(function(r) {
+                const $badge = $('<button type="button"></button>')
+                    .addClass('btn btn-xs')
+                    .css({
+                        background: '#dcfce7',
+                        color: '#166534',
+                        border: '1px solid #86efac',
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        padding: '3px 8px',
+                        cursor: 'pointer',
+                        transition: 'opacity .15s',
+                    })
+                    .html('<i class="fas fa-plus" style="margin-right:4px"></i><code style="color:inherit;font-size:10px">' + r.kode + '</code> ' + r.uraian)
+                    .on('click', function() {
+                        rekomIdx++;
+                        $('#rekom-placeholder').remove();
+                        $('#rekom-container').append(makeRekomRow(rekomIdx, r.uraian));
+                        // Tandai badge sudah dipakai
+                        $(this).css({ opacity: '0.4', pointerEvents: 'none' })
+                               .find('i').removeClass('fa-plus').addClass('fa-check');
+                    });
+                $list.append($badge);
+            });
+
+            $panel.slideDown(150);
+        },
+        error: function() {
+            $panel.hide();
+        }
+    });
+});
+
+// ── Auto-trigger jika form edit dengan kode sudah dipilih ────
+<?php if($isEdit && !empty($old('kode_temuan_id'))): ?>
+$(document).ready(function() {
+    $('#sel-kode').trigger('change');
+});
+<?php endif; ?>
 </script>
 <?= $this->endSection() ?>

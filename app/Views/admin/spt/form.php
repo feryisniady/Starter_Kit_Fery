@@ -127,24 +127,41 @@ $statusColor   = \App\Models\SptModel::$statusColor;
                     </div>
                     <div class="form-group">
                         <label>Tujuan / Untuk <span style="color:red">*</span></label>
-                        <textarea name="tujuan" class="form-control" rows="3" required><?= old('tujuan', $spt['tujuan'] ?? $kegiatan['tujuan_sasaran'] ?? '') ?></textarea>
+                        <textarea name="tujuan" class="form-control" rows="3" required
+                                  data-wysiwyg data-wysiwyg-height="90px"><?= old('tujuan', $spt['tujuan'] ?? $kegiatan['tujuan_sasaran'] ?? '') ?></textarea>
                     </div>
                     <div class="form-row-2">
                         <div class="form-group">
                             <label>Tanggal Mulai</label>
-                            <input type="date" name="tanggal_mulai" class="form-control"
+                            <input type="date" name="tanggal_mulai" id="spt-tgl-mulai" class="form-control"
                                    value="<?= old('tanggal_mulai', $spt['tanggal_mulai'] ?? $kegiatan['tanggal_mulai'] ?? '') ?>">
                         </div>
                         <div class="form-group">
-                            <label>Tanggal Selesai</label>
-                            <input type="date" name="tanggal_selesai" class="form-control"
+                            <label>Tanggal Selesai Penugasan Lap.
+                                <small style="color:#94a3b8;font-size:10px" title="Rencana selesai penugasan lapangan (bukan RPL)"><i class="fas fa-info-circle"></i></small>
+                            </label>
+                            <input type="date" name="tanggal_selesai" id="spt-tgl-selesai" class="form-control"
                                    value="<?= old('tanggal_selesai', $spt['tanggal_selesai'] ?? $kegiatan['tanggal_selesai'] ?? '') ?>">
+                        </div>
+                    </div>
+                    <!-- HP Calculator Panel -->
+                    <div id="hp-calc-panel" style="display:none;margin-top:-6px;margin-bottom:14px;padding:10px 14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:13px">
+                        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+                            <div>
+                                <i class="fas fa-calendar-check" style="color:#3b82f6;margin-right:4px"></i>
+                                <strong id="hp-calc-count" style="color:#1d4ed8;font-size:18px;margin-right:4px">0</strong>
+                                <span style="color:#475569">hari kerja</span>
+                                <small id="hp-calc-detail" style="color:#94a3b8;margin-left:6px"></small>
+                            </div>
+                            <button type="button" id="btn-terapkan-hp" class="btn btn-sm btn-primary" style="font-size:12px;white-space:nowrap">
+                                <i class="fas fa-magic"></i> Terapkan ke Tim
+                            </button>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>Tembusan (Yth.)</label>
                         <input type="text" name="tembusan" class="form-control"
-                               placeholder="DPMD Kabupaten Sampang"
+                               placeholder="Nama Pimpinan SKPD"
                                value="<?= old('tembusan', $spt['tembusan'] ?? '') ?>">
                     </div>
                     <div class="form-group">
@@ -183,7 +200,7 @@ $statusColor   = \App\Models\SptModel::$statusColor;
                                 <th style="position:sticky;top:0;z-index:2;background:#f8fafc;padding:7px 10px;border-bottom:2px solid #e2e8f0;font-weight:600;text-align:left;white-space:nowrap">Nama</th>
                                 <th style="position:sticky;top:0;z-index:2;background:#f8fafc;padding:7px 10px;border-bottom:2px solid #e2e8f0;font-weight:600;text-align:left">Peran SPT</th>
                                 <th style="position:sticky;top:0;z-index:2;background:#f8fafc;padding:7px 6px;border-bottom:2px solid #e2e8f0;font-weight:600;text-align:center;width:54px">Desk</th>
-                                <th style="position:sticky;top:0;z-index:2;background:#f8fafc;padding:7px 6px;border-bottom:2px solid #e2e8f0;font-weight:600;text-align:center;width:54px">Field</th>
+                                <th style="position:sticky;top:0;z-index:2;background:#f8fafc;padding:7px 6px;border-bottom:2px solid #e2e8f0;font-weight:600;text-align:center;width:54px" title="Auto-dihitung dari Total HP PKPT dikurangi Desk">Field <i class="fas fa-lock" style="font-size:9px;color:#94a3b8"></i></th>
                                 <th style="position:sticky;top:0;z-index:2;background:#f8fafc;border-bottom:2px solid #e2e8f0;width:32px"></th>
                             </tr>
                         </thead>
@@ -207,11 +224,23 @@ $statusColor   = \App\Models\SptModel::$statusColor;
                                     <?php endforeach; ?>
                                 </select>
                             </td>
+                            <?php
+                            // hp_total per orang dari PKPT — dipakai JS untuk auto-adjust Field
+                            $hpDesk  = (int)($t['hp_desk']  ?? 1);
+                            $hpField = (int)($t['hp_field'] ?? 0);
+                            $hpTotal = ($t['from_pkpt'] ?? 1) ? $hpDesk + $hpField : 0;
+                            ?>
                             <td style="padding:4px 6px;text-align:center">
-                                <input type="number" name="tim_hp_desk[]" class="form-control form-control-sm" value="<?= $t['hp_desk'] ?? 1 ?>" min="0" style="width:48px;text-align:center;padding:3px 4px;height:28px;font-size:12px">
+                                <input type="number" name="tim_hp_desk[]" class="form-control form-control-sm hp-desk-spt"
+                                       value="<?= $hpDesk ?>" min="0" max="<?= $hpTotal ?: 9999 ?>"
+                                       data-hp-total="<?= $hpTotal ?>"
+                                       style="width:48px;text-align:center;padding:3px 4px;height:28px;font-size:12px">
                             </td>
                             <td style="padding:4px 6px;text-align:center">
-                                <input type="number" name="tim_hp_field[]" class="form-control form-control-sm" value="<?= $t['hp_field'] ?? 0 ?>" min="0" style="width:48px;text-align:center;padding:3px 4px;height:28px;font-size:12px">
+                                <input type="number" name="tim_hp_field[]" class="form-control form-control-sm hp-field-spt"
+                                       value="<?= $hpField ?>" min="0"
+                                       <?= $hpTotal > 0 ? 'readonly title="Auto-dihitung: Total HP − Desk"' : '' ?>
+                                       style="width:48px;text-align:center;padding:3px 4px;height:28px;font-size:12px;<?= $hpTotal > 0 ? 'background:#f1f5f9;color:#64748b;cursor:not-allowed' : '' ?>">
                             </td>
                             <td style="padding:4px 6px;text-align:center">
                                 <button type="button" class="btn btn-xs btn-danger btn-del-tim" style="padding:2px 6px">
@@ -248,7 +277,7 @@ $statusColor   = \App\Models\SptModel::$statusColor;
                     <div class="mb-2"><span class="badge badge-primary"><?= esc($kegiatan['kode_kegiatan']) ?></span></div>
                     <div><strong>Area:</strong> <?= esc($kegiatan['area_pengawasan']) ?></div>
                     <div class="mt-1"><strong>Jenis:</strong> <?= esc($kegiatan['jenis_pengawasan']) ?></div>
-                    <div class="mt-1"><strong>Tujuan:</strong> <?= esc($kegiatan['tujuan_sasaran']) ?></div>
+                    <div class="mt-1"><strong>Tujuan:</strong> <?= wysiwyg_plain($kegiatan['tujuan_sasaran'], 120) ?></div>
                     <?php if(!empty($kegiatan['entitas'])): ?>
                     <div class="mt-2"><strong>Entitas:</strong>
                         <?php foreach($kegiatan['entitas'] as $e): ?>
@@ -295,8 +324,8 @@ function tambahTim() {
         <td style="padding:4px 6px;text-align:center"><button type="button" class="btn btn-xs btn-danger btn-del-tim" style="padding:2px 6px"><i class="fas fa-times"></i></button></td>
     </tr>`;
     $('#spt-tim-rows').append(row);
+    initSelect2($('#spt-tim-rows .spt-tim-row:last select.form-control'));
     updateTimSummary();
-    // Scroll to bottom after adding
     const area = document.getElementById('tim-scroll-area');
     area.scrollTop = area.scrollHeight;
 }
@@ -318,16 +347,99 @@ function updateTimSummary() {
 $(function() {
     updateTimSummary();
 
-    // Delete button (event delegation — works for existing + new rows)
+    // Delete button
     $(document).on('click', '.btn-del-tim', function() {
         $(this).closest('tr').remove();
         updateTimSummary();
     });
 
-    // Recalculate on HP input change
-    $(document).on('input', 'input[name="tim_hp_desk[]"], input[name="tim_hp_field[]"]', function() {
+    // Desk berubah → Field auto-adjust agar Desk+Field = hp_total dari PKPT
+    $(document).on('input', 'input.hp-desk-spt', function() {
+        const hpTotal = parseInt($(this).data('hp-total')) || 0;
+        if (hpTotal > 0) {
+            const desk  = Math.min(parseInt($(this).val()) || 0, hpTotal);
+            $(this).val(desk);
+            $(this).closest('tr').find('.hp-field-spt').val(hpTotal - desk);
+        }
         updateTimSummary();
     });
+
+    // Field manual (baris non-PKPT)
+    $(document).on('input', 'input.hp-field-spt:not([readonly])', function() {
+        updateTimSummary();
+    });
+
+    // ── HP Calculator ─────────────────────────────────────────────────────
+    $('#spt-tgl-mulai, #spt-tgl-selesai').on('change', function() {
+        refreshHpCalc();
+    });
+
+    $('#btn-terapkan-hp').on('click', function() {
+        const hp = parseInt($('#hp-calc-count').text()) || 0;
+        if (hp <= 0) return;
+        if (!confirm('Terapkan ' + hp + ' HP ke semua baris tim?\n(Desk = ' + hp + ', Field = 0 — sesuaikan split setelahnya)')) return;
+
+        $('#spt-tim-rows .spt-tim-row').each(function() {
+            const $desk  = $(this).find('input[name="tim_hp_desk[]"]');
+            const $field = $(this).find('input[name="tim_hp_field[]"]');
+            const hpPkpt = parseInt($desk.data('hp-total')) || 0;
+            if (hpPkpt > 0) {
+                $desk.data('hp-total', hp).attr('data-hp-total', hp).attr('max', hp);
+            }
+            $desk.val(hp);
+            $field.val(0);
+            if ($desk.hasClass('hp-desk-spt')) {
+                $desk.trigger('input');
+            }
+        });
+        updateTimSummary();
+
+        $('#btn-terapkan-hp').html('<i class="fas fa-check"></i> Diterapkan!').addClass('btn-success').removeClass('btn-primary');
+        setTimeout(function() {
+            $('#btn-terapkan-hp').html('<i class="fas fa-magic"></i> Terapkan ke Tim').addClass('btn-primary').removeClass('btn-success');
+        }, 2000);
+    });
+
+    refreshHpCalc();
 });
+
+// ── Kalkulator hari kerja (client-side, data dari server) ─────────────────
+const HARI_LIBUR_SPT = <?= json_encode($hariLibur ?? []) ?>;
+
+function hitungHariKerja(mulai, selesai) {
+    if (!mulai || !selesai) return {hp: 0, kalender: 0, libur: 0};
+    const d1 = new Date(mulai + 'T00:00:00');
+    const d2 = new Date(selesai + 'T00:00:00');
+    if (d2 < d1) return {hp: 0, kalender: 0, libur: 0};
+    let hp = 0, kalender = 0, liburNasional = 0;
+    const cur = new Date(d1);
+    while (cur <= d2) {
+        kalender++;
+        const dow = cur.getDay();
+        if (dow > 0 && dow < 6) {
+            const iso = cur.toISOString().split('T')[0];
+            if (HARI_LIBUR_SPT.includes(iso)) liburNasional++;
+            else hp++;
+        }
+        cur.setDate(cur.getDate() + 1);
+    }
+    return {hp, kalender, libur: liburNasional};
+}
+
+function refreshHpCalc() {
+    const mulai   = $('#spt-tgl-mulai').val();
+    const selesai = $('#spt-tgl-selesai').val();
+    const panel   = $('#hp-calc-panel');
+    if (!mulai || !selesai) { panel.hide(); return; }
+    const r = hitungHariKerja(mulai, selesai);
+    if (r.kalender <= 0) { panel.hide(); return; }
+    $('#hp-calc-count').text(r.hp);
+    const sabmgu = r.kalender - r.hp - r.libur;
+    let detail = r.kalender + ' hari kalender';
+    if (sabmgu > 0) detail += ' − ' + sabmgu + ' Sab/Min';
+    if (r.libur > 0) detail += ' − ' + r.libur + ' libur nasional';
+    $('#hp-calc-detail').text('(' + detail + ')');
+    panel.show();
+}
 </script>
 <?= $this->endSection() ?>
